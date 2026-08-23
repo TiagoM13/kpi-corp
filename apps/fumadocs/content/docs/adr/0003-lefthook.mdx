@@ -1,0 +1,61 @@
+---
+title: 0003 — Lefthook como único gerenciador de hooks
+description: Dois gerenciadores de git hook instalados ao mesmo tempo, nenhum funcionando.
+---
+
+**Status:** Aceita
+
+## Contexto
+
+O scaffold instalou **Husky e Lefthook simultaneamente**, ambos configurados para
+o mesmo `pre-commit`, ambos rodando Biome:
+
+- `.husky/pre-commit` → `lint-staged` → `biome check --write .`
+- `lefthook.yml` → `npm biome check --write {staged_files}`
+
+Três problemas ao mesmo tempo:
+
+1. `npm biome` não é um comando válido — `Unknown command: "biome"`. O hook do
+   Lefthook nunca funcionou.
+2. O `lint-staged` rodava `biome check --write .` com ponto: o repositório inteiro,
+   ignorando os arquivos staged que ele mesmo tinha calculado.
+3. **O repositório não era um repositório git.** Não havia `.git`, então nenhum dos
+   dois conseguia instalar hook nenhum.
+
+## Decisão
+
+**Lefthook**, sozinho. Husky removido: devDependency, diretório `.husky/`, script
+`prepare` e o bloco `lint-staged` (que só existia para o Husky).
+
+O `git init` foi executado — sem ele, hook não existe.
+
+```yaml
+pre-commit:
+  parallel: true
+  jobs:
+    - name: biome
+      glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc,css}"
+      run: npx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+```
+
+## Consequências
+
+**Instalação automática.** O `prepare` da raiz roda `lefthook install` no
+`npm install`. Ninguém precisa lembrar.
+
+**Só os arquivos staged.** `{staged_files}` de verdade, e `stage_fixed: true`
+re-adiciona o que o Biome corrigiu — o commit sai formatado sem segunda passada.
+
+**`lint-staged` deixa de existir.** Era acoplado ao Husky.
+
+**Lefthook exige git.** Fora de um repositório git, o `prepare` falha. Vale para
+CI e para containers que copiam o código sem o `.git`.
+
+## Alternativas consideradas
+
+**Ficar com Husky**, mais conhecido. Descartada: o Lefthook já estava configurado,
+roda jobs em paralelo e dispensa o `lint-staged` como intermediário.
+
+**Manter os dois.** Descartada de imediato — dois hooks fazendo o mesmo trabalho no
+mesmo evento.

@@ -1,0 +1,61 @@
+---
+title: 0004 — shadcn/ui sobre Base UI
+description: Não é Radix. Isso muda a API dos componentes.
+---
+
+**Status:** Aceita
+
+## Contexto
+
+A especificação pedia shadcn/ui + Radix UI. O `packages/ui` do projeto usa
+**Base UI** (`@base-ui/react`) — os 17 primitives existentes já importam de lá:
+
+```tsx
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
+```
+
+`npx shadcn info` confirma: `"base": "base"`, style `base-lyra`, iconLibrary
+`lucide`. Radix não está instalado.
+
+## Decisão
+
+**shadcn/ui sobre Base UI.** Radix não entra — trazer significaria duas bases de
+primitives convivendo no mesmo pacote.
+
+Componentes novos entram sempre pelo CLI, na raiz do monorepo:
+
+```bash
+npx shadcn@latest add <componente> -c packages/ui
+```
+
+## Consequências
+
+**A API difere de Radix em pontos concretos** — a maioria dos exemplos que se acha
+na internet é de Radix e não compila aqui:
+
+| | Base UI | Radix |
+| --- | --- | --- |
+| Trigger customizado | `render` | `asChild` |
+| ToggleGroup single | sem prop; `defaultValue={["x"]}` (array) | `type="single"`, `defaultValue="x"` |
+| ToggleGroup múltiplo | `multiple` | `type="multiple"` |
+| Slider | escalar | array |
+
+O `ToggleGroup` tem uma armadilha adicional: `onValueChange` devolve **array** e
+**esvazia** ao clicar no item já ativo. Sem guarda, o usuário fica sem nenhuma opção
+selecionada. Ver `RoleToggle` em `pages/login/components/role-toggle.tsx`.
+
+**Ícones são lucide.** É a `iconLibrary` configurada. Dentro de componentes shadcn
+usam `data-icon="inline-start"` ou `data-icon="inline-end"`, sem classe de tamanho —
+o componente cuida disso via CSS.
+
+**O mockup usa emoji em alguns pontos** (👑 / 👤 nas tabs, 🔑 no SSO). Na
+implementação viraram ícones lucide: emoji renderiza diferente em cada sistema
+operacional. Divergência deliberada do mockup.
+
+## Alternativas consideradas
+
+**Migrar para Radix**, seguindo a especificação. Descartada: exigiria reescrever os
+17 primitives existentes sem ganho funcional.
+
+**Radix e Base UI convivendo.** Descartada: dois sistemas de primitives, dois
+conjuntos de convenção, dois pesos no bundle.

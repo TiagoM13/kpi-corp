@@ -1,0 +1,66 @@
+---
+title: 0005 — Tema dark-only derivado do mockup
+description: O mockup não tem versão clara. Inventar uma seria design, não implementação.
+---
+
+**Status:** Aceita
+
+## Contexto
+
+O mockup em `docs/Mockup-KPICorp` é **dark-only**: existe um único conjunto de
+tokens, sem variante clara desenhada.
+
+O `packages/ui` vinha com o tema padrão do shadcn — cinza neutro, `:root` claro e
+`.dark` escuro, accent cinza. Nada a ver com o laranja `#ff5b1f` do mockup.
+
+Derivar um tema claro a partir do escuro seria trabalho de design, não de
+implementação: escolher fundos, inverter a escala de cinza e decidir como o accent
+se comporta sobre branco são decisões que ninguém tomou.
+
+## Decisão
+
+**Dark-only.** A paleta do mockup vive em `:root` e o bloco `.dark` deixou de
+existir.
+
+Valores mantidos em **hex**, iguais aos do mockup — converter para `oklch` (padrão
+do shadcn) introduz arredondamento e impede o diff direto contra a fonte.
+
+O mapeamento tem uma pegadinha que vale registrar:
+
+| shadcn | mockup | valor |
+| --- | --- | --- |
+| `--primary` | `--accent` | `#ff5b1f` |
+| `--accent` | `--bg-3` | `#1d1d21` |
+
+**`--accent` no shadcn é fundo de hover, não cor de marca.** A cor de marca do
+mockup virou `--primary`.
+
+Além dos tokens do shadcn, foram adicionados 51 tokens que ele não cobre: escala
+`--bg-1..3` / `--fg-1..3`, status `--good` / `--warn` / `--bad`, as 4 cores de
+categoria de KPI, pódio e confetti. Todos expostos no `@theme inline`, então viram
+utilitário Tailwind (`text-fg-2`, `bg-cat-presenca`).
+
+## Consequências
+
+**O mode-toggle virou no-op.** O `next-themes` continua montado e o `ThemeProvider`
+segue em `__root.tsx`, mas alternar não muda nada — os tokens não dependem mais da
+classe. O botão em si foi removido junto com o header antigo.
+
+**`@custom-variant dark` foi mantido** para que utilitários `dark:` ainda compilem,
+mesmo sem efeito prático.
+
+**Nenhum componente pode assumir tema claro.** Contraste é validado só no escuro.
+
+**`--accent-dim` não foi portado.** Era declarado e nunca usado no mockup; recriar
+seria reproduzir o lixo.
+
+**Se um tema claro for pedido**, é uma ADR nova: exige desenhar a paleta clara,
+reintroduzir `.dark` e revalidar contraste em todas as telas.
+
+## Alternativas consideradas
+
+**Derivar um tema claro.** Descartada: as cores não existem no mockup e seriam
+invenção.
+
+**Aplicar a paleta só em `.dark`, mantendo o claro do shadcn.** Descartada: deixaria
+dois modos visualmente incoerentes num produto que só tem um desenhado.

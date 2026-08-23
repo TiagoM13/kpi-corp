@@ -6,77 +6,104 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Paleta extraida do mockup em docs/Mockup-KPICorp (Claude Design).
+ * O mockup e dark-only: nao existe variante light desenhada, entao todos os
+ * tokens vivem em :root e nao ha bloco .dark. O mode-toggle continua montado,
+ * mas nao muda a aparencia.
+ * Valores mantidos em hex, iguais aos do mockup, para diff direto com a fonte.
+ */
 :root {
-	--background: oklch(1 0 0);
-	--foreground: oklch(0.145 0 0);
-	--card: oklch(1 0 0);
-	--card-foreground: oklch(0.145 0 0);
-	--popover: oklch(1 0 0);
-	--popover-foreground: oklch(0.145 0 0);
-	--primary: oklch(0.205 0 0);
-	--primary-foreground: oklch(0.985 0 0);
-	--secondary: oklch(0.97 0 0);
-	--secondary-foreground: oklch(0.205 0 0);
-	--muted: oklch(0.97 0 0);
-	--muted-foreground: oklch(0.556 0 0);
-	--accent: oklch(0.97 0 0);
-	--accent-foreground: oklch(0.205 0 0);
-	--destructive: oklch(0.58 0.22 27);
-	--border: oklch(0.922 0 0);
-	--input: oklch(0.922 0 0);
-	--ring: oklch(0.708 0 0);
-	--chart-1: oklch(0.809 0.105 251.813);
-	--chart-2: oklch(0.623 0.214 259.815);
-	--chart-3: oklch(0.546 0.245 262.881);
-	--chart-4: oklch(0.488 0.243 264.376);
-	--chart-5: oklch(0.424 0.199 265.638);
-	--radius: 0.625rem;
-	--sidebar: oklch(0.985 0 0);
-	--sidebar-foreground: oklch(0.145 0 0);
-	--sidebar-primary: oklch(0.205 0 0);
-	--sidebar-primary-foreground: oklch(0.985 0 0);
-	--sidebar-accent: oklch(0.97 0 0);
-	--sidebar-accent-foreground: oklch(0.205 0 0);
-	--sidebar-border: oklch(0.922 0 0);
-	--sidebar-ring: oklch(0.708 0 0);
-}
+	/* superficies */
+	--background: #0b0b0c;
+	--bg-1: #121214;
+	--bg-2: #17171a;
+	--bg-3: #1d1d21;
 
-.dark {
-	--background: oklch(0.145 0 0);
-	--foreground: oklch(0.985 0 0);
-	--card: oklch(0.205 0 0);
-	--card-foreground: oklch(0.985 0 0);
-	--popover: oklch(0.205 0 0);
-	--popover-foreground: oklch(0.985 0 0);
-	--primary: oklch(0.87 0 0);
-	--primary-foreground: oklch(0.205 0 0);
-	--secondary: oklch(0.269 0 0);
-	--secondary-foreground: oklch(0.985 0 0);
-	--muted: oklch(0.269 0 0);
-	--muted-foreground: oklch(0.708 0 0);
-	--accent: oklch(0.371 0 0);
-	--accent-foreground: oklch(0.985 0 0);
-	--destructive: oklch(0.704 0.191 22.216);
-	--border: oklch(1 0 0 / 10%);
-	--input: oklch(1 0 0 / 15%);
-	--ring: oklch(0.556 0 0);
-	--chart-1: oklch(0.809 0.105 251.813);
-	--chart-2: oklch(0.623 0.214 259.815);
-	--chart-3: oklch(0.546 0.245 262.881);
-	--chart-4: oklch(0.488 0.243 264.376);
-	--chart-5: oklch(0.424 0.199 265.638);
-	--sidebar: oklch(0.205 0 0);
-	--sidebar-foreground: oklch(0.985 0 0);
-	--sidebar-primary: oklch(0.488 0.243 264.376);
-	--sidebar-primary-foreground: oklch(0.985 0 0);
-	--sidebar-accent: oklch(0.269 0 0);
-	--sidebar-accent-foreground: oklch(0.985 0 0);
-	--sidebar-border: oklch(1 0 0 / 10%);
-	--sidebar-ring: oklch(0.556 0 0);
+	/* texto */
+	--foreground: #e8e8e8;
+	--fg-1: #c9c9cc;
+	--fg-2: #8a8a90;
+	--fg-3: #5a5a60;
+
+	/* bordas */
+	--border: #26262b;
+	--line-2: #2f2f35;
+
+	/* marca */
+	--primary: #ff5b1f;
+	--primary-foreground: #0b0b0c;
+	--primary-soft: color-mix(in oklab, var(--primary) 18%, transparent);
+
+	/* mapeamento shadcn — atencao: --accent no shadcn e fundo de hover,
+	   nao a cor de marca. A cor de marca do mockup virou --primary. */
+	--card: #121214;
+	--card-foreground: #e8e8e8;
+	--popover: #17171a;
+	--popover-foreground: #e8e8e8;
+	--secondary: #1d1d21;
+	--secondary-foreground: #e8e8e8;
+	--muted: #17171a;
+	--muted-foreground: #8a8a90;
+	--accent: #1d1d21;
+	--accent-foreground: #e8e8e8;
+	--destructive: #ff5b6b;
+	--destructive-foreground: #0b0b0c;
+	--input: #26262b;
+	--ring: #ff5b1f;
+
+	/* semanticas de status */
+	--good: #69d27a;
+	--warn: #ffb84d;
+	--bad: #ff5b6b;
+
+	/* categorias de KPI */
+	--cat-presenca: #6aa9ff;
+	--cat-desempenho: #ff5b1f;
+	--cat-comportamento: #69d27a;
+	--cat-iniciativa: #c97bff;
+
+	/* podio do ranking — ouro reusa a cor de marca, como no mockup */
+	--podium-gold: #ff5b1f;
+	--podium-silver: #cccccc;
+	--podium-bronze: #cd7f32;
+
+	/* confetti */
+	--confetti-1: #ff5b1f;
+	--confetti-2: #ffb84d;
+	--confetti-3: #69d27a;
+	--confetti-4: #6aa9ff;
+	--confetti-5: #c97bff;
+	--confetti-6: #ffffff;
+
+	/* graficos */
+	--chart-1: #ff5b1f;
+	--chart-2: #6aa9ff;
+	--chart-3: #69d27a;
+	--chart-4: #c97bff;
+	--chart-5: #ffb84d;
+
+	/* sidebar — o mockup usa gradiente #0a0a0c -> --background */
+	--sidebar: #0a0a0c;
+	--sidebar-foreground: #e8e8e8;
+	--sidebar-primary: #ff5b1f;
+	--sidebar-primary-foreground: #0b0b0c;
+	--sidebar-accent: #1d1d21;
+	--sidebar-accent-foreground: #e8e8e8;
+	--sidebar-border: #26262b;
+	--sidebar-ring: #ff5b1f;
+
+	/* elevacao */
+	--shadow-panel:
+		0 1px 0 rgb(255 255 255 / 0.04) inset, 0 24px 60px -20px rgb(0 0 0 / 0.6);
+
+	/* raio — 0.625rem = 10px, igual ao --r do mockup */
+	--radius: 0.625rem;
 }
 
 @theme inline {
-	--font-sans: "Inter Variable", sans-serif;
+	--font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+	--font-serif: "Instrument Serif", ui-serif, Georgia, serif;
 	--color-sidebar-ring: var(--sidebar-ring);
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -93,6 +120,7 @@
 	--color-ring: var(--ring);
 	--color-input: var(--input);
 	--color-border: var(--border);
+	--color-destructive-foreground: var(--destructive-foreground);
 	--color-destructive: var(--destructive);
 	--color-accent-foreground: var(--accent-foreground);
 	--color-accent: var(--accent);
@@ -100,6 +128,7 @@
 	--color-muted: var(--muted);
 	--color-secondary-foreground: var(--secondary-foreground);
 	--color-secondary: var(--secondary);
+	--color-primary-soft: var(--primary-soft);
 	--color-primary-foreground: var(--primary-foreground);
 	--color-primary: var(--primary);
 	--color-popover-foreground: var(--popover-foreground);
@@ -108,6 +137,40 @@
 	--color-card: var(--card);
 	--color-foreground: var(--foreground);
 	--color-background: var(--background);
+
+	/* escala de superficie e texto do mockup */
+	--color-bg-1: var(--bg-1);
+	--color-bg-2: var(--bg-2);
+	--color-bg-3: var(--bg-3);
+	--color-fg-1: var(--fg-1);
+	--color-fg-2: var(--fg-2);
+	--color-fg-3: var(--fg-3);
+	--color-line-2: var(--line-2);
+
+	/* status */
+	--color-good: var(--good);
+	--color-warn: var(--warn);
+	--color-bad: var(--bad);
+
+	/* categorias de KPI */
+	--color-cat-presenca: var(--cat-presenca);
+	--color-cat-desempenho: var(--cat-desempenho);
+	--color-cat-comportamento: var(--cat-comportamento);
+	--color-cat-iniciativa: var(--cat-iniciativa);
+
+	/* podio */
+	--color-podium-gold: var(--podium-gold);
+	--color-podium-silver: var(--podium-silver);
+	--color-podium-bronze: var(--podium-bronze);
+
+	/* confetti */
+	--color-confetti-1: var(--confetti-1);
+	--color-confetti-2: var(--confetti-2);
+	--color-confetti-3: var(--confetti-3);
+	--color-confetti-4: var(--confetti-4);
+	--color-confetti-5: var(--confetti-5);
+	--color-confetti-6: var(--confetti-6);
+
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);

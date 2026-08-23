@@ -1,0 +1,14 @@
+{
+	"title": "Decisões (ADR)",
+	"pages": [
+		"index",
+		"0001-backend-fastify-orpc",
+		"0002-biome",
+		"0003-lefthook",
+		"0004-shadcn-base-ui",
+		"0005-tema-dark-only",
+		"0006-pages-e-routes",
+		"0007-primitives-divergentes",
+		"0008-prisma-7"
+	]
+}

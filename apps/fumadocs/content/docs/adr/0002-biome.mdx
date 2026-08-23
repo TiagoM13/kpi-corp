@@ -1,0 +1,61 @@
+---
+title: 0002 — Biome no lugar de ESLint + Prettier
+description: Uma ferramenta para lint e formatação, e o custo de descobrir isso tarde.
+---
+
+**Status:** Aceita
+
+## Contexto
+
+A especificação pedia ESLint + Prettier. O scaffold veio com **Biome**, e nenhum dos
+dois pacotes está instalado no repositório.
+
+Pior: o Biome estava **quebrado desde o início**. O arquivo
+`apps/fumadocs/biome.json` era uma configuração raiz aninhada dentro de outra
+configuração raiz, e o Biome recusa isso:
+
+```
+× Found a nested root configuration, but there's already a root configuration.
+```
+
+Resultado: `biome check` saía com exit 1 no repositório inteiro. Nem `npm run check`
+nem os git hooks funcionavam. Como nunca rodou, o código nunca foi formatado — 83
+arquivos estavam fora do padrão que o próprio `biome.json` declarava.
+
+## Decisão
+
+**Biome** como única ferramenta de lint e formatação. ESLint e Prettier não entram.
+
+O `apps/fumadocs/biome.json` virou configuração aninhada legítima, com
+`"root": false` e `"extends": "//"`, mantendo apenas os domains `next` e `react`
+que só fazem sentido lá.
+
+## Consequências
+
+**Uma dependência, um comando.** `npm run lint` (leitura, para CI) e `npm run check`
+(com `--write`). Sem plugin de integração entre linter e formatter.
+
+**Formatação com tab.** É o que o `biome.json` já declarava. Como o histórico do git
+estava vazio quando isso foi corrigido, reformatar os 83 arquivos não custou nada.
+Trocar para espaços é uma linha em `biome.json` e um `npm run check`.
+
+**Extensão de editor muda.** É a do Biome, não as de ESLint e Prettier.
+
+**Regras desligadas com escopo, nunca globalmente.** Dois casos hoje:
+
+- `packages/ui/src/components/**` — `noLabelWithoutControl`,
+  `useKeyWithClickEvents` e `useSemanticElements` desligadas. São primitives
+  vendorizados do shadcn onde quem passa `htmlFor` e handlers é o consumidor;
+  o alerta é falso-positivo estrutural.
+- `apps/fumadocs/src/app/global.css` — `noImportantStyles` desligada. O
+  `!important` ali é compensação de scroll-lock e precisa vencer a cascata.
+
+**`docs/Mockup-KPICorp` fica fora do Biome.** É protótipo vendorizado do Claude
+Design. Sem o ignore, o Biome reformatava código de terceiro e acusava 129 erros
+de a11y nos 37 ícones SVG.
+
+## Alternativas consideradas
+
+**ESLint + Prettier**, como na especificação. Descartada: exigiria instalar e
+configurar duas ferramentas para substituir uma que já estava no projeto e só
+precisava de um arquivo corrigido.

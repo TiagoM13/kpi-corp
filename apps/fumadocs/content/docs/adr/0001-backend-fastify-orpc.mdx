@@ -1,0 +1,64 @@
+---
+title: 0001 — Backend em Fastify + oRPC
+description: Por que o backend não é NestJS com Swagger, e o que isso muda no dia a dia.
+---
+
+**Status:** Aceita
+
+## Contexto
+
+A especificação inicial previa NestJS com Prisma, `class-validator` e Swagger via
+`@nestjs/swagger`. O projeto foi gerado com Better-T-Stack já em Fastify + oRPC,
+e a especificação nunca foi atualizada.
+
+Manter NestJS exigiria descartar o scaffold e reescrever o backend. Manter Fastify
+exigiria admitir que boa parte da especificação de backend ficou obsoleta.
+
+## Decisão
+
+Backend em **Fastify 5 + oRPC**. A especificação está desatualizada, não o código.
+
+O router oRPC vive em `packages/api` e é montado duas vezes em `apps/server`:
+
+| Prefixo | Protocolo | Consumidor | Formato |
+| --- | --- | --- | --- |
+| `/rpc/*` | oRPC | o próprio front, via client tipado | `{"json": ...}` — preserva `Date`, `Map`, `BigInt` |
+| `/api-reference/*` | OpenAPI / REST | terceiros, curl, Postman | JSON puro |
+
+Mesmos handlers, mesma validação, dois formatos de transporte.
+
+## Consequências
+
+**O que deixa de existir.** Não há controllers, DTOs, módulos, providers nem
+injeção de dependência. Procedure oRPC com `.input()` Zod substitui controller + DTO
++ decorator de validação.
+
+**Validação e documentação saem do mesmo Zod.** Um `z.string().min(1)` vira três
+coisas: validação em runtime, tipo do client e `minLength: 1` no schema OpenAPI.
+No NestJS seriam duas fontes — o `class-validator` e o `@ApiProperty` — que
+desincronizam.
+
+**O front não faz `fetch`.** `apps/web/src/utils/orpc.ts` importa `AppRouterClient`
+e o autocomplete conhece todo procedure, input e output. Não existe contrato HTTP
+escrito à mão entre front e back.
+
+**O nome `/api-reference` é infeliz.** Não é só a página de docs — é o prefixo de
+montagem da API REST. `POST /api-reference/todo/create` é rota real. Default do
+Better-T-Stack; renomear para `/api` com a referência em `/api/docs` fica mais óbvio
+e é candidato a uma ADR futura.
+
+**Nenhum output está declarado.** Os procedures têm `.input()` mas não `.output()`.
+O TypeScript infere o retorno, então o front está coberto — mas o schema OpenAPI
+mostra `unknown` nas respostas. Consumidor externo abre o Scalar e não vê o shape.
+Resolver exige um schema de saída por procedure.
+
+**Tudo é POST.** Sem `.route({ method, path })` nos procedures, o OpenAPIHandler
+mapeia todo mundo para POST no caminho do procedure.
+
+## Alternativas consideradas
+
+**NestJS + Swagger**, como na especificação. Descartada: exigiria reescrever o
+backend gerado, e traria de volta a duplicação DTO/decorator que o Zod elimina.
+
+**Fastify puro com rotas REST à mão.** Descartada: perde a tipagem ponta a ponta,
+que é o principal ganho do oRPC.

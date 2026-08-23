@@ -1,0 +1,76 @@
+---
+title: 0006 — pages/ separado de routes/
+description: Rota é roteamento. Tela é componente. Arquivos diferentes.
+---
+
+**Status:** Aceita
+
+## Contexto
+
+O TanStack Router usa roteamento por arquivo: cada arquivo em `src/routes/` vira
+uma URL. O caminho natural é escrever a tela inteira dentro do arquivo de rota, que
+foi como a tela de login nasceu — 209 linhas misturando `createFileRoute`, layout,
+formulário e estado.
+
+Isso junta duas responsabilidades: declarar a URL e desenhar a tela.
+
+## Decisão
+
+`routes/` contém **apenas roteamento**. A tela vive em `pages/`.
+
+```
+apps/web/src/
+├── pages/
+│   └── login/
+│       ├── index.tsx                  compõe a tela
+│       └── components/
+│           ├── kpi-corp-logo.tsx
+│           ├── login-brand-panel.tsx
+│           ├── login-form.tsx
+│           └── role-toggle.tsx
+└── routes/
+    ├── __root.tsx                     providers + Outlet
+    ├── index.tsx                      redirect -> /login
+    └── login.tsx                      7 linhas
+```
+
+Um arquivo de rota completo:
+
+```tsx
+import { createFileRoute } from "@tanstack/react-router";
+
+import { LoginPage } from "@/pages/login";
+
+export const Route = createFileRoute("/login")({
+	component: LoginPage,
+});
+```
+
+## Consequências
+
+**Uma tela é uma pasta.** `pages/<tela>/index.tsx` compõe; `pages/<tela>/components/`
+guarda as partes. Componente usado por mais de uma tela sobe para
+`src/components/`; primitive de design system vai para `packages/ui`.
+
+**O estado desce até onde é usado.** Em login, o perfil selecionado vive no
+`LoginForm` — só o toggle e o label do CTA precisam dele. O `index.tsx` é
+puramente compositivo e o painel de marca nem sabe que perfil existe.
+
+**Code splitting continua funcionando.** O `autoCodeSplitting` do plugin do TanStack
+divide por rota; o chunk `login-*.js` segue separado.
+
+**Rotas sem tela ficam em `routes/`.** `__root.tsx` (providers) e `index.tsx`
+(`redirect({ to: "/login" })`) não têm componente de tela e não geram pasta em
+`pages/`.
+
+**Custo: um arquivo a mais por tela.** Aceito — o arquivo de rota é trivial e o
+ganho é conseguir ler a tela sem passar por configuração de roteamento.
+
+## Alternativas consideradas
+
+**Tela dentro do arquivo de rota**, como o TanStack sugere nos exemplos.
+Descartada: arquivos crescem misturando roteamento e UI.
+
+**Um `pages/login.tsx` só, sem pasta.** Foi o passo intermediário. Descartada
+quando a tela foi componentizada: os componentes precisavam de um lugar com escopo
+de tela, sem poluir `src/components/`.

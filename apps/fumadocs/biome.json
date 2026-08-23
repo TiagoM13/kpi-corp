@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
+	"$schema": "../../node_modules/@biomejs/biome/configuration_schema.json",
 	"root": false,
 	"extends": "//",
 	"linter": {
@@ -7,5 +7,17 @@
 			"next": "recommended",
 			"react": "recommended"
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["src/app/global.css"],
+			"linter": {
+				"rules": {
+					"complexity": {
+						"noImportantStyles": "off"
+					}
+				}
+			}
+		}
+	]
 }

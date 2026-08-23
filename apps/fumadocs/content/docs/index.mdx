@@ -1,13 +1,29 @@
 ---
-title: Hello World
-description: Your first document
+title: Documentação
+description: O que vive aqui, o que vive em outro lugar.
 ---
 
-Welcome to the docs! You can start writing documents in `/content/docs`.
+Documentação de engenharia do KPICorp: decisões, convenções e regras de domínio —
+o que o código não consegue dizer sozinho.
 
-## What is Next?
+## O que vive aqui
 
-<Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.dev" />
-</Cards>
+- **[Decisões de arquitetura (ADR)](/docs/adr)** — por que a stack é o que é, e o que
+  cada escolha custou.
+- Convenções de código — a definir.
+- Regras de domínio — a definir, quando o domínio existir.
+
+## O que **não** vive aqui
+
+| Assunto | Onde fica de verdade | Por quê |
+| --- | --- | --- |
+| Referência de endpoint | `http://localhost:3000/api-reference` | Gerada do schema Zod pelo oRPC. Escrever à mão cria uma segunda fonte de verdade. |
+| Setup do ambiente | `README.md` na raiz | É o primeiro lugar onde alguém olha. Duplicar garante divergência. |
+| Stories / backlog | `docs/stories/` | Nascem, viram código, morrem na entrega. Documentação é o que sobrevive. |
+| Mockup | `docs/Mockup-KPICorp/` | Referência visual congelada, não documentação. |
+
+## Convenção de ADR
+
+Uma decisão por arquivo, numerada e imutável. ADR não se edita para mudar de ideia —
+escreve-se um novo que substitui o anterior, e o antigo passa a `Substituída`.
+O histórico da decisão é tão útil quanto a decisão.

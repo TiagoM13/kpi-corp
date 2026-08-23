@@ -1,0 +1,36 @@
+---
+title: Visão geral
+description: Índice das decisões de arquitetura e como lê-las.
+---
+
+Cada arquivo registra **uma** decisão: o contexto em que foi tomada, a decisão em si,
+o que ela custa e o que foi descartado junto.
+
+## Índice
+
+| # | Decisão | Status |
+| --- | --- | --- |
+| [0001](/docs/adr/0001-backend-fastify-orpc) | Backend em Fastify + oRPC, sem NestJS | Aceita |
+| [0002](/docs/adr/0002-biome) | Biome no lugar de ESLint + Prettier | Aceita |
+| [0003](/docs/adr/0003-lefthook) | Lefthook como único gerenciador de git hooks | Aceita |
+| [0004](/docs/adr/0004-shadcn-base-ui) | shadcn/ui sobre Base UI, não Radix | Aceita |
+| [0005](/docs/adr/0005-tema-dark-only) | Tema dark-only derivado do mockup | Aceita |
+| [0006](/docs/adr/0006-pages-e-routes) | `pages/` separado de `routes/` | Aceita |
+| [0007](/docs/adr/0007-primitives-divergentes) | Divergir do preset lyra nas primitives | Aceita |
+| [0008](/docs/adr/0008-prisma-7) | Prisma 7 com driver adapter | Aceita |
+
+## Status possíveis
+
+- **Proposta** — em discussão, ainda não vale.
+- **Aceita** — vale hoje.
+- **Substituída** — outra ADR tomou o lugar. O arquivo continua, com link para a nova.
+- **Revogada** — deixou de valer e nada substituiu.
+
+## Como escrever uma nova
+
+Copie a estrutura de qualquer arquivo existente: `Status`, `Contexto`, `Decisão`,
+`Consequências`, `Alternativas consideradas`. Numere na sequência e registre em
+`meta.json` — a ordem da sidebar vem de lá, não do nome do arquivo.
+
+Não edite uma ADR aceita para mudar a decisão. Escreva a próxima e marque a antiga
+como `Substituída`. Perder o histórico é perder metade do valor.

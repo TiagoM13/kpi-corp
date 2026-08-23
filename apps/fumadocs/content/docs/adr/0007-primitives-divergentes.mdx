@@ -1,0 +1,75 @@
+---
+title: 0007 — Divergir do preset lyra nas primitives
+description: O preset instalado é quadrado e compacto. O mockup não é.
+---
+
+**Status:** Aceita
+
+## Contexto
+
+O `packages/ui` usa o style **`base-lyra`** do shadcn, que tem `rounded-none`
+**hardcoded** nas variants — 16 arquivos — e uma escala compacta (`h-8`, `text-xs`).
+
+O mockup é arredondado e maior:
+
+| | mockup | lyra |
+| --- | --- | --- |
+| Raio de controle | 6px (`--r-sm`) | 0 |
+| Botão | 34px | 32px |
+| Botão `lg` | 42px | 36px |
+| Input | 36px | 32px |
+| Texto | 13px | 12px |
+| Chip | pílula, 22px | quadrado, 20px |
+
+Como o raio está escrito literalmente como `rounded-none`, **ajustar `--radius` não
+resolve**. Só havia três caminhos: aceitar o visual quadrado, sobrescrever via
+`className` em cada uso, ou corrigir as primitives.
+
+## Decisão
+
+Corrigir as **primitives** em `packages/ui`. É o lugar arquiteturalmente certo:
+vale para todas as telas, presentes e futuras.
+
+Raio, mapeado na escala derivada de `--radius: 0.625rem` (10px):
+
+| Categoria | Classe | Valor |
+| --- | --- | --- |
+| Controles (button, input, toggle, field) | `rounded-sm` | 6px = `--r-sm` |
+| Superfícies (card, empty) | `rounded-lg` | 10px = `--r` |
+| Overlays (dropdown, tooltip, bubble) | `rounded-md` | 8px |
+| Badge | `rounded-full` | pílula |
+
+Alturas e tipografia alinhadas ao mockup nos três componentes que a tela de login
+usa: `button`, `input`, `badge`.
+
+## Consequências
+
+**`packages/ui` divergiu do upstream do shadcn.** Rodar
+`npx shadcn@latest add <componente> --overwrite` reverte os ajustes. Componente novo
+vem quadrado e precisa do mesmo tratamento.
+
+**Um `rounded-none` que reapareça é sinal de componente não ajustado.** Serve como
+detecção:
+
+```bash
+grep -rl 'rounded-none' packages/ui/src/components/
+```
+
+**Duas correções pontuais entraram junto**, em `field.tsx` recém-vindo do CLI:
+`==` virou `===` e `key={index}` virou `key={error.message}` — a lista já é
+deduplicada por mensagem. Também revertem num `--overwrite`.
+
+**Alturas em valor arbitrário.** `h-[34px]` e `h-[42px]` não existem na escala do
+Tailwind. É fidelidade ao mockup ao custo de sair da escala.
+
+## Alternativas consideradas
+
+**Sobrescrever por `className` em cada uso.** Descartada: cria drift — toda tela
+nova repete o override, e a primeira que esquecer fica visivelmente diferente.
+
+**Aceitar o visual quadrado do lyra.** Descartada: diverge do que foi desenhado e
+aprovado.
+
+**Trocar de style do shadcn.** Não avaliada. Seria a alternativa mais limpa se
+existisse um preset com o raio certo — vale investigar antes de adicionar muitos
+componentes novos.

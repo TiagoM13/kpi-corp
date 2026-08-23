@@ -1,0 +1,87 @@
+---
+title: 0008 — Prisma 7 com driver adapter
+description: A configuração mudou de lugar. Exemplo de Prisma 6 não funciona aqui.
+---
+
+**Status:** Aceita
+
+## Contexto
+
+A especificação descrevia Prisma v6 com o generator `prisma-client-js` e a URL do
+datasource dentro do `schema.prisma`. O projeto veio com **Prisma 7**, onde essas
+três coisas mudaram.
+
+Além disso, o diretório `prisma/migrations/0000_init/` existia **vazio** — sem
+`migration.sql`. O checklist marcava a migration inicial como feita, mas ela nunca
+tinha sido criada. Só `db:push` funcionava.
+
+## Decisão
+
+Manter **Prisma 7**, com a configuração que ele exige.
+
+```prisma
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated"
+  moduleFormat = "esm"
+  runtime      = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+```
+
+A URL **não** fica no schema — vive em `prisma.config.ts`:
+
+```ts
+export default defineConfig({
+  schema: path.join("prisma", "schema"),
+  migrations: { path: path.join("prisma", "migrations") },
+  datasource: { url: env("DATABASE_URL") },
+});
+```
+
+Conexão via driver adapter `@prisma/adapter-pg`, e schema **dividido por modelo**
+em `prisma/schema/*.prisma` — um arquivo por modelo, detectado automaticamente.
+
+A migration vazia foi removida e uma real gerada com `prisma migrate dev --name init`.
+
+## Consequências
+
+**Exemplo de Prisma 6 quebra aqui.** `datasource db { url = env("DATABASE_URL") }`
+falha: a URL já vem do `prisma.config.ts`.
+
+**`prisma-client` não é `prisma-client-js`.** O generator novo emite para
+`../generated` e é importado por caminho relativo, não de `@prisma/client`:
+
+```ts
+import { PrismaClient } from "../prisma/generated/client";
+```
+
+**Comandos rodam da raiz**, via turbo: `npm run db:migrate`, `db:push`,
+`db:generate`, `db:studio`. Não `cd packages/db && npx prisma ...`.
+
+**Modelo novo é arquivo novo** em `prisma/schema/`. Convenção estabelecida ao portar
+o domínio: `@@map` em snake_case na tabela e no enum, colunas em camelCase — igual
+ao `todo.prisma` que já existia.
+
+**FKs foram indexadas à mão.** O Postgres não indexa foreign key automaticamente e o
+Prisma não gera. Sem `@@index`, todo join vira seq scan.
+
+**A tabela `user` é palavra reservada no Postgres.** O Prisma sempre gera com aspas,
+então a aplicação funciona — mas query manual precisa de `select * from "user"`.
+
+**`npm audit` acusa 3 vulnerabilidades high** vindas de `deepmerge-ts`, transitiva
+de `@prisma/config`. É dependência do CLI, não vai para runtime. O `audit fix
+--force` faria downgrade para Prisma 6 e quebraria generator, adapter e schema
+dividido — não aplicar.
+
+## Alternativas consideradas
+
+**Downgrade para Prisma 6**, seguindo a especificação e silenciando o audit.
+Descartada: perde driver adapter e schema dividido para resolver uma
+vulnerabilidade que não alcança produção.
+
+**Manter `db:push` sem migrations.** Descartada: sem histórico de migration não há
+caminho de deploy reproduzível.
