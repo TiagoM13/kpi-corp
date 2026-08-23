@@ -1,0 +1,23 @@
+name: kpi-corp
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: kpi-corp-postgres
+    environment:
+      POSTGRES_DB: kpicorp
+      POSTGRES_USER: kpicorp
+      POSTGRES_PASSWORD: kpicorp
+    ports:
+      - "5432:5432"
+    volumes:
+      - kpi-corp_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kpicorp -d kpicorp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  kpi-corp_postgres_data:

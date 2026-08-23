@@ -1,0 +1,20 @@
+{
+	"extends": "@kpi-corp/config/tsconfig.base.json",
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
+		"rootDirs": ["."],
+		"paths": {
+			"@/*": ["./src/*"],
+			"@kpi-corp/ui/*": ["../../packages/ui/src/*"]
+		}
+	},
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.tsx",
+		"vite.config.ts",
+		"vitest.config.ts"
+	],
+	"exclude": ["node_modules", "dist"]
+}

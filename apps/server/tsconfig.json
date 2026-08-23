@@ -1,0 +1,10 @@
+{
+	"extends": "@kpi-corp/config/tsconfig.base.json",
+	"compilerOptions": {
+		"paths": {
+			"@/*": ["./src/*"]
+		}
+	},
+	"include": ["src/**/*.ts", "tsdown.config.ts"],
+	"exclude": ["node_modules", "dist"]
+}

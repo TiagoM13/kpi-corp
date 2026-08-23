@@ -1,0 +1,21 @@
+model Kpi {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  points      Int
+  category    KpiCategory
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+
+  assignments KpiAssignment[]
+
+  @@map("kpi")
+}
+
+enum KpiCategory {
+  ATTENDANCE
+  PERFORMANCE
+  BEHAVIOR
+
+  @@map("kpi_category")
+}

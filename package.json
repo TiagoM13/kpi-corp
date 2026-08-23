@@ -1,0 +1,51 @@
+{
+	"name": "kpi-corp",
+	"private": true,
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"type": "module",
+	"engines": {
+		"node": ">=24"
+	},
+	"scripts": {
+		"dev": "turbo run dev",
+		"build": "turbo run build",
+		"test": "turbo run test",
+		"check-types": "turbo run check-types",
+		"dev:web": "turbo run dev -F web --",
+		"dev:server": "turbo run dev -F server --",
+		"db:push": "turbo run db:push -F @kpi-corp/db --",
+		"db:studio": "turbo run db:studio -F @kpi-corp/db --",
+		"db:generate": "turbo run db:generate -F @kpi-corp/db --",
+		"db:migrate": "turbo run db:migrate -F @kpi-corp/db --",
+		"db:start": "turbo run db:start -F @kpi-corp/db --",
+		"db:watch": "turbo run db:watch -F @kpi-corp/db --",
+		"db:stop": "turbo run db:stop -F @kpi-corp/db --",
+		"db:down": "turbo run db:down -F @kpi-corp/db --",
+		"lint": "biome check .",
+		"check": "biome check --write .",
+		"prepare": "lefthook install"
+	},
+	"dependencies": {
+		"@kpi-corp/env": "*",
+		"dotenv": "^17.4.2",
+		"zod": "^4.4.3"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.5.8",
+		"@kpi-corp/config": "*",
+		"@types/node": "^24.13.3",
+		"lefthook": "^2.1.10",
+		"turbo": "^2.10.7",
+		"typescript": "^6.0.3"
+	},
+	"packageManager": "npm@12.0.2",
+	"allowScripts": {
+		"esbuild": true,
+		"@prisma/engines": true,
+		"prisma": true,
+		"lefthook": true
+	}
+}

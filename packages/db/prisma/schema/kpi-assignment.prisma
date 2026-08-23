@@ -1,0 +1,21 @@
+model KpiAssignment {
+  id         String   @id @default(cuid())
+  kpiId      String
+  userId     String
+  assignedBy String
+  meetingId  String?
+  note       String?
+  active     Boolean  @default(true)
+  assignedAt DateTime @default(now())
+
+  kpi      Kpi      @relation(fields: [kpiId], references: [id])
+  user     User     @relation("AssignedTo", fields: [userId], references: [id])
+  assigner User     @relation("AssignedBy", fields: [assignedBy], references: [id])
+  meeting  Meeting? @relation(fields: [meetingId], references: [id])
+
+  @@index([kpiId])
+  @@index([userId])
+  @@index([assignedBy])
+  @@index([meetingId])
+  @@map("kpi_assignment")
+}

@@ -1,0 +1,23 @@
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(MEMBER)
+  position     String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  assignedKpis KpiAssignment[]   @relation("AssignedTo")
+  assignedByMe KpiAssignment[]   @relation("AssignedBy")
+  meetings     MeetingAttendee[]
+
+  @@map("user")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+
+  @@map("role")
+}

@@ -1,0 +1,13 @@
+model Meeting {
+  id        String   @id @default(cuid())
+  title     String
+  date      DateTime
+  closed    Boolean  @default(false)
+  createdBy String
+  createdAt DateTime @default(now())
+
+  attendees   MeetingAttendee[]
+  assignments KpiAssignment[]
+
+  @@map("meeting")
+}
