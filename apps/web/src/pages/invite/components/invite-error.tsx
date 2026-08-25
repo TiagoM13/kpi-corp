@@ -6,6 +6,7 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@kpi-corp/ui/components/empty";
+import { Link } from "@tanstack/react-router";
 import {
 	CheckCircleIcon,
 	ClockAlertIcon,
@@ -38,9 +39,12 @@ export function InviteError({ status }: { status: RefusedStatus }) {
 					<EmptyDescription>{description}</EmptyDescription>
 				</EmptyHeader>
 				<EmptyContent>
-					<a href="/login" className="text-[13px] text-primary hover:underline">
+					<Link
+						to="/login"
+						className="text-[13px] text-primary hover:underline"
+					>
 						Voltar para o login
-					</a>
+					</Link>
 				</EmptyContent>
 			</Empty>
 		</section>

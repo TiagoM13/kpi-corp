@@ -1,15 +1,16 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { INVITE_ERROR } from "@/lib/invite";
 import { InviteError } from "@/pages/invite/components/invite-error";
 import { inviteSchema } from "@/pages/invite/components/invite-form";
+import { renderWithRouter } from "./render-with-router";
 
 describe("InviteError", () => {
 	it.each(["EXPIRED", "USED", "INVALID"] as const)(
 		"explica o motivo %s em vez de mandar o convidado adivinhar",
-		(status) => {
-			render(<InviteError status={status} />);
+		async (status) => {
+			await renderWithRouter(<InviteError status={status} />);
 
 			expect(screen.getByText(INVITE_ERROR[status].title)).toBeInTheDocument();
 			expect(
@@ -18,8 +19,8 @@ describe("InviteError", () => {
 		},
 	);
 
-	it("oferece caminho de volta para o login", () => {
-		render(<InviteError status="EXPIRED" />);
+	it("oferece caminho de volta para o login", async () => {
+		await renderWithRouter(<InviteError status="EXPIRED" />);
 
 		expect(screen.getByRole("link", { name: /login/i })).toHaveAttribute(
 			"href",

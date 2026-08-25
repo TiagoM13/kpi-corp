@@ -16,7 +16,7 @@ import {
 	InputGroupInput,
 } from "@kpi-corp/ui/components/input-group";
 import { Spinner } from "@kpi-corp/ui/components/spinner";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
 	AlertCircleIcon,
 	ArrowRightIcon,
@@ -110,12 +110,14 @@ export function LoginForm() {
 					<Field data-invalid={errors.password ? true : undefined}>
 						<div className="flex items-center justify-between">
 							<FieldLabel htmlFor="password">Senha</FieldLabel>
-							<a
-								href="/login"
+							{/* Recuperacao de senha ainda nao tem rota — aponta para o proprio
+							    login ate a story existir. */}
+							<Link
+								to="/login"
 								className="text-[11px] text-primary hover:underline"
 							>
 								esqueci
-							</a>
+							</Link>
 						</div>
 						<InputGroup>
 							<InputGroupInput

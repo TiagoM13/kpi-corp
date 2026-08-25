@@ -16,7 +16,7 @@ import {
 	InputGroupInput,
 } from "@kpi-corp/ui/components/input-group";
 import { Spinner } from "@kpi-corp/ui/components/spinner";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
 	AlertCircleIcon,
 	ArrowRightIcon,
@@ -210,9 +210,9 @@ export function InviteForm({ token, email }: { token: string; email: string }) {
 
 				<p className="mt-1 text-center text-[12px] text-fg-3">
 					Já tem conta?{" "}
-					<a href="/login" className="text-primary hover:underline">
+					<Link to="/login" className="text-primary hover:underline">
 						Entrar
-					</a>
+					</Link>
 				</p>
 			</form>
 		</section>
