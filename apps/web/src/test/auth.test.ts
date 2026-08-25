@@ -12,6 +12,15 @@ import { MOCK_PASSWORD } from "@/mocks/users";
 const ADMIN = "ana.souza@kpicorp.io";
 const MEMBER = "bruno.c@kpicorp.io";
 
+const SESSAO_VALIDA = {
+	userId: "u1",
+	name: "Ana Beatriz Souza",
+	email: ADMIN,
+	position: "Tech Lead",
+	role: "ADMIN",
+	hue: 14,
+};
+
 beforeEach(() => {
 	localStorage.clear();
 });
@@ -67,6 +76,19 @@ describe("sessao", () => {
 
 	it("devolve null quando o storage esta corrompido", () => {
 		localStorage.setItem("kpicorp.mock-session", "{ nao é json");
+		expect(getSession()).toBeNull();
+	});
+
+	it.each([
+		["objeto vazio", "{}"],
+		["array", "[]"],
+		["string", '"ana"'],
+		["numero", "42"],
+		["perfil desconhecido", JSON.stringify({ ...SESSAO_VALIDA, role: "ROOT" })],
+		["sem nome", JSON.stringify({ ...SESSAO_VALIDA, name: undefined })],
+		["hue como texto", JSON.stringify({ ...SESSAO_VALIDA, hue: "14" })],
+	])("devolve null quando o storage tem %s", (_caso, payload) => {
+		localStorage.setItem("kpicorp.mock-session", payload);
 		expect(getSession()).toBeNull();
 	});
 });
