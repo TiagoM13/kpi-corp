@@ -1,3 +1,4 @@
+import { Button } from "@kpi-corp/ui/components/button";
 import {
 	Table,
 	TableBody,
@@ -6,6 +7,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@kpi-corp/ui/components/table";
+import { ArrowRightIcon } from "lucide-react";
 import { Sparkline } from "@/components/sparkline";
 import type { Member } from "@/mocks/members";
 import {
@@ -16,7 +18,12 @@ import {
 	StreakBadge,
 } from "./member-cells";
 
-export function MembersTable({ members }: { members: Member[] }) {
+type MembersTableProps = {
+	members: Member[];
+	onSelect: (member: Member) => void;
+};
+
+export function MembersTable({ members, onSelect }: MembersTableProps) {
 	return (
 		<Table className="text-sm">
 			<TableHeader className="[&_th]:h-9 [&_th]:px-3 [&_th]:font-medium [&_th]:text-2xs [&_th]:text-fg-3 [&_th]:uppercase [&_th]:tracking-widest">
@@ -28,12 +35,19 @@ export function MembersTable({ members }: { members: Member[] }) {
 					<TableHead className="hidden xl:table-cell">Sequência</TableHead>
 					<TableHead className="hidden xl:table-cell">7 dias</TableHead>
 					<TableHead>Status</TableHead>
+					<TableHead>
+						<span className="sr-only">Ações</span>
+					</TableHead>
 				</TableRow>
 			</TableHeader>
 
 			<TableBody className="[&_td]:px-3 [&_td]:py-3">
 				{members.map((member) => (
-					<TableRow key={member.id}>
+					<TableRow
+						key={member.id}
+						onClick={() => onSelect(member)}
+						className="cursor-pointer"
+					>
 						<TableCell>
 							<MemberIdentity member={member} />
 						</TableCell>
@@ -68,6 +82,21 @@ export function MembersTable({ members }: { members: Member[] }) {
 
 						<TableCell>
 							<StatusBadge stagnantDays={member.stagnantDays} />
+						</TableCell>
+
+						<TableCell className="text-right">
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon-sm"
+								aria-label={`Ver perfil de ${member.name}`}
+								onClick={(event) => {
+									event.stopPropagation();
+									onSelect(member);
+								}}
+							>
+								<ArrowRightIcon />
+							</Button>
 						</TableCell>
 					</TableRow>
 				))}

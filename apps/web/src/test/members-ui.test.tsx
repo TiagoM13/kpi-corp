@@ -7,7 +7,8 @@ import {
 } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { levelOf, MOCK_MEMBERS } from "@/mocks/members";
+import { levelOf } from "@/lib/member-stats";
+import { MOCK_MEMBERS } from "@/mocks/members";
 import { AdminMembersPage } from "@/pages/admin/members";
 
 function memberRows() {
@@ -66,6 +67,50 @@ describe("AdminMembersPage", () => {
 
 		expect(await screen.findByText(/nenhum membro encontrado/i)).toBeVisible();
 		expect(screen.queryByRole("table")).not.toBeInTheDocument();
+	});
+
+	it("abre o perfil do membro clicado", async () => {
+		render(<AdminMembersPage />);
+
+		const table = screen.getByRole("table");
+		fireEvent.click(
+			within(table).getByRole("button", {
+				name: "Ver perfil de Ana Beatriz Souza",
+			}),
+		);
+
+		expect(await screen.findByText("Perfil do membro")).toBeInTheDocument();
+		expect(
+			await screen.findByRole("heading", { name: "Ana Beatriz Souza" }),
+		).toBeInTheDocument();
+		expect(screen.getByText("#1 no ranking")).toBeInTheDocument();
+	});
+
+	it("fecha o perfil pelo botão do cabeçalho do drawer", async () => {
+		render(<AdminMembersPage />);
+
+		const table = screen.getByRole("table");
+		fireEvent.click(
+			within(table).getByRole("button", {
+				name: "Ver perfil de Ana Beatriz Souza",
+			}),
+		);
+
+		const close = await screen.findByRole("button", { name: "Fechar perfil" });
+		fireEvent.click(close);
+
+		await waitFor(() =>
+			expect(screen.queryByText("Perfil do membro")).not.toBeInTheDocument(),
+		);
+	});
+
+	it("abre o convite pelo botão do cabeçalho", async () => {
+		render(<AdminMembersPage />);
+
+		fireEvent.click(screen.getByRole("button", { name: "Convidar" }));
+
+		expect(await screen.findByText("Convidar membros")).toBeInTheDocument();
+		expect(screen.getByText("Convite expira em 48h")).toBeInTheDocument();
 	});
 });
 

@@ -12,10 +12,29 @@ import {
 	InputGroupInput,
 } from "@kpi-corp/ui/components/input-group";
 import { SearchIcon, SendIcon, UsersIcon } from "lucide-react";
-import { useDeferredValue, useMemo, useState } from "react";
+import {
+	lazy,
+	Suspense,
+	useCallback,
+	useDeferredValue,
+	useMemo,
+	useState,
+} from "react";
 import { type Member, MOCK_MEMBERS } from "@/mocks/members";
 import { MemberCard } from "./components/member-card";
 import { MembersTable } from "./components/members-table";
+
+const MemberDetailDrawer = lazy(() =>
+	import("@/components/member-detail").then((module) => ({
+		default: module.MemberDetailDrawer,
+	})),
+);
+
+const InviteDialog = lazy(() =>
+	import("./components/invite-dialog").then((module) => ({
+		default: module.InviteDialog,
+	})),
+);
 
 function filterMembers(members: Member[], term: string) {
 	const query = term.trim().toLowerCase();
@@ -35,6 +54,21 @@ export function AdminMembersPage() {
 		() => filterMembers(MOCK_MEMBERS, deferredSearch),
 		[deferredSearch],
 	);
+
+	const [selected, setSelected] = useState<Member | null>(null);
+	const [detailOpen, setDetailOpen] = useState(false);
+	const [inviteLoaded, setInviteLoaded] = useState(false);
+	const [inviteOpen, setInviteOpen] = useState(false);
+
+	const openMember = useCallback((member: Member) => {
+		setSelected(member);
+		setDetailOpen(true);
+	}, []);
+
+	const openInvite = useCallback(() => {
+		setInviteLoaded(true);
+		setInviteOpen(true);
+	}, []);
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -65,7 +99,7 @@ export function AdminMembersPage() {
 						/>
 					</InputGroup>
 
-					<Button type="button">
+					<Button type="button" onClick={openInvite}>
 						<SendIcon data-icon="inline-start" />
 						Convidar
 					</Button>
@@ -89,14 +123,34 @@ export function AdminMembersPage() {
 				<div className="rounded-lg border bg-card">
 					<ul className="md:hidden">
 						{members.map((member) => (
-							<MemberCard key={member.id} member={member} />
+							<MemberCard
+								key={member.id}
+								member={member}
+								onSelect={openMember}
+							/>
 						))}
 					</ul>
 
 					<div className="hidden md:block">
-						<MembersTable members={members} />
+						<MembersTable members={members} onSelect={openMember} />
 					</div>
 				</div>
+			)}
+
+			{selected && (
+				<Suspense fallback={null}>
+					<MemberDetailDrawer
+						member={selected}
+						open={detailOpen}
+						onOpenChange={setDetailOpen}
+					/>
+				</Suspense>
+			)}
+
+			{inviteLoaded && (
+				<Suspense fallback={null}>
+					<InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} />
+				</Suspense>
 			)}
 		</div>
 	);
