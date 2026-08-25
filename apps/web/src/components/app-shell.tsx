@@ -44,15 +44,15 @@ export function AppShell({
 	const navItems = session.role === "ADMIN" ? ADMIN_NAV : MEMBER_NAV;
 
 	return (
-		<div className="grid min-h-svh grid-cols-[232px_1fr]">
+		<div className="grid min-h-svh grid-cols-shell">
 			<aside className="sticky top-0 flex h-svh flex-col border-r bg-sidebar px-3.5 py-5">
 				<div className="flex items-center gap-3 px-2 pt-1 pb-4">
 					<KpiCorpLogo className="size-6 text-primary" />
-					<div className="flex flex-col leading-[1.05]">
-						<span className="font-bold text-[15px] tracking-[-0.02em]">
+					<div className="flex flex-col">
+						<span className="font-bold text-base/tighter tracking-tight">
 							KPICorp
 						</span>
-						<span className="text-[10px] text-fg-3">Squad Produto</span>
+						<span className="text-2xs/tighter text-fg-3">Squad Produto</span>
 					</div>
 				</div>
 
@@ -62,12 +62,12 @@ export function AppShell({
 							key={to}
 							to={to}
 							activeOptions={{ exact: exact ?? false }}
-							className="relative flex items-center gap-3 rounded-sm px-2.5 py-2 text-[13px] text-fg-1 transition-colors hover:bg-muted data-[status=active]:bg-secondary data-[status=active]:font-medium data-[status=active]:text-foreground"
+							className="relative flex items-center gap-3 rounded-sm px-2.5 py-2 text-fg-1 text-sm transition-colors hover:bg-muted data-[status=active]:bg-secondary data-[status=active]:font-medium data-[status=active]:text-foreground"
 						>
 							{({ isActive }) => (
 								<>
 									{isActive && (
-										<span className="absolute top-1/2 -left-3.5 h-[18px] w-[3px] -translate-y-1/2 rounded-[2px] bg-primary" />
+										<span className="absolute top-1/2 -left-3.5 h-4.5 w-0.75 -translate-y-1/2 rounded-xs bg-primary" />
 									)}
 									<NavIcon
 										className={
@@ -85,10 +85,10 @@ export function AppShell({
 					<div className="flex items-center gap-3 rounded-sm px-2.5 py-2">
 						<UserAvatar name={session.name} hue={session.hue} />
 						<div className="flex min-w-0 flex-1 flex-col leading-tight">
-							<span className="truncate font-medium text-[12.5px]">
+							<span className="truncate font-medium text-xs">
 								{session.name}
 							</span>
-							<span className="truncate text-[10.5px] text-fg-3">
+							<span className="truncate text-2xs text-fg-3">
 								{session.role === "ADMIN"
 									? `Admin · ${session.position}`
 									: session.position}

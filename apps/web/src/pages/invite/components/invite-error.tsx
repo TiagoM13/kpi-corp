@@ -30,7 +30,7 @@ export function InviteError({ status }: { status: RefusedStatus }) {
 
 	return (
 		<section className="grid place-items-center p-6 lg:p-10">
-			<Empty className="w-full max-w-[380px] border">
+			<Empty className="w-full max-w-sm border">
 				<EmptyHeader>
 					<EmptyMedia variant="icon">
 						<Icon />
@@ -39,10 +39,7 @@ export function InviteError({ status }: { status: RefusedStatus }) {
 					<EmptyDescription>{description}</EmptyDescription>
 				</EmptyHeader>
 				<EmptyContent>
-					<Link
-						to="/login"
-						className="text-[13px] text-primary hover:underline"
-					>
+					<Link to="/login" className="text-primary text-sm hover:underline">
 						Voltar para o login
 					</Link>
 				</EmptyContent>

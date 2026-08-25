@@ -93,16 +93,16 @@ export function InviteForm({ token, email }: { token: string; email: string }) {
 			<form
 				noValidate
 				onSubmit={onSubmit}
-				className="flex w-full max-w-[380px] flex-col gap-4"
+				className="flex w-full max-w-sm flex-col gap-4"
 			>
 				<div className="flex flex-col gap-2">
-					<span className="font-medium text-[10.5px] text-fg-2 uppercase tracking-widest">
+					<span className="font-medium text-2xs text-fg-2 uppercase tracking-widest">
 						Convite
 					</span>
-					<h2 className="font-semibold text-[28px] tracking-[-0.02em]">
+					<h2 className="font-semibold text-heading tracking-tight">
 						Crie sua conta
 					</h2>
-					<p className="text-[13px] text-fg-2">
+					<p className="text-fg-2 text-sm">
 						Você foi convidado para o KPICorp. Complete o cadastro para entrar.
 					</p>
 				</div>
@@ -208,7 +208,7 @@ export function InviteForm({ token, email }: { token: string; email: string }) {
 					)}
 				</Button>
 
-				<p className="mt-1 text-center text-[12px] text-fg-3">
+				<p className="mt-1 text-center text-fg-3 text-xs">
 					Já tem conta?{" "}
 					<Link to="/login" className="text-primary hover:underline">
 						Entrar

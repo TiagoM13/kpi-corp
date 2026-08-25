@@ -21,10 +21,8 @@ export function PagePlaceholder({
 	return (
 		<div className="flex flex-col gap-6">
 			<header className="flex flex-col gap-1">
-				<h1 className="font-semibold text-[22px] tracking-[-0.02em]">
-					{title}
-				</h1>
-				<p className="text-[13px] text-fg-2">{description}</p>
+				<h1 className="font-semibold text-title tracking-tight">{title}</h1>
+				<p className="text-fg-2 text-sm">{description}</p>
 			</header>
 
 			<Empty className="border">

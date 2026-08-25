@@ -12,7 +12,7 @@ export function InvitePage({
 	validation: InviteValidation;
 }) {
 	return (
-		<div className="grid min-h-svh lg:grid-cols-[1fr_1.1fr]">
+		<div className="grid min-h-svh lg:grid-cols-auth">
 			<BrandPanel />
 			{validation.status === "VALID" ? (
 				<InviteForm token={token} email={validation.email} />
