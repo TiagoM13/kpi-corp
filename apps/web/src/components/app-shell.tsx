@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { type Session, signOut } from "@/lib/auth";
-import { KpiCorpLogo } from "@/pages/login/components/kpi-corp-logo";
+import { KpiCorpLogo } from "./kpi-corp-logo";
 import { UserAvatar } from "./user-avatar";
 
 type NavItem = {

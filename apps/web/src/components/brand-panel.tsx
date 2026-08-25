@@ -17,7 +17,7 @@ const GRAIN = {
 	backgroundSize: "4px 4px",
 } as const;
 
-export function LoginBrandPanel() {
+export function BrandPanel() {
 	return (
 		<section className="relative hidden flex-col justify-between overflow-hidden border-r p-12 lg:flex lg:px-14">
 			<div
