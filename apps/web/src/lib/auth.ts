@@ -36,8 +36,11 @@ export function signIn(email: string, password: string): Session {
 	}
 
 	const { id, ...rest } = user;
-	const session: Session = { userId: id, ...rest };
 
+	return startSession({ userId: id, ...rest });
+}
+
+export function startSession(session: Session): Session {
 	try {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 	} catch {
