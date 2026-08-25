@@ -156,6 +156,7 @@ export function InviteForm({ token, email }: { token: string; email: string }) {
 								id="invite-password"
 								type={showPassword ? "text" : "password"}
 								autoComplete="new-password"
+								placeholder="Crie uma senha"
 								aria-invalid={errors.password ? true : undefined}
 								{...register("password")}
 							/>
@@ -185,6 +186,7 @@ export function InviteForm({ token, email }: { token: string; email: string }) {
 							id="invite-password-confirmation"
 							type={showPassword ? "text" : "password"}
 							autoComplete="new-password"
+							placeholder="Repita a senha"
 							aria-invalid={errors.passwordConfirmation ? true : undefined}
 							{...register("passwordConfirmation")}
 						/>

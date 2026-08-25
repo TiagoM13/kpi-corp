@@ -124,6 +124,7 @@ export function LoginForm() {
 								id="password"
 								type={showPassword ? "text" : "password"}
 								autoComplete="current-password"
+								placeholder="Sua senha"
 								aria-invalid={errors.password ? true : undefined}
 								{...register("password")}
 							/>
