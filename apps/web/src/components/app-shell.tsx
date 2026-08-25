@@ -67,7 +67,7 @@ export function AppShell({
 							{({ isActive }) => (
 								<>
 									{isActive && (
-										<span className="absolute top-1/2 left-[-14px] h-[18px] w-[3px] -translate-y-1/2 rounded-[2px] bg-primary" />
+										<span className="absolute top-1/2 -left-3.5 h-[18px] w-[3px] -translate-y-1/2 rounded-[2px] bg-primary" />
 									)}
 									<NavIcon
 										className={
@@ -111,7 +111,7 @@ export function AppShell({
 				</div>
 			</aside>
 
-			<main className="w-full max-w-[1280px] px-10 pt-8 pb-14">{children}</main>
+			<main className="w-full max-w-7xl px-10 pt-8 pb-14">{children}</main>
 		</div>
 	);
 }

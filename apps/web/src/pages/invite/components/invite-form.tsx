@@ -96,7 +96,7 @@ export function InviteForm({ token, email }: { token: string; email: string }) {
 				className="flex w-full max-w-[380px] flex-col gap-4"
 			>
 				<div className="flex flex-col gap-2">
-					<span className="font-medium text-[10.5px] text-fg-2 uppercase tracking-[0.1em]">
+					<span className="font-medium text-[10.5px] text-fg-2 uppercase tracking-widest">
 						Convite
 					</span>
 					<h2 className="font-semibold text-[28px] tracking-[-0.02em]">

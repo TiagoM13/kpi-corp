@@ -37,7 +37,7 @@ export function BrandPanel() {
 					<span className="font-bold text-[17px] tracking-[-0.02em]">
 						KPICorp
 					</span>
-					<span className="font-medium text-[9px] text-fg-2 uppercase tracking-[0.1em]">
+					<span className="font-medium text-[9px] text-fg-2 uppercase tracking-widest">
 						v 2.4.0
 					</span>
 				</div>
