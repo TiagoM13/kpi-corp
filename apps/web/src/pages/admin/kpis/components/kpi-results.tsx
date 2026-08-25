@@ -16,10 +16,16 @@ import { KpisTable } from "./kpis-table";
 type KpiResultsProps = {
 	kpis: Kpi[];
 	view: KpiView;
+	onEdit: (kpi: Kpi) => void;
 	onClearFilters: () => void;
 };
 
-export function KpiResults({ kpis, view, onClearFilters }: KpiResultsProps) {
+export function KpiResults({
+	kpis,
+	view,
+	onEdit,
+	onClearFilters,
+}: KpiResultsProps) {
 	if (kpis.length === 0) {
 		return (
 			<Empty className="border">
@@ -44,13 +50,13 @@ export function KpiResults({ kpis, view, onClearFilters }: KpiResultsProps) {
 	if (view === "list") {
 		return (
 			<>
-				<KpiGrid kpis={kpis} className="lg:hidden" />
+				<KpiGrid kpis={kpis} onEdit={onEdit} className="lg:hidden" />
 				<div className="hidden rounded-lg border bg-card lg:block">
-					<KpisTable kpis={kpis} />
+					<KpisTable kpis={kpis} onEdit={onEdit} />
 				</div>
 			</>
 		);
 	}
 
-	return <KpiGrid kpis={kpis} />;
+	return <KpiGrid kpis={kpis} onEdit={onEdit} />;
 }

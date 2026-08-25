@@ -9,8 +9,14 @@ import {
 } from "@kpi-corp/ui/components/table";
 import { CategoryChip } from "@/components/category-chip";
 import { CATEGORY_BY_ID, type Kpi } from "@/mocks/kpis";
+import { KpiToggleButton } from "./kpi-toggle-button";
 
-export function KpisTable({ kpis }: { kpis: Kpi[] }) {
+type KpisTableProps = {
+	kpis: Kpi[];
+	onEdit: (kpi: Kpi) => void;
+};
+
+export function KpisTable({ kpis, onEdit }: KpisTableProps) {
 	return (
 		<Table className="text-sm">
 			<TableHeader className="[&_th]:h-9 [&_th]:px-3 [&_th]:font-medium [&_th]:text-2xs [&_th]:text-fg-3 [&_th]:uppercase [&_th]:tracking-widest">
@@ -20,6 +26,9 @@ export function KpisTable({ kpis }: { kpis: Kpi[] }) {
 					<TableHead className="text-right">Pontos</TableHead>
 					<TableHead className="text-right">Usos</TableHead>
 					<TableHead>Status</TableHead>
+					<TableHead>
+						<span className="sr-only">Ações</span>
+					</TableHead>
 				</TableRow>
 			</TableHeader>
 
@@ -30,11 +39,23 @@ export function KpisTable({ kpis }: { kpis: Kpi[] }) {
 					return (
 						<TableRow
 							key={kpi.id}
-							className={kpi.active ? undefined : "opacity-60"}
+							onClick={() => onEdit(kpi)}
+							className={
+								kpi.active ? "cursor-pointer" : "cursor-pointer opacity-60"
+							}
 						>
 							<TableCell className="max-w-md whitespace-normal">
-								<div className="flex flex-col leading-tight">
-									<span className="font-medium">{kpi.name}</span>
+								<div className="flex flex-col items-start leading-tight">
+									<button
+										type="button"
+										onClick={(event) => {
+											event.stopPropagation();
+											onEdit(kpi);
+										}}
+										className="text-left font-medium hover:underline"
+									>
+										{kpi.name}
+									</button>
 									<span className="text-2xs text-fg-3">{kpi.description}</span>
 								</div>
 							</TableCell>
@@ -75,6 +96,10 @@ export function KpisTable({ kpis }: { kpis: Kpi[] }) {
 										Inativo
 									</Badge>
 								)}
+							</TableCell>
+
+							<TableCell className="text-right">
+								<KpiToggleButton kpi={kpi} />
 							</TableCell>
 						</TableRow>
 					);
