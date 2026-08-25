@@ -1,6 +1,7 @@
 import { Badge } from "@kpi-corp/ui/components/badge";
 import { UserAvatar } from "@/components/user-avatar";
-import { levelOf, type Member } from "@/mocks/members";
+import { levelOf } from "@/lib/member-stats";
+import type { Member } from "@/mocks/members";
 
 const pointsFormat = new Intl.NumberFormat("pt-BR");
 
