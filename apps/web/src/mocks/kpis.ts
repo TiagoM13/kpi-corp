@@ -1,8 +1,11 @@
-export type KpiCategoryId =
-	| "presenca"
-	| "desempenho"
-	| "comportamento"
-	| "iniciativa";
+export const KPI_CATEGORY_IDS = [
+	"presenca",
+	"desempenho",
+	"comportamento",
+	"iniciativa",
+] as const;
+
+export type KpiCategoryId = (typeof KPI_CATEGORY_IDS)[number];
 
 export type KpiCategory = {
 	id: KpiCategoryId;
