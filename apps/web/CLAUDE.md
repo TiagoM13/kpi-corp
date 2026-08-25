@@ -34,7 +34,7 @@ apps/web/src/
 ├── routes/          # SÓ rotas — TanStack Router file-based, gera routeTree.gen.ts
 ├── pages/           # As telas de verdade (componentes de página)
 ├── components/      # Componentes compartilhados deste app
-├── lib/             # Lógica de domínio do cliente (auth mock)
+├── lib/             # Lógica de domínio do cliente (auth e convite mock)
 ├── mocks/           # Dados fake enquanto a API não existe
 ├── utils/orpc.ts    # Client oRPC tipado + QueryClient
 ├── test/            # setup do Vitest + testes
@@ -65,6 +65,7 @@ Motivo: a tela fica testável e reaproveitável sem depender do router, e o `rou
 | --- | --- | --- |
 | `/` | qualquer um | `homeRouteFor(role)` ou `/login` |
 | `/login` | anônimo | já logado → home do perfil |
+| `/invite/$token` | qualquer um | nenhum — o `loader` decide entre formulário e erro |
 | `/_authed/*` | logado | sem sessão → `/login` |
 | `/_authed/admin/*` | `ADMIN` | membro → `/dashboard` |
 | `/_authed/dashboard`, `/_authed/ranking` | `MEMBER` | admin → rota admin equivalente |
@@ -86,6 +87,31 @@ Invariantes que os testes (`src/test/auth.test.ts`) travam e que devem continuar
 - `getSession()` é síncrono (os guards rodam antes de qualquer render) e devolve `null` em vez de explodir quando o `localStorage` está indisponível ou corrompido.
 
 Ao trocar pelo backend real: mexer em `lib/auth.ts` e nas rotas, e apagar `mocks/users.ts`.
+
+`startSession(session)` é o único gravador da sessão. `signIn` e `acceptInvite` passam
+por ele — nada mais escreve a chave do `localStorage` direto.
+
+## Convite (mock — temporário)
+
+`src/lib/invite.ts` + `src/mocks/invites.ts`. Três tokens fixos, um por estado, e um TTL
+de 48h relativo ao carregamento do módulo (data fixa apodreceria e o convite válido
+viraria expirado sozinho).
+
+```
+/invite/convite-valido      formulário de cadastro
+/invite/convite-expirado    link expirado
+/invite/convite-usado       link já usado
+/invite/<qualquer-coisa>    link inválido
+```
+
+Regras que devem continuar valendo:
+
+- só o token válido devolve e-mail — recusa não diz para quem o link foi emitido;
+- `role: "MEMBER"` é fixado em `acceptInvite`, nunca vem do formulário;
+- o aceite queima o token em `kpicorp.mock-invites-used`; limpar o `localStorage` reseta.
+
+A conta criada **não** entra em `MOCK_USERS`: dá para navegar depois do cadastro, mas não
+dá para sair e entrar de novo por login. Some quando `invite.accept` gravar no banco.
 
 ## Dados / API
 
@@ -148,7 +174,8 @@ Variável nova **precisa** ser declarada em `packages/env/src/web.ts` (prefixo `
 
 A maior parte das telas ainda é `PagePlaceholder` (`src/components/page-placeholder.tsx`). Navegação, layout e guards funcionam; o conteúdo entra story a story.
 
-Implementado de verdade: login (`src/pages/login/`), `AppShell`, sessão mock.
+Implementado de verdade: login (`src/pages/login/`), cadastro por convite
+(`src/pages/invite/`), `AppShell`, sessão e convite mock.
 Placeholder: dashboards, KPIs, membros, ranking, modo reunião.
 
 Referência visual dos mockups: `docs/Mockup-KPICorp/` (screenshots + JSX de protótipo). Stories: `docs/stories/`.
