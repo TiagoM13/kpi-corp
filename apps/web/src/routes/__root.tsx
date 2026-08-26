@@ -9,6 +9,7 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { APP_DESCRIPTION, APP_NAME } from "@/lib/app-meta";
 import type { orpc } from "@/utils/orpc";
 
 import "../index.css";
@@ -22,19 +23,8 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 	component: RootComponent,
 	head: () => ({
 		meta: [
-			{
-				title: "kpi-corp",
-			},
-			{
-				name: "description",
-				content: "kpi-corp is a web application",
-			},
-		],
-		links: [
-			{
-				rel: "icon",
-				href: "/favicon.ico",
-			},
+			{ title: APP_NAME },
+			{ name: "description", content: APP_DESCRIPTION },
 		],
 	}),
 });
