@@ -1,5 +1,9 @@
 import { Button } from "@kpi-corp/ui/components/button";
-import { FieldError } from "@kpi-corp/ui/components/field";
+import {
+	FieldError,
+	FieldLegend,
+	FieldSet,
+} from "@kpi-corp/ui/components/field";
 import { type Control, useController } from "react-hook-form";
 import { KPI_CATEGORIES } from "@/mocks/kpis";
 import type { KpiFormValues } from "../schemas";
@@ -12,8 +16,8 @@ export function KpiCategoryField({
 	const { field, fieldState } = useController({ control, name: "category" });
 
 	return (
-		<fieldset className="flex flex-col gap-2">
-			<legend className="mb-2 font-medium text-fg-1 text-xs">Categoria</legend>
+		<FieldSet className="gap-2">
+			<FieldLegend variant="label">Categoria</FieldLegend>
 
 			<div className="grid grid-cols-2 gap-2">
 				{KPI_CATEGORIES.map((category) => {
@@ -49,6 +53,6 @@ export function KpiCategoryField({
 			</div>
 
 			{fieldState.error && <FieldError>{fieldState.error.message}</FieldError>}
-		</fieldset>
+		</FieldSet>
 	);
 }
