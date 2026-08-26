@@ -8,20 +8,25 @@ import {
 	ToggleGroupItem,
 } from "@kpi-corp/ui/components/toggle-group";
 import { LayoutGridIcon, ListIcon, SearchIcon } from "lucide-react";
+import {
+	SegmentedControl,
+	type SegmentedOption,
+} from "@/components/segmented-control";
 import type { KpiFilters, KpiStatusFilter } from "@/lib/kpi-filters";
 import { KPI_CATEGORIES, type KpiCategoryId } from "@/mocks/kpis";
 
 export type KpiView = "grid" | "list";
 
-const STATUS_OPTIONS: { value: KpiStatusFilter; label: string }[] = [
+const STATUS_OPTIONS: SegmentedOption<KpiStatusFilter>[] = [
 	{ value: "all", label: "Todos" },
 	{ value: "active", label: "Ativos" },
 	{ value: "inactive", label: "Inativos" },
 ];
 
-const SEGMENT = "rounded-sm border bg-bg-2 p-0.75";
-const SEGMENT_ITEM =
-	"text-fg-2 aria-pressed:bg-bg-3 aria-pressed:text-foreground";
+const VIEW_OPTIONS: SegmentedOption<KpiView>[] = [
+	{ value: "grid", label: <LayoutGridIcon />, srLabel: "Ver em grade" },
+	{ value: "list", label: <ListIcon />, srLabel: "Ver em lista" },
+];
 
 type KpiFiltersBarProps = {
 	filters: KpiFilters;
@@ -51,27 +56,12 @@ export function KpiFiltersBar({
 				/>
 			</InputGroup>
 
-			<div className={SEGMENT}>
-				<ToggleGroup
-					spacing={0}
-					aria-label="Filtrar por status"
-					value={[filters.status]}
-					onValueChange={(value) => {
-						const [status] = value as KpiStatusFilter[];
-						if (status) onChange({ status });
-					}}
-				>
-					{STATUS_OPTIONS.map((option) => (
-						<ToggleGroupItem
-							key={option.value}
-							value={option.value}
-							className={SEGMENT_ITEM}
-						>
-							{option.label}
-						</ToggleGroupItem>
-					))}
-				</ToggleGroup>
-			</div>
+			<SegmentedControl
+				label="Filtrar por status"
+				value={filters.status}
+				options={STATUS_OPTIONS}
+				onValueChange={(status) => onChange({ status })}
+			/>
 
 			<ToggleGroup
 				multiple
@@ -113,32 +103,13 @@ export function KpiFiltersBar({
 				})}
 			</ToggleGroup>
 
-			<div className={`${SEGMENT} hidden lg:ml-auto lg:block`}>
-				<ToggleGroup
-					spacing={0}
-					aria-label="Modo de visualização"
-					value={[view]}
-					onValueChange={(value) => {
-						const [next] = value as KpiView[];
-						if (next) onViewChange(next);
-					}}
-				>
-					<ToggleGroupItem
-						value="grid"
-						aria-label="Ver em grade"
-						className={SEGMENT_ITEM}
-					>
-						<LayoutGridIcon />
-					</ToggleGroupItem>
-					<ToggleGroupItem
-						value="list"
-						aria-label="Ver em lista"
-						className={SEGMENT_ITEM}
-					>
-						<ListIcon />
-					</ToggleGroupItem>
-				</ToggleGroup>
-			</div>
+			<SegmentedControl
+				label="Modo de visualização"
+				value={view}
+				options={VIEW_OPTIONS}
+				onValueChange={onViewChange}
+				className="hidden lg:ml-auto lg:block"
+			/>
 		</div>
 	);
 }
