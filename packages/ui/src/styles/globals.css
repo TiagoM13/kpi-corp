@@ -14,6 +14,9 @@
  * Valores mantidos em hex, iguais aos do mockup, para diff direto com a fonte.
  */
 :root {
+	/* o mockup e dark-only: sem isto, scrollbar e controles nativos saem claros */
+	color-scheme: dark;
+
 	/* superficies */
 	--background: #0b0b0c;
 	--bg-1: #121214;
@@ -191,6 +194,16 @@
 	/* entrelinha dos wordmarks empilhados (nome + legenda) */
 	--leading-tighter: 1.1;
 
+	/*
+	 * Entrada do podio do ranking. So transform — nada de animar altura, que
+	 * forcaria layout a cada quadro. `backwards` segura o estado inicial
+	 * durante o atraso do escalonamento.
+	 */
+	--animate-podium-rise: podium-rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1)
+		backwards;
+	--animate-podium-enter: podium-enter 0.45s cubic-bezier(0.2, 0.8, 0.2, 1)
+		backwards;
+
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
@@ -211,6 +224,26 @@
 /* Sidebar de largura fixa + conteudo fluido do AppShell. */
 @utility grid-cols-shell {
 	grid-template-columns: var(--sidebar-width) 1fr;
+}
+
+@keyframes podium-rise {
+	from {
+		transform: scaleY(0);
+	}
+	to {
+		transform: scaleY(1);
+	}
+}
+
+@keyframes podium-enter {
+	from {
+		opacity: 0;
+		transform: translateY(0.75rem);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 @layer base {
