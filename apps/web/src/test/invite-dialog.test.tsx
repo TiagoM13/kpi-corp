@@ -54,4 +54,26 @@ describe("InviteDialog", () => {
 
 		expect(screen.getByText("Convite expira em 48h")).toBeInTheDocument();
 	});
+
+	it("tem o botao de fechar no cabecalho", () => {
+		render(<InviteDialog open onOpenChange={() => {}} />);
+
+		expect(
+			screen.getByRole("button", { name: "Fechar convite" }),
+		).toBeInTheDocument();
+	});
+
+	it("mantem cabecalho e acoes fora da area que rola", () => {
+		render(<InviteDialog open onOpenChange={() => {}} />);
+
+		const title = screen.getByText("Convidar membros");
+		const dialog = title.closest("[data-slot=dialog-content]");
+		const scroller = dialog?.querySelector(".overflow-y-auto");
+		const submit = screen.getByRole("button", { name: "Enviar convites" });
+
+		expect(scroller).not.toBeNull();
+		expect(scroller?.contains(title)).toBe(false);
+		expect(scroller?.contains(submit)).toBe(false);
+		expect(scroller?.querySelector("textarea")).not.toBeNull();
+	});
 });

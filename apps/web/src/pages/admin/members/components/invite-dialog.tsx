@@ -2,10 +2,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@kpi-corp/ui/components/button";
 import {
 	Dialog,
+	DialogClose,
 	DialogContent,
-	DialogDescription,
 	DialogFooter,
-	DialogHeader,
 	DialogTitle,
 } from "@kpi-corp/ui/components/dialog";
 import {
@@ -16,11 +15,12 @@ import {
 } from "@kpi-corp/ui/components/field";
 import { Spinner } from "@kpi-corp/ui/components/spinner";
 import { Textarea } from "@kpi-corp/ui/components/textarea";
-import { BellIcon, SendIcon } from "lucide-react";
+import { BellIcon, SendIcon, XIcon } from "lucide-react";
 import { useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { OverlayHeader } from "@/components/overlay-header";
 import { INVITE_TTL_HOURS } from "@/mocks/invites";
 
 const EMAIL_SEPARATOR = /[\s,;]+/;
@@ -86,59 +86,82 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
 				onOpenChange(next);
 			}}
 		>
-			<DialogContent className="rounded-lg bg-bg-1 sm:max-w-lg">
-				<DialogHeader>
-					<DialogTitle className="text-base">Convidar membros</DialogTitle>
-					<DialogDescription>
-						Cada pessoa recebe um link próprio para criar a conta.
-					</DialogDescription>
-				</DialogHeader>
+			<DialogContent
+				showCloseButton={false}
+				className="flex max-h-[85svh] flex-col gap-0 overflow-hidden rounded-lg bg-bg-1 p-0 sm:max-w-lg"
+			>
+				<OverlayHeader
+					close={
+						<DialogClose
+							render={
+								<Button
+									type="button"
+									variant="outline"
+									size="icon"
+									aria-label="Fechar convite"
+								/>
+							}
+						>
+							<XIcon />
+						</DialogClose>
+					}
+				>
+					<DialogTitle className="font-semibold text-base text-foreground">
+						Convidar membros
+					</DialogTitle>
+				</OverlayHeader>
 
-				<form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
-					<FieldGroup className="gap-4">
-						<Field data-invalid={errors.emails ? true : undefined}>
-							<FieldLabel htmlFor={emailsId}>
-								E-mails (separados por vírgula ou Enter)
-							</FieldLabel>
-							<Textarea
-								id={emailsId}
-								rows={3}
-								placeholder="alguem@empresa.com, outro@empresa.com"
-								aria-invalid={errors.emails ? true : undefined}
-								{...register("emails")}
-							/>
-							{errors.emails && (
-								<FieldError>{errors.emails.message}</FieldError>
-							)}
-						</Field>
+				<form
+					noValidate
+					onSubmit={onSubmit}
+					className="flex min-h-0 flex-1 flex-col"
+				>
+					<div className="flex flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6">
+						<FieldGroup className="gap-4">
+							<Field data-invalid={errors.emails ? true : undefined}>
+								<FieldLabel htmlFor={emailsId}>
+									E-mails (separados por vírgula ou Enter)
+								</FieldLabel>
+								<Textarea
+									id={emailsId}
+									rows={3}
+									placeholder="alguem@empresa.com, outro@empresa.com"
+									aria-invalid={errors.emails ? true : undefined}
+									{...register("emails")}
+								/>
+								{errors.emails && (
+									<FieldError>{errors.emails.message}</FieldError>
+								)}
+							</Field>
 
-						<Field data-invalid={errors.message ? true : undefined}>
-							<FieldLabel htmlFor={messageId}>Mensagem (opcional)</FieldLabel>
-							<Textarea
-								id={messageId}
-								rows={3}
-								aria-invalid={errors.message ? true : undefined}
-								{...register("message")}
-							/>
-							{errors.message && (
-								<FieldError>{errors.message.message}</FieldError>
-							)}
-						</Field>
-					</FieldGroup>
+							<Field data-invalid={errors.message ? true : undefined}>
+								<FieldLabel htmlFor={messageId}>Mensagem (opcional)</FieldLabel>
+								<Textarea
+									id={messageId}
+									rows={3}
+									aria-invalid={errors.message ? true : undefined}
+									{...register("message")}
+								/>
+								{errors.message && (
+									<FieldError>{errors.message.message}</FieldError>
+								)}
+							</Field>
+						</FieldGroup>
 
-					<div className="flex items-center gap-3 rounded-sm border bg-bg-2 p-3">
-						<BellIcon className="size-4 shrink-0 text-fg-2" />
-						<div className="flex flex-col leading-tight">
-							<span className="font-medium text-xs">
-								Convite expira em {INVITE_TTL_HOURS}h
-							</span>
-							<span className="text-2xs text-fg-3">
-								Você pode reenviar a qualquer momento.
-							</span>
+						<div className="flex items-center gap-3 rounded-sm border bg-bg-2 p-3">
+							<BellIcon className="size-4 shrink-0 text-fg-2" />
+							<div className="flex flex-col leading-tight">
+								<span className="font-medium text-xs">
+									Convite expira em {INVITE_TTL_HOURS}h
+								</span>
+								<span className="text-2xs text-fg-3">
+									Você pode reenviar a qualquer momento.
+								</span>
+							</div>
 						</div>
 					</div>
 
-					<DialogFooter>
+					<DialogFooter className="shrink-0 border-t px-4 py-4 sm:px-6">
 						<Button
 							type="button"
 							variant="ghost"
