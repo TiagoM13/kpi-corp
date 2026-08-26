@@ -105,7 +105,7 @@ export function KpiEditorDialog({
 					onSubmit={onSubmit}
 					className="flex min-h-0 flex-1 flex-col"
 				>
-					<div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-6 sm:px-6">
+					<div className="flex flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 py-6 sm:px-6">
 						<FieldGroup className="gap-4">
 							<Field data-invalid={errors.name ? true : undefined}>
 								<FieldLabel htmlFor={nameId}>Nome</FieldLabel>

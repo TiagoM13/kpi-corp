@@ -192,7 +192,7 @@ export function AppShell({
 				</Sheet>
 			</header>
 
-			<main className="w-full max-w-7xl px-4 pt-6 pb-12 md:px-10 md:pt-8 md:pb-14">
+			<main className="w-full min-w-0 max-w-7xl px-4 pt-6 pb-12 md:px-10 md:pt-8 md:pb-14">
 				{children}
 			</main>
 		</div>

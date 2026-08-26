@@ -51,7 +51,7 @@ export function MemberDetailDrawer({
 					</SheetTitle>
 				</OverlayHeader>
 
-				<div className="flex-1 overflow-y-auto px-4 pt-6 pb-14 sm:px-8 sm:pt-8">
+				<div className="flex-1 overflow-y-auto overscroll-contain px-4 pt-6 pb-14 sm:px-8 sm:pt-8">
 					{member && <MemberDetail member={member} />}
 				</div>
 			</SheetContent>
