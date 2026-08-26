@@ -1,13 +1,10 @@
-import { type Activity, MOCK_ACTIVITY } from "@/mocks/activity";
 import { type Achievement, MOCK_ACHIEVEMENTS } from "@/mocks/badges";
 import {
-	CATEGORY_BY_ID,
-	KPI_BY_ID,
 	KPI_CATEGORIES,
-	type Kpi,
 	type KpiCategory,
 	type KpiCategoryId,
 } from "@/mocks/kpis";
+import { type ActivityEntry, activityOf } from "./activity-feed";
 import { overallPositionOf } from "./ranking";
 
 export type LevelProgress = {
@@ -48,33 +45,10 @@ export function rankOf(memberId: string) {
 	return overallPositionOf(memberId);
 }
 
-export type HistoryEntry = {
-	activity: Activity;
-	kpi: Kpi;
-	category: KpiCategory;
-};
-
-const HISTORY_BY_MEMBER = new Map<string, HistoryEntry[]>();
-
-for (const activity of MOCK_ACTIVITY) {
-	const kpi = KPI_BY_ID.get(activity.kpiId);
-	const category = kpi && CATEGORY_BY_ID.get(kpi.category);
-	if (!kpi || !category) continue;
-
-	const entries = HISTORY_BY_MEMBER.get(activity.memberId);
-	const entry = { activity, kpi, category };
-
-	if (entries) {
-		entries.push(entry);
-	} else {
-		HISTORY_BY_MEMBER.set(activity.memberId, [entry]);
-	}
-}
-
-const NO_HISTORY: HistoryEntry[] = [];
+export type HistoryEntry = ActivityEntry;
 
 export function historyOf(memberId: string) {
-	return HISTORY_BY_MEMBER.get(memberId) ?? NO_HISTORY;
+	return activityOf(memberId);
 }
 
 export type CategoryShare = {
