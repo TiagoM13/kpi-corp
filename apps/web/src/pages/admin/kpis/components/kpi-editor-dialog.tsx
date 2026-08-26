@@ -95,7 +95,7 @@ export function KpiEditorDialog({
 						</DialogClose>
 					}
 				>
-					<DialogTitle className="font-medium text-2xs text-fg-3 uppercase tracking-widest">
+					<DialogTitle className="font-semibold text-base text-foreground">
 						{kpi ? "Editar KPI" : "Novo KPI"}
 					</DialogTitle>
 				</OverlayHeader>
