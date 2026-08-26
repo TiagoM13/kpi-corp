@@ -8,7 +8,7 @@ import {
 	type KpiCategory,
 	type KpiCategoryId,
 } from "@/mocks/kpis";
-import { MOCK_MEMBERS } from "@/mocks/members";
+import { overallPositionOf } from "./ranking";
 
 export type LevelProgress = {
 	level: number;
@@ -44,14 +44,8 @@ export function levelOf(points: number) {
 	return levelProgress(points).level;
 }
 
-export const TEAM_SIZE = MOCK_MEMBERS.length;
-
-const RANK_BY_ID = new Map(
-	MOCK_MEMBERS.map((member, index) => [member.id, index + 1]),
-);
-
 export function rankOf(memberId: string) {
-	return RANK_BY_ID.get(memberId) ?? TEAM_SIZE;
+	return overallPositionOf(memberId);
 }
 
 export type HistoryEntry = {

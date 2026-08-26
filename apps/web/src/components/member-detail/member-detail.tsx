@@ -10,8 +10,8 @@ import {
 	levelProgress,
 	pointsByCategory,
 	rankOf,
-	TEAM_SIZE,
 } from "@/lib/member-stats";
+import { TEAM_SIZE } from "@/lib/ranking";
 import type { Member } from "@/mocks/members";
 import { AchievementGrid } from "./achievement-grid";
 import { CategoryBreakdown } from "./category-breakdown";

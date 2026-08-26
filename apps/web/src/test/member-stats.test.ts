@@ -6,8 +6,8 @@ import {
 	levelProgress,
 	pointsByCategory,
 	rankOf,
-	TEAM_SIZE,
 } from "@/lib/member-stats";
+import { TEAM_SIZE } from "@/lib/ranking";
 import { MOCK_MEMBERS } from "@/mocks/members";
 
 describe("levelProgress", () => {
