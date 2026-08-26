@@ -3,18 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>KPICorp</title>
+    <meta
+      name="description"
+      content="Reconhecimento por KPIs do time: pontue presença, desempenho, comportamento e iniciativa, e acompanhe o ranking."
+    />
+
+    <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#0b0b0c" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap"
       rel="stylesheet"
     />
-    <title>kpi-corp</title>
+
+    <!-- Pinta o fundo antes do CSS carregar: sem isto o app escuro pisca branco. -->
+    <style>
+      html {
+        background-color: #0b0b0c;
+      }
+    </style>
   </head>
 
   <body>
     <div id="app"></div>
+
+    <noscript>
+      <p style="padding: 24px; color: #e8e8e8; font-family: system-ui, sans-serif">
+        O KPICorp precisa de JavaScript para funcionar. Ative o JavaScript no
+        navegador e recarregue a página.
+      </p>
+    </noscript>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
