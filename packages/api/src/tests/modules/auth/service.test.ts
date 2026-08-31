@@ -1,0 +1,409 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import {
+	AccountDeactivatedError,
+	EmailAlreadyRegisteredError,
+	InvalidCredentialsError,
+	InvalidInvitationError,
+	InvalidRefreshTokenError,
+	InvitationAlreadyUsedError,
+	InvitationExpiredError,
+	UnauthorizedError,
+} from "../../../modules/auth/auth.errors";
+import { authService } from "../../../modules/auth/auth.service";
+import {
+	generateRefreshTokenPayload,
+	hashToken,
+	verifyRefreshToken,
+} from "../../../modules/auth/auth.tokens";
+import { hashPassword } from "../../../shared/security/password";
+
+const { repositoryMock } = vi.hoisted(() => {
+	return {
+		repositoryMock: {
+			findUserByEmail: vi.fn(),
+			findUserById: vi.fn(),
+			findInvitationByToken: vi.fn(),
+			createRefreshToken: vi.fn(),
+			findRefreshTokenById: vi.fn(),
+			revokeRefreshToken: vi.fn(),
+			revokeAllRefreshTokensForUser: vi.fn(),
+			executeRegisterTransaction: vi.fn(),
+		},
+	};
+});
+
+vi.mock("../../../modules/auth/auth.repository", () => ({
+	authRepository: repositoryMock,
+}));
+
+const mockUser = {
+	id: "b29f5637-0ab1-4de0-b2d2-d364e3903124",
+	name: "Admin",
+	email: "admin@kpicorp.com",
+	passwordHash: "",
+	role: "ADMIN" as const,
+	position: null,
+	active: true,
+	createdAt: new Date(),
+};
+
+const mockMember = {
+	id: "26a1f9b0-0dc1-4ee3-9696-d0e4434e9caf",
+	name: "Ana Souza",
+	email: "ana@kpicorp.com",
+	passwordHash: "",
+	role: "MEMBER" as const,
+	position: null,
+	active: true,
+	createdAt: new Date(),
+};
+
+const mockInvitation = {
+	id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+	email: "new@kpicorp.com",
+	token: "invite-token",
+	usedAt: null,
+	expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+	createdAt: new Date(),
+};
+
+/** Builds a refresh token together with the row that should back it. */
+async function createStoredRefreshToken(
+	overrides: {
+		tokenId?: string;
+		user?: typeof mockUser;
+		revokedAt?: Date | null;
+		expiresAt?: Date;
+	} = {},
+) {
+	const tokenId = overrides.tokenId ?? "c3d4e5f6-a7b8-9012-cdef-345678901234";
+	const user = overrides.user ?? mockUser;
+	const refreshToken = await generateRefreshTokenPayload(user, tokenId);
+
+	return {
+		tokenId,
+		refreshToken,
+		row: {
+			id: tokenId,
+			userId: user.id,
+			tokenHash: hashToken(refreshToken),
+			expiresAt:
+				overrides.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+			revokedAt: overrides.revokedAt ?? null,
+			createdAt: new Date(),
+			user,
+		},
+	};
+}
+
+describe("auth service", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		repositoryMock.createRefreshToken.mockResolvedValue({});
+		repositoryMock.revokeRefreshToken.mockResolvedValue({ count: 1 });
+		repositoryMock.revokeAllRefreshTokensForUser.mockResolvedValue({
+			count: 1,
+		});
+	});
+
+	describe("login", () => {
+		it("should return session on valid credentials", async () => {
+			mockUser.passwordHash = await hashPassword("admin123");
+			repositoryMock.findUserByEmail.mockResolvedValueOnce(mockUser);
+
+			const result = await authService.login({
+				email: mockUser.email,
+				password: "admin123",
+			});
+
+			expect(result.user.id).toBe(mockUser.id);
+			expect(result.user.email).toBe(mockUser.email);
+			expect(result.accessToken).toBeDefined();
+			expect(result.refreshToken).toBeDefined();
+		});
+
+		it("should persist the refresh token under the id carried in its payload", async () => {
+			mockUser.passwordHash = await hashPassword("admin123");
+			repositoryMock.findUserByEmail.mockResolvedValueOnce(mockUser);
+
+			const result = await authService.login({
+				email: mockUser.email,
+				password: "admin123",
+			});
+
+			const payload = await verifyRefreshToken(result.refreshToken);
+			const persisted = repositoryMock.createRefreshToken.mock.calls[0]?.[0];
+
+			// Without this the row id is a fresh uuid and refresh can never find it.
+			expect(persisted.id).toBe(payload.tokenId);
+			expect(persisted.userId).toBe(mockUser.id);
+			expect(persisted.tokenHash).toBe(hashToken(result.refreshToken));
+		});
+
+		it("should throw InvalidCredentialsError when user does not exist", async () => {
+			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
+
+			await expect(
+				authService.login({ email: "wrong@kpicorp.com", password: "admin123" }),
+			).rejects.toThrow(InvalidCredentialsError);
+		});
+
+		it("should throw InvalidCredentialsError when password does not match", async () => {
+			mockUser.passwordHash = await hashPassword("admin123");
+			repositoryMock.findUserByEmail.mockResolvedValueOnce(mockUser);
+
+			await expect(
+				authService.login({ email: mockUser.email, password: "wrongpassword" }),
+			).rejects.toThrow(InvalidCredentialsError);
+		});
+
+		it("should throw AccountDeactivatedError when user is inactive", async () => {
+			mockUser.passwordHash = await hashPassword("admin123");
+			repositoryMock.findUserByEmail.mockResolvedValueOnce({
+				...mockUser,
+				active: false,
+			});
+
+			await expect(
+				authService.login({ email: mockUser.email, password: "admin123" }),
+			).rejects.toThrow(AccountDeactivatedError);
+		});
+	});
+
+	describe("getAuthenticatedUser", () => {
+		it("should return authenticated user", async () => {
+			repositoryMock.findUserById.mockResolvedValueOnce(mockUser);
+
+			const result = await authService.getAuthenticatedUser(mockUser.id);
+
+			expect(result.id).toBe(mockUser.id);
+			expect(result.email).toBe(mockUser.email);
+			expect(result.avatar).toBeNull();
+		});
+
+		it("should throw UnauthorizedError when the user is gone", async () => {
+			repositoryMock.findUserById.mockResolvedValueOnce(null);
+
+			await expect(
+				authService.getAuthenticatedUser(mockUser.id),
+			).rejects.toThrow(UnauthorizedError);
+		});
+	});
+
+	describe("refreshSession", () => {
+		it("should rotate the session on a valid refresh token", async () => {
+			const { tokenId, refreshToken, row } = await createStoredRefreshToken();
+			repositoryMock.findRefreshTokenById.mockResolvedValueOnce(row);
+
+			const result = await authService.refreshSession(refreshToken);
+
+			expect(repositoryMock.findRefreshTokenById).toHaveBeenCalledWith(tokenId);
+			expect(repositoryMock.revokeRefreshToken).toHaveBeenCalledWith(tokenId);
+			expect(result.user.id).toBe(mockUser.id);
+			expect(result.refreshToken).not.toBe(refreshToken);
+		});
+
+		it("should reject a token whose stored hash does not match", async () => {
+			const { refreshToken, row } = await createStoredRefreshToken();
+			repositoryMock.findRefreshTokenById.mockResolvedValueOnce({
+				...row,
+				tokenHash: hashToken("some-other-token"),
+			});
+
+			await expect(authService.refreshSession(refreshToken)).rejects.toThrow(
+				InvalidRefreshTokenError,
+			);
+		});
+
+		it("should reject an unknown token id", async () => {
+			const { refreshToken } = await createStoredRefreshToken();
+			repositoryMock.findRefreshTokenById.mockResolvedValueOnce(null);
+
+			await expect(authService.refreshSession(refreshToken)).rejects.toThrow(
+				InvalidRefreshTokenError,
+			);
+		});
+
+		it("should reject an expired token", async () => {
+			const { refreshToken, row } = await createStoredRefreshToken({
+				expiresAt: new Date(Date.now() - 1000),
+			});
+			repositoryMock.findRefreshTokenById.mockResolvedValueOnce(row);
+
+			await expect(authService.refreshSession(refreshToken)).rejects.toThrow(
+				InvalidRefreshTokenError,
+			);
+		});
+
+		it("should revoke every token of the user when a rotated token is replayed", async () => {
+			const { refreshToken, row } = await createStoredRefreshToken({
+				revokedAt: new Date(),
+			});
+			repositoryMock.findRefreshTokenById.mockResolvedValueOnce(row);
+
+			await expect(authService.refreshSession(refreshToken)).rejects.toThrow(
+				InvalidRefreshTokenError,
+			);
+			expect(repositoryMock.revokeAllRefreshTokensForUser).toHaveBeenCalledWith(
+				mockUser.id,
+			);
+		});
+
+		it("should reject when a concurrent refresh already rotated the token", async () => {
+			const { refreshToken, row } = await createStoredRefreshToken();
+			repositoryMock.findRefreshTokenById.mockResolvedValueOnce(row);
+			repositoryMock.revokeRefreshToken.mockResolvedValueOnce({ count: 0 });
+
+			await expect(authService.refreshSession(refreshToken)).rejects.toThrow(
+				InvalidRefreshTokenError,
+			);
+			expect(repositoryMock.createRefreshToken).not.toHaveBeenCalled();
+		});
+
+		it("should throw AccountDeactivatedError when the user is inactive", async () => {
+			const { refreshToken, row } = await createStoredRefreshToken({
+				user: { ...mockUser, active: false },
+			});
+			repositoryMock.findRefreshTokenById.mockResolvedValueOnce(row);
+
+			await expect(authService.refreshSession(refreshToken)).rejects.toThrow(
+				AccountDeactivatedError,
+			);
+		});
+	});
+
+	describe("logout", () => {
+		it("should return success even without token", async () => {
+			const result = await authService.logout();
+
+			expect(result.success).toBe(true);
+			expect(repositoryMock.revokeRefreshToken).not.toHaveBeenCalled();
+		});
+
+		it("should revoke the stored token", async () => {
+			const { tokenId, refreshToken, row } = await createStoredRefreshToken();
+			repositoryMock.findRefreshTokenById.mockResolvedValueOnce(row);
+
+			const result = await authService.logout(refreshToken);
+
+			expect(result.success).toBe(true);
+			expect(repositoryMock.revokeRefreshToken).toHaveBeenCalledWith(tokenId);
+		});
+
+		it("should ignore a token that is not stored", async () => {
+			const { refreshToken } = await createStoredRefreshToken();
+			repositoryMock.findRefreshTokenById.mockResolvedValueOnce(null);
+
+			const result = await authService.logout(refreshToken);
+
+			expect(result.success).toBe(true);
+			expect(repositoryMock.revokeRefreshToken).not.toHaveBeenCalled();
+		});
+
+		it("should ignore a malformed token", async () => {
+			const result = await authService.logout("not-a-jwt");
+
+			expect(result.success).toBe(true);
+			expect(repositoryMock.revokeRefreshToken).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("register", () => {
+		it("should create a member from a valid invitation", async () => {
+			repositoryMock.findInvitationByToken.mockResolvedValueOnce(
+				mockInvitation,
+			);
+			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
+			repositoryMock.executeRegisterTransaction.mockResolvedValueOnce({
+				success: true,
+				user: mockMember,
+			});
+
+			const result = await authService.register({
+				token: "invite-token",
+				name: "Ana Souza",
+				password: "member123",
+			});
+
+			expect(result.user.role).toBe("MEMBER");
+			expect(result.accessToken).toBeDefined();
+			expect(result.refreshToken).toBeDefined();
+		});
+
+		it("should throw InvalidInvitationError when token does not exist", async () => {
+			repositoryMock.findInvitationByToken.mockResolvedValueOnce(null);
+
+			await expect(
+				authService.register({
+					token: "invalid",
+					name: "Ana",
+					password: "member123",
+				}),
+			).rejects.toThrow(InvalidInvitationError);
+		});
+
+		it("should throw InvitationAlreadyUsedError when invitation was consumed", async () => {
+			repositoryMock.findInvitationByToken.mockResolvedValueOnce({
+				...mockInvitation,
+				usedAt: new Date(),
+			});
+
+			await expect(
+				authService.register({
+					token: "invite-token",
+					name: "Ana",
+					password: "member123",
+				}),
+			).rejects.toThrow(InvitationAlreadyUsedError);
+		});
+
+		it("should throw InvitationExpiredError when invitation is expired", async () => {
+			repositoryMock.findInvitationByToken.mockResolvedValueOnce({
+				...mockInvitation,
+				expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+			});
+
+			await expect(
+				authService.register({
+					token: "invite-token",
+					name: "Ana",
+					password: "member123",
+				}),
+			).rejects.toThrow(InvitationExpiredError);
+		});
+
+		it("should throw EmailAlreadyRegisteredError when email exists", async () => {
+			repositoryMock.findInvitationByToken.mockResolvedValueOnce(
+				mockInvitation,
+			);
+			repositoryMock.findUserByEmail.mockResolvedValueOnce(mockMember);
+
+			await expect(
+				authService.register({
+					token: "invite-token",
+					name: "Ana",
+					password: "member123",
+				}),
+			).rejects.toThrow(EmailAlreadyRegisteredError);
+		});
+
+		it("should throw InvitationAlreadyUsedError when the claim loses the race", async () => {
+			repositoryMock.findInvitationByToken.mockResolvedValueOnce(
+				mockInvitation,
+			);
+			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
+			repositoryMock.executeRegisterTransaction.mockResolvedValueOnce({
+				success: false,
+			});
+
+			await expect(
+				authService.register({
+					token: "invite-token",
+					name: "Ana",
+					password: "member123",
+				}),
+			).rejects.toThrow(InvitationAlreadyUsedError);
+		});
+	});
+});
