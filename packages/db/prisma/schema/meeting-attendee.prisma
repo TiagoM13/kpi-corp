@@ -1,7 +1,7 @@
 model MeetingAttendee {
-  id        String @id @default(cuid())
-  meetingId String
-  userId    String
+  id        String @id @default(uuid()) @db.Uuid
+  meetingId String @db.Uuid
+  userId    String @db.Uuid
 
   meeting Meeting @relation(fields: [meetingId], references: [id])
   user    User    @relation(fields: [userId], references: [id])
