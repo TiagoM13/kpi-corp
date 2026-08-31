@@ -1,6 +1,6 @@
 import fastifyCors from "@fastify/cors";
-import { createContext } from "@kpi-corp/api/context";
 import { appRouter } from "@kpi-corp/api/routers/index";
+import { createContext } from "@kpi-corp/api/shared/context";
 import { env } from "@kpi-corp/env/server";
 import { OpenAPIHandler } from "@orpc/openapi/fastify";
 import { OpenAPIReferencePlugin } from "@orpc/openapi/plugins";
