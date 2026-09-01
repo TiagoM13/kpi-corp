@@ -61,6 +61,7 @@ A referência navegável fica em `http://localhost:3000/api-reference`.
 | --- | --- |
 | **Auth** | login (admin e member), me, refresh, register, logout |
 | **Members (1.6)** | listar, detalhe, convidar em lote, desativar, reativar |
+| **KPIs (2A)** | listar, criar, buscar, editar, desativar, reativar |
 | **Autorizacao (1.5)** | os casos de 401 e 403 |
 
 **Cada pasta se autentica sozinha.** Members e os casos de 403 têm pre-request que faz
@@ -81,7 +82,7 @@ npx newman run postman/KPICorp.postman_collection.json \
   -e postman/KPICorp.local.postman_environment.json
 ```
 
-Estado atual: **33 asserções, todas verdes**.
+Estado atual: **43 asserções, todas verdes**.
 
 Numa execução única da collection o *Register* entra em skip: ele roda antes de
 *Members → Convidar membros*, que é quem grava `{{inviteToken}}`. Rodando o convite
@@ -100,6 +101,7 @@ visíveis no painel de Examples do Postman, sem precisar rodar nada.
 | `accessToken`, `refreshToken` | gravadas pelo login e pelo refresh |
 | `userId`, `userRole` | gravadas pelo login |
 | `inviteToken` | gravada por *Members → Convidar membros* |
+| `kpiId` | gravada por *KPIs → Listar KPIs* ou *Criar KPI* |
 | `memberId` | gravada por *Members → Listar membros* (escolhe alguém que não seja você, já que desativar a si mesmo é 409) |
 
 Senhas e tokens estão marcados como `secret` no environment — o Postman não os exporta

@@ -1628,6 +1628,669 @@
       ]
     },
     {
+      "name": "KPIs (2A)",
+      "description": "Catalogo de KPIs. Todas as rotas exigem ADMIN.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Garante identidade ADMIN independente da ordem em que o request roda.",
+              "// Sem isto, rodar a collection inteira quebra: o Logout limpa o token",
+              "// antes desta pasta.",
+              "if (pm.environment.get('userRole') !== 'ADMIN' || !pm.environment.get('accessToken')) {",
+              "  pm.sendRequest({",
+              "    url: pm.environment.get('baseUrl') + '/auth/login',",
+              "    method: 'POST',",
+              "    header: { 'Content-Type': 'application/json' },",
+              "    body: { mode: 'raw', raw: JSON.stringify({",
+              "      email: pm.environment.get('adminEmail'),",
+              "      password: pm.environment.get('adminPassword')",
+              "    }) }",
+              "  }, (err, res) => {",
+              "    if (!err && res.code === 200) {",
+              "      const d = res.json();",
+              "      pm.environment.set('accessToken', d.accessToken);",
+              "      pm.environment.set('refreshToken', d.refreshToken);",
+              "      pm.environment.set('userId', d.user.id);",
+              "      pm.environment.set('userRole', d.user.role);",
+              "    }",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Listar KPIs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/kpis?category=&active=&search=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "kpis"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": ""
+                },
+                {
+                  "key": "active",
+                  "value": ""
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Filtros opcionais. Sem paginacao: o catalogo cresce em dezenas, nao em milhares.\n\n`active` aceita apenas true ou false; qualquer outro valor e recusado com 400."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const res = pm.response.json();",
+                  "  pm.test('tem items e total', () => {",
+                  "    pm.expect(res.items).to.be.an('array');",
+                  "    pm.expect(res).to.have.property('total');",
+                  "  });",
+                  "  if (res.items.length) pm.environment.set('kpiId', res.items[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — catalogo",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/kpis?category=&active=&search=",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "kpis"
+                  ],
+                  "query": [
+                    {
+                      "key": "category",
+                      "value": ""
+                    },
+                    {
+                      "key": "active",
+                      "value": ""
+                    },
+                    {
+                      "key": "search",
+                      "value": ""
+                    }
+                  ]
+                },
+                "description": "Filtros opcionais. Sem paginacao: o catalogo cresce em dezenas, nao em milhares.\n\n`active` aceita apenas true ou false; qualquer outro valor e recusado com 400."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"items\": [\n    {\n      \"id\": \"3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8\",\n      \"name\": \"Mentoria\",\n      \"description\": \"Orientou um colega\",\n      \"points\": 20,\n      \"category\": \"BEHAVIOR\",\n      \"active\": true,\n      \"createdAt\": \"2026-09-01T12:00:00.000Z\"\n    }\n  ],\n  \"total\": 1\n}"
+            }
+          ]
+        },
+        {
+          "name": "Criar KPI",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/kpis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "kpis"
+              ]
+            },
+            "description": "Categorias: PRESENCE, PERFORMANCE, BEHAVIOR, INITIATIVE.\n\n`points` de 1 a 100. `name` e unico no catalogo inteiro.\n\nO nome usa {{$randomInt}} para a collection poder rodar mais de uma vez — `name` e unico no catalogo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mentoria {{$randomInt}}\",\n  \"description\": \"Orientou um colega\",\n  \"points\": 20,\n  \"category\": \"BEHAVIOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) pm.environment.set('kpiId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — criado",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/kpis",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "kpis"
+                  ]
+                },
+                "description": "Categorias: PRESENCE, PERFORMANCE, BEHAVIOR, INITIATIVE.\n\n`points` de 1 a 100. `name` e unico no catalogo inteiro.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Mentoria\",\n  \"description\": \"Orientou um colega\",\n  \"points\": 20,\n  \"category\": \"BEHAVIOR\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8\",\n  \"name\": \"Mentoria\",\n  \"description\": \"Orientou um colega\",\n  \"points\": 20,\n  \"category\": \"BEHAVIOR\",\n  \"active\": true,\n  \"createdAt\": \"2026-09-01T12:00:00.000Z\"\n}"
+            },
+            {
+              "name": "409 — nome ja existe",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/kpis",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "kpis"
+                  ]
+                },
+                "description": "Categorias: PRESENCE, PERFORMANCE, BEHAVIOR, INITIATIVE.\n\n`points` de 1 a 100. `name` e unico no catalogo inteiro.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Mentoria\",\n  \"description\": \"Orientou um colega\",\n  \"points\": 20,\n  \"category\": \"BEHAVIOR\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"CONFLICT\",\n  \"status\": 409,\n  \"message\": \"A KPI with this name already exists\",\n  \"data\": {\n    \"code\": \"KPI_NAME_TAKEN\"\n  }\n}"
+            },
+            {
+              "name": "400 — points fora de 1..100",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/kpis",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "kpis"
+                  ]
+                },
+                "description": "Categorias: PRESENCE, PERFORMANCE, BEHAVIOR, INITIATIVE.\n\n`points` de 1 a 100. `name` e unico no catalogo inteiro.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Mentoria\",\n  \"description\": \"Orientou um colega\",\n  \"points\": 20,\n  \"category\": \"BEHAVIOR\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"status\": 400,\n  \"message\": \"Input validation failed\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Buscar KPI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/kpis/{{kpiId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "kpis",
+                "{{kpiId}}"
+              ]
+            },
+            "description": "Rode 'Listar KPIs' ou 'Criar KPI' antes — eles gravam {{kpiId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — kpi",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/kpis/{{kpiId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "kpis",
+                    "{{kpiId}}"
+                  ]
+                },
+                "description": "Rode 'Listar KPIs' ou 'Criar KPI' antes — eles gravam {{kpiId}}."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8\",\n  \"name\": \"Mentoria\",\n  \"description\": \"Orientou um colega\",\n  \"points\": 20,\n  \"category\": \"BEHAVIOR\",\n  \"active\": true,\n  \"createdAt\": \"2026-09-01T12:00:00.000Z\"\n}"
+            },
+            {
+              "name": "404 — id inexistente",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/kpis/{{kpiId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "kpis",
+                    "{{kpiId}}"
+                  ]
+                },
+                "description": "Rode 'Listar KPIs' ou 'Criar KPI' antes — eles gravam {{kpiId}}."
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"NOT_FOUND\",\n  \"status\": 404,\n  \"message\": \"KPI not found\",\n  \"data\": {\n    \"code\": \"KPI_NOT_FOUND\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Editar KPI",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/kpis/{{kpiId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "kpis",
+                "{{kpiId}}"
+              ]
+            },
+            "description": "PUT e substituicao completa: `description` omitida e gravada como null.\n\nEditar `points` nao altera atribuicoes ja feitas — elas congelam o valor (Fase 2B).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mentoria editada {{$randomInt}}\",\n  \"description\": \"Orientou um colega\",\n  \"points\": 30,\n  \"category\": \"BEHAVIOR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — atualizado",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/kpis/{{kpiId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "kpis",
+                    "{{kpiId}}"
+                  ]
+                },
+                "description": "PUT e substituicao completa: `description` omitida e gravada como null.\n\nEditar `points` nao altera atribuicoes ja feitas — elas congelam o valor (Fase 2B).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Mentoria\",\n  \"description\": \"Orientou um colega\",\n  \"points\": 30,\n  \"category\": \"BEHAVIOR\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8\",\n  \"name\": \"Mentoria\",\n  \"description\": \"Orientou um colega\",\n  \"points\": 30,\n  \"category\": \"BEHAVIOR\",\n  \"active\": true,\n  \"createdAt\": \"2026-09-01T12:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Desativar KPI",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/kpis/{{kpiId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "kpis",
+                "{{kpiId}}",
+                "status"
+              ]
+            },
+            "description": "KPI desativado sai das novas atribuicoes e continua no historico de quem ja recebeu. Nao ha DELETE.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) pm.test('inativo', () => pm.expect(pm.response.json().active).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — desativado",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/kpis/{{kpiId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "kpis",
+                    "{{kpiId}}",
+                    "status"
+                  ]
+                },
+                "description": "KPI desativado sai das novas atribuicoes e continua no historico de quem ja recebeu. Nao ha DELETE.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"active\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8\",\n  \"name\": \"Mentoria\",\n  \"description\": \"Orientou um colega\",\n  \"points\": 20,\n  \"category\": \"BEHAVIOR\",\n  \"active\": false,\n  \"createdAt\": \"2026-09-01T12:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Reativar KPI",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/kpis/{{kpiId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "kpis",
+                "{{kpiId}}",
+                "status"
+              ]
+            },
+            "description": "Mesmo endpoint, active: true.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) pm.test('ativo', () => pm.expect(pm.response.json().active).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — reativado",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/kpis/{{kpiId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "kpis",
+                    "{{kpiId}}",
+                    "status"
+                  ]
+                },
+                "description": "Mesmo endpoint, active: true.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"active\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8\",\n  \"name\": \"Mentoria\",\n  \"description\": \"Orientou um colega\",\n  \"points\": 20,\n  \"category\": \"BEHAVIOR\",\n  \"active\": true,\n  \"createdAt\": \"2026-09-01T12:00:00.000Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Autorizacao (1.5)",
       "description": "Prova o contrato de 401 e 403.\n\n401 = nao sei quem voce e. 403 = sei e voce nao pode.\n\nOs casos de 403 dependem de rota administrativa, que chega na Fase 1.6.",
       "item": [
@@ -1982,6 +2645,64 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('403, nao 404', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /kpis como MEMBER -> 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/kpis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "kpis"
+              ]
+            },
+            "description": "Catalogo e ferramenta de admin. O membro ve KPI pelo que recebeu, em /me/kpis (Fase 2C)."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Garante identidade MEMBER independente da ordem em que o request roda.",
+                  "// Sem isto, rodar a collection inteira quebra: o Logout limpa o token",
+                  "// antes desta pasta.",
+                  "if (pm.environment.get('userRole') !== 'MEMBER' || !pm.environment.get('accessToken')) {",
+                  "  pm.sendRequest({",
+                  "    url: pm.environment.get('baseUrl') + '/auth/login',",
+                  "    method: 'POST',",
+                  "    header: { 'Content-Type': 'application/json' },",
+                  "    body: { mode: 'raw', raw: JSON.stringify({",
+                  "      email: pm.environment.get('memberEmail'),",
+                  "      password: pm.environment.get('memberPassword')",
+                  "    }) }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 200) {",
+                  "      const d = res.json();",
+                  "      pm.environment.set('accessToken', d.accessToken);",
+                  "      pm.environment.set('refreshToken', d.refreshToken);",
+                  "      pm.environment.set('userId', d.user.id);",
+                  "      pm.environment.set('userRole', d.user.role);",
+                  "    }",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 para MEMBER', () => pm.response.to.have.status(403));"
                 ]
               }
             }
