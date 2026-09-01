@@ -1,0 +1,117 @@
+---
+title: 0010 — Erros de domínio desacoplados do oRPC
+description: Onde o status HTTP é decidido, e por que não é no service.
+---
+
+**Status:** Aceita
+**Data:** 2026-08-31
+
+## Contexto
+
+Com a regra de negócio saindo do router ([0009](/docs/adr/0009-camadas-router-service-repository)),
+o service precisava sinalizar falhas. A opção óbvia — lançar `ORPCError` de dentro dele —
+recriava o acoplamento que a separação tinha acabado de desfazer: o service passaria a
+importar `@orpc/server` para dizer "credencial inválida".
+
+Uma primeira versão tentou resolver com um mapa central de classe → status:
+
+```ts
+const STATUS_BY_ERROR = new Map<Function, string>([
+  [InvalidCredentialsError, "UNAUTHORIZED"],
+]);
+// ...
+STATUS_BY_ERROR.get(err.constructor)
+```
+
+Dois defeitos: o arquivo vivia em `shared/` mas importava de `modules/auth/` — camada
+compartilhada dependendo de módulo, dependência invertida — e o lookup por
+`err.constructor` erra em qualquer subclasse.
+
+## Decisão
+
+O status HTTP vira **propriedade do próprio erro de domínio**.
+
+```ts
+export abstract class DomainError extends Error {
+  abstract readonly code: string;
+  abstract readonly status: DomainErrorStatus;
+}
+```
+
+```ts
+export class InvalidCredentialsError extends DomainError {
+  readonly code = "INVALID_CREDENTIALS";
+  readonly status = "UNAUTHORIZED" as const;
+
+  constructor() {
+    super("Invalid email or password");
+  }
+}
+```
+
+O tradutor em `shared/errors/error-mapper.ts` deixa de conhecer qualquer módulo:
+
+```ts
+export function mapDomainErrorToORPCError(err: unknown): ORPCError<string, unknown> {
+  if (err instanceof DomainError) {
+    return new ORPCError(err.status, { message: err.message, data: { code: err.code } });
+  }
+
+  console.error("Unhandled error:", err);
+  return new ORPCError("INTERNAL_SERVER_ERROR", { message: "Unexpected error" });
+}
+```
+
+E o router aplica pela borda, via `shared/errors/handle.ts`:
+
+```ts
+export async function handle<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    throw mapDomainErrorToORPCError(error);
+  }
+}
+```
+
+`handle` é **compartilhado, não do auth**. Qualquer router futuro usa o mesmo.
+
+## Consequências
+
+**`shared/` não importa de `modules/`.** A dependência aponta só para dentro. Módulo
+novo declara os erros dele e ganha a tradução de graça, sem tocar em `shared/`.
+
+**Erro sem tratamento não vaza.** O `else` do mapper loga o original e devolve
+`"Unexpected error"` — mensagem de driver de banco não chega ao cliente. Coberto por
+teste: `error-mapper.test.ts` e `router.test.ts` afirmam que `"db connection lost"` não
+aparece na resposta.
+
+**Cada erro carrega um `code` estável.** Vai em `data.code` na resposta, então o front
+pode ramificar por `INVITATION_EXPIRED` sem parsear mensagem — que é texto de humano e
+pode mudar.
+
+**Subclasse funciona.** `status` é lida da instância, não de um mapa por construtor.
+
+**Duas coisas para declarar por erro novo.** `code` e `status` são obrigatórios pelo
+`abstract` — o TypeScript recusa a classe se faltar. Verbosidade intencional: um erro
+sem status mapeado silenciosamente vira 500.
+
+**A mensagem mora no erro, não no call site.** Construtores não aceitam mensagem custom.
+Isso garante que "Invalid email or password" seja idêntico para e-mail inexistente e
+senha errada — ver [0012](/docs/adr/0012-hash-de-senha-e-de-token).
+
+## Alternativas consideradas
+
+**Lançar `ORPCError` direto do service.** Descartada: acopla a regra de negócio ao
+transporte e impede reusar o service fora de uma request HTTP.
+
+**Mapa central classe → status em `shared/`.** Foi a primeira implementação.
+Descartada: inverte a dependência de camada e quebra em subclasse.
+
+**Mapa central indexado por `code` em vez de por construtor.** Resolve a subclasse, mas
+mantém o arquivo central que precisa ser editado a cada erro novo de qualquer módulo.
+Descartada: o `status` na classe elimina o arquivo central inteiro.
+
+**Códigos de erro numéricos próprios, traduzidos por uma tabela.** Descartada: os
+códigos do oRPC (`UNAUTHORIZED`, `CONFLICT`, ...) já são legíveis e mapeiam direto para
+HTTP. Uma segunda numeração seria indireção sem ganho.

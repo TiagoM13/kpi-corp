@@ -1,0 +1,132 @@
+---
+title: 0012 — bcrypt para senha, SHA-256 para refresh token
+description: Por que o mesmo algoritmo não serve para os dois, e o que quebrou quando serviu.
+---
+
+**Status:** Aceita
+**Data:** 2026-08-31
+
+## Contexto
+
+Duas coisas precisam ser guardadas como hash: a senha do usuário e o refresh token.
+A primeira implementação usou bcrypt custo 12 nas duas.
+
+Parecia conservador. Não era — **bcrypt trunca a entrada em 72 bytes**, e um refresh
+token JWT só passa a diferir de outro do mesmo usuário depois desse corte:
+
+```
+A[0..72]: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiMjlmNTYzNy0wYWIxLTRkZTAtYjJkMi1kMzY0ZTM
+B[0..72]: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiMjlmNTYzNy0wYWIxLTRkZTAtYjJkMi1kMzY0ZTM
+first 72 bytes identical: true
+bcrypt hash of A accepts B: true
+```
+
+O header e o `sub` cabem nos 72 bytes; o `tokenId`, que é o que distingue um token do
+outro, fica fora. Resultado: **qualquer refresh token de um usuário validava contra o
+hash de qualquer outro dele**.
+
+Um segundo problema apareceu no mesmo território. Para evitar timing attack no login,
+o código comparava contra um hash dummy quando o e-mail não existia — mas o hash escrito
+à mão era malformado (57 caracteres depois do prefixo, bcrypt válido tem 53):
+
+```
+hash malformado → compare retorna false em   0 ms
+hash real       → compare retorna false em 217 ms
+```
+
+bcrypt rejeita a string antes de fazer trabalho. A defesa contra enumeração de e-mail
+tinha virado um oráculo **maior** que o problema original.
+
+## Decisão
+
+Algoritmo escolhido pela natureza do segredo, não por reflexo.
+
+| Segredo | Entropia | Algoritmo | Por quê |
+| --- | --- | --- | --- |
+| Senha | baixa, escolhida por humano | bcrypt custo 12 | precisa ser lento — o ataque é força bruta offline |
+| Refresh token | 128 bits de uuid + assinatura | SHA-256 | já é imprevisível; lentidão não agrega e o truncamento atrapalha |
+
+```ts
+export function hashOpaqueToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+export function tokenHashMatches(token: string, storedHash: string): boolean {
+  const candidate = Buffer.from(hashOpaqueToken(token), "hex");
+  const stored = Buffer.from(storedHash, "hex");
+
+  if (candidate.length !== stored.length) {
+    return false;
+  }
+
+  return timingSafeEqual(candidate, stored);
+}
+```
+
+E o hash dummy passou a ser gerado por bcrypt de verdade, não escrito à mão:
+
+```ts
+export const DUMMY_PASSWORD_HASH =
+  "$2b$12$jwTYj/dvu6GNcQB3Eax0dOOwN/SlHTDJoBjDtcYOkhsTX/ZmXNo6K";
+```
+
+```ts
+const passwordMatches = await verifyPassword(
+  input.password,
+  user?.passwordHash ?? DUMMY_PASSWORD_HASH,
+);
+
+if (!user || !passwordMatches) {
+  throw new InvalidCredentialsError();
+}
+```
+
+O `verifyPassword` roda sempre, com custo real, exista o e-mail ou não.
+
+## Consequências
+
+**Tokens do mesmo usuário deixam de colidir.** SHA-256 consome a entrada inteira; o
+`tokenId` entra no digest.
+
+**Comparação em tempo constante.** `timingSafeEqual` com guarda de tamanho — hash
+armazenado corrompido devolve `false` em vez de lançar.
+
+**Verificar refresh ficou barato.** SHA-256 é microssegundos contra ~200 ms de bcrypt.
+O endpoint de refresh é chamado com frequência; o custo importava.
+
+**Refresh token gravado antes desta mudança para de valer.** Está em bcrypt e não bate
+contra SHA-256. Todo mundo precisa logar de novo. Em desenvolvimento,
+`TRUNCATE refresh_token` resolve.
+
+**O hash dummy é um valor fixo no código.** Precisa continuar sendo um bcrypt válido.
+Um teste trava isso pelas duas pontas — formato e custo real de verificação:
+
+```ts
+expect(DUMMY_PASSWORD_HASH).toMatch(/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/);
+expect(elapsed).toBeGreaterThan(10);
+```
+
+**Login custa ~200 ms por tentativa, sempre.** Consequência direta de manter o tempo
+constante: nem o caminho de e-mail inexistente escapa do bcrypt.
+
+**A constante de custo aparece em dois lugares.** `packages/api/src/shared/security/password.ts`
+e o seed em `packages/db/src/seed.ts`, que não pode importar de `packages/api` sem
+fechar um ciclo de workspace. O seed carrega um comentário apontando para a origem.
+
+## Alternativas consideradas
+
+**bcrypt nos dois, com pré-hash SHA-256 do token antes do bcrypt.** Resolve o
+truncamento. Descartada: mantém ~200 ms em todo refresh para proteger um segredo que
+já tem entropia alta. Custo sem contrapartida.
+
+**Argon2id no lugar do bcrypt para senha.** Mais moderno e resistente a GPU.
+Descartada por ora: `bcryptjs` é JS puro, sem binário nativo para compilar, e a diferença
+não é o gargalo de segurança deste projeto hoje. Reavaliar se houver requisito de
+compliance.
+
+**HMAC-SHA256 com chave secreta em vez de SHA-256 puro.** Impediria forjar o hash a
+partir do token com acesso só de leitura ao banco. Descartada: quem lê a tabela já lê
+tudo, e o token em si nunca é armazenado. Ganho marginal, mais um segredo para girar.
+
+**Guardar o refresh token em texto puro.** Descartada: vazamento do banco viraria
+vazamento de todas as sessões ativas.

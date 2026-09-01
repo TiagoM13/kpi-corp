@@ -1,0 +1,113 @@
+---
+title: 0009 — Camadas Router, Service e Repository
+description: Por que o handler oRPC parou de falar com o Prisma, e o que isso custou.
+---
+
+**Status:** Aceita
+**Data:** 2026-08-31
+
+## Contexto
+
+O primeiro auth foi escrito inteiro dentro do router oRPC: `packages/api/src/routers/auth.ts`
+tinha 224 linhas com `prisma`, hashing, emissão de token e `$transaction` no mesmo handler.
+
+Isso não é um problema de estética. Três consequências concretas apareceram antes do
+módulo terminar:
+
+- **Não dava para testar sem banco.** Qualquer teste de regra de negócio subia Postgres.
+- **`login` e `register` duplicavam** a montagem de `{ accessToken, refreshToken, user }`
+  e a chamada de mapper — duas cópias que já tinham divergido.
+- **O arquivo crescia por endpoint.** Com `users`, `kpis` e `meetings` no roadmap,
+  o mesmo padrão produziria quatro arquivos de 200+ linhas.
+
+## Decisão
+
+Três camadas por módulo, cada uma conhecendo **apenas** a de baixo:
+
+```
+auth.router.ts       transporte  — oRPC, schemas de I/O, nada mais
+auth.service.ts      negócio     — regras, orquestração, erros de domínio
+auth.repository.ts   dados       — único lugar que fala com o Prisma
+```
+
+Apoiadas por arquivos sem lógica de fluxo:
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `auth.schema.ts` | Zod de input e output |
+| `auth.mapper.ts` | shaping de DTO (`User` do Prisma → `AuthUser` / `PublicUser`) |
+| `auth.errors.ts` | erros de domínio do módulo |
+| `auth.tokens.ts` | emissão e verificação de JWT do módulo |
+| `index.ts` | barrel — o que o resto do monorepo pode importar |
+
+Service e repository são exportados como **um objeto só** por camada, não como funções
+soltas:
+
+```ts
+export const authRepository = {
+  findUserByEmail(email: string) { /* ... */ },
+  findRefreshTokenById(id: string) { /* ... */ },
+};
+
+export const authService = {
+  async login(input: LoginInput): Promise<Session> { /* ... */ },
+};
+```
+
+O router vira uma linha por rota:
+
+```ts
+login: publicProcedure
+  .route({ method: "POST" })
+  .input(loginInputSchema)
+  .output(loginResponseSchema)
+  .handler(({ input }) => handle(() => authService.login(input))),
+```
+
+Helpers privados do módulo — `issueSession`, por exemplo — ficam **fora** do objeto.
+Não fazem parte da API pública do service, e deixá-los de fora é o que diz isso.
+
+## Consequências
+
+**Teste de regra roda sem banco.** `service.test.ts` troca o repository inteiro por um mock:
+
+```ts
+vi.mock("./auth.repository", () => ({ authRepository: repositoryMock }));
+```
+
+Método novo no repository não exige mexer no mock — foi o principal ganho de agrupar
+em objeto em vez de exportar funções soltas.
+
+**O service não conhece oRPC.** Ele lança `InvalidCredentialsError`, não `ORPCError`.
+Dá para chamar `authService.login` de um job, de um CLI ou de um seed sem arrastar
+transporte junto. Ver [0010](/docs/adr/0010-erros-de-dominio).
+
+**Uma indireção a mais para ler.** Entender `login` agora exige abrir três arquivos em
+vez de um. Para um endpoint trivial isso é custo puro; o padrão só se paga a partir do
+momento em que existe regra de negócio de verdade.
+
+**Repository é fino de propósito.** Ele não decide nada — `revokeRefreshToken` devolve
+`{ count }` e é o *service* que interpreta `count === 0` como corrida perdida. Colocar
+essa leitura no repository misturaria as camadas de novo.
+
+**Query nova passa obrigatoriamente pelo repository.** `prisma` importado dentro de um
+service ou router é violação da camada, não atalho.
+
+## Alternativas consideradas
+
+**Manter tudo no router.** Descartada: era o estado que motivou a ADR. Não sobrevive a
+quatro módulos.
+
+**Router + service, sem repository.** O service chamaria o Prisma direto. Descartada:
+é justamente o repository que permite testar a regra sem banco, que era o problema mais
+caro. Sem ele, o ganho principal some.
+
+**Injeção de dependência (service recebe o repository por parâmetro).** Mais testável
+ainda, e desacopla de verdade. Descartada **por ora**: exige um container ou passar
+dependência à mão em toda chamada, e o mock de módulo do Vitest já resolve o caso de
+teste com menos cerimônia. Candidata a revisão se um service precisar de dois
+repositories diferentes em contextos diferentes.
+
+**Funções soltas em vez de objeto por camada.** Foi a primeira versão. Descartada: o
+mock do teste precisava listar método a método, e cada método novo no repository
+quebrava o mock de todo teste que o usava.

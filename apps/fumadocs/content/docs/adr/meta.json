@@ -9,6 +9,11 @@
 		"0005-tema-dark-only",
 		"0006-pages-e-routes",
 		"0007-primitives-divergentes",
-		"0008-prisma-7"
+		"0008-prisma-7",
+		"0009-camadas-router-service-repository",
+		"0010-erros-de-dominio",
+		"0011-jwt-refresh-token-rotativo",
+		"0012-hash-de-senha-e-de-token",
+		"0013-ids-em-uuid"
 	]
 }
