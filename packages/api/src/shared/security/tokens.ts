@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { jwtVerify, SignJWT } from "jose";
 
 const textEncoder = new TextEncoder();
@@ -26,15 +26,12 @@ export async function verifyToken<T extends Record<string, unknown>>(
 	return payload as unknown as T;
 }
 
-/**
- * Hashes a high-entropy token for storage.
- *
- * SHA-256 rather than bcrypt: bcrypt truncates its input at 72 bytes, and a
- * refresh JWT only differs from another one for the same user well past that
- * cutoff, so every token of a given user would share a hash.
- */
 export function hashOpaqueToken(token: string): string {
 	return createHash("sha256").update(token).digest("hex");
+}
+
+export function generateOpaqueToken(bytes = 32): string {
+	return randomBytes(bytes).toString("base64url");
 }
 
 export function tokenHashMatches(token: string, storedHash: string): boolean {
@@ -55,7 +52,6 @@ const DURATION_UNITS_IN_MS: Record<string, number> = {
 	d: 24 * 60 * 60 * 1000,
 };
 
-/** Converts a JWT-style duration ("15m", "7d") into milliseconds. */
 export function durationToMs(duration: string): number {
 	const match = /^(\d+)\s*(s|m|h|d)$/.exec(duration.trim());
 	const amount = match?.[1];
