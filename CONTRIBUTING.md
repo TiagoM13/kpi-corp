@@ -70,7 +70,13 @@ Regras que o review cobra:
 - Service não importa `@orpc/server`.
 - Erro de negócio estende `DomainError` e declara `code` e `status`.
 - Todo handler passa por `handle()` de `shared/errors`.
+- **Módulo não importa de módulo.** O que dois módulos precisam vai para `shared/`.
 - `shared/` não importa de `modules/`.
+
+As duas últimas não dependem de alguém lembrar: `noRestrictedImports` acusa no editor
+e `packages/api/src/tests/architecture.test.ts` falha no CI, apontando o arquivo e o
+import. Módulo novo precisa entrar no `group` do `biome.json` — há teste cobrando isso
+também.
 
 ## Testes
 

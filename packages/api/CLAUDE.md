@@ -22,9 +22,35 @@ auth.repository.ts   dados       — único lugar que fala com o Prisma
 | Repository | `@kpi-corp/db` | service, router |
 | `shared/*` | outros `shared/*` | qualquer coisa em `modules/` |
 
-A última linha é a que mais escorrega. `shared/context.ts` é a única exceção tolerada
-hoje (precisa de `verifyAccessToken`). Razão e alternativas na
-[ADR 0009](http://localhost:4000/docs/adr/0009-camadas-router-service-repository).
+## Módulo não importa de módulo
+
+**Regra dura, sem exceção.** Nenhum arquivo em `modules/<a>/` importa de
+`modules/<b>/`. Se dois módulos precisam da mesma coisa, ela vai para `shared/`.
+
+E `shared/` não conhece módulo nenhum — a dependência aponta só para dentro.
+
+```
+modules/auth/    →  shared/          ✅
+modules/members/ →  shared/          ✅
+modules/members/ →  modules/auth/    ❌
+shared/          →  modules/auth/    ❌
+```
+
+Por isso `EmailAlreadyRegisteredError` vive em `shared/errors/common.errors.ts`
+(auth e members usam), e a verificação do access token vive em
+`shared/security/access-token.ts` (o `createContext` precisa dela sem depender do
+módulo auth). Erro que só um módulo usa continua no módulo.
+
+**Como isso é cobrado:**
+
+| Onde | O quê |
+| --- | --- |
+| `biome.json` (overrides) | `noRestrictedImports` acusa no editor, com a mensagem da regra |
+| `tests/architecture.test.ts` | varre os arquivos e falha com o caminho exato da violação |
+
+O lint bloqueia irmão **por nome**, então módulo novo precisa entrar no `group` do
+`biome.json`. Um teste cobra essa sincronia — esquecer faz o teste falhar, não o
+lint emudecer.
 
 ## Estrutura de um módulo
 

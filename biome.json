@@ -29,7 +29,8 @@
 			"!**/convex/_generated",
 			"!**/prisma/generated",
 			"!**/coverage",
-			"!**/docs/Mockup-KPICorp"
+			"!**/docs/Mockup-KPICorp",
+			"!**/postman/*.json"
 		]
 	},
 	"formatter": {
@@ -92,6 +93,46 @@
 						"noLabelWithoutControl": "off",
 						"useKeyWithClickEvents": "off",
 						"useSemanticElements": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["packages/api/src/modules/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["../auth/**", "../members/**"],
+										"message": "Um modulo nao importa de outro. O que os dois precisam vai para packages/api/src/shared/."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["packages/api/src/shared/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["../modules/**", "**/modules/**"],
+										"message": "shared/ nao conhece modulo nenhum: a dependencia aponta so para dentro."
+									}
+								]
+							}
+						}
 					}
 				}
 			}
