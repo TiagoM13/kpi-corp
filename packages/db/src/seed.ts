@@ -1,12 +1,17 @@
+import { hash } from "bcryptjs";
 import { config } from "dotenv";
 
 config({ path: "../../apps/server/.env" });
 
+/** Must match DEFAULT_COST in packages/api/src/shared/security/password.ts. */
+const PASSWORD_COST = 12;
+
 async function main() {
-	const [{ default: prisma }, { hashPassword }] = await Promise.all([
-		import("./index"),
-		import("@kpi-corp/api/modules/auth/service"),
-	]);
+	const { default: prisma } = await import("./index");
+
+	// Hashed here rather than through @kpi-corp/api: packages/api already depends
+	// on packages/db, and importing it back would close a workspace cycle.
+	const hashPassword = (password: string) => hash(password, PASSWORD_COST);
 
 	const members = [
 		{ name: "Ana Souza", email: "ana@kpicorp.com" },
