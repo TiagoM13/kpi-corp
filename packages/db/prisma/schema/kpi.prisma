@@ -13,9 +13,10 @@ model Kpi {
 }
 
 enum KpiCategory {
-  ATTENDANCE
+  PRESENCE
   PERFORMANCE
   BEHAVIOR
+  INITIATIVE
 
   @@map("kpi_category")
 }
