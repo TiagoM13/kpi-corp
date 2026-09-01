@@ -1,0 +1,1993 @@
+{
+  "info": {
+    "_postman_id": "kpicorp-api-collection",
+    "name": "KPICorp API",
+    "description": "Collection da API do KPICorp.\n\nO login grava accessToken e refreshToken no environment automaticamente; as demais rotas herdam o Bearer da collection. Nao e preciso copiar token a mao.\n\nBase: {{baseUrl}} -> prefixo REST/OpenAPI (/api-reference). O prefixo /rpc existe para o front tipado e usa envelope {\"json\": ...} — nao e o que esta collection usa.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.environment.name) {",
+          "  console.warn('Nenhum environment selecionado. Importe KPICorp.local.postman_environment.json e selecione no canto superior direito.');",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Fase 1 — 1.1 a 1.4. Implementado.",
+      "item": [
+        {
+          "name": "Login — Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Autentica o admin do seed e guarda os tokens no environment.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ok = pm.response.code === 200;",
+                  "",
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (ok) {",
+                  "  const res = pm.response.json();",
+                  "",
+                  "  pm.test('devolve accessToken e refreshToken', () => {",
+                  "    pm.expect(res.accessToken).to.be.a('string');",
+                  "    pm.expect(res.refreshToken).to.be.a('string');",
+                  "  });",
+                  "",
+                  "  pm.test('devolve o usuario com position', () => {",
+                  "    pm.expect(res.user).to.have.property('id');",
+                  "    pm.expect(res.user).to.have.property('role');",
+                  "    pm.expect(res.user).to.have.property('position');",
+                  "  });",
+                  "",
+                  "  // Guardados aqui para todas as demais rotas usarem sem copiar nada a mao.",
+                  "  pm.environment.set('accessToken', res.accessToken);",
+                  "  pm.environment.set('refreshToken', res.refreshToken);",
+                  "  pm.environment.set('userId', res.user.id);",
+                  "  pm.environment.set('userRole', res.user.role);",
+                  "",
+                  "  console.log('Logado como ' + res.user.email + ' (' + res.user.role + ')');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — sessao criada",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Autentica o admin do seed e guarda os tokens no environment.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiMjlmNTYzNy0wYWIxLTRkZTAtYjJkMi1kMzY0ZTM5MDMxMjQiLCJlbWFpbCI6ImFkbWluQGtwaWNvcnAuY29tIiwicm9sZSI6IkFETUlOIn0.assinatura\",\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiMjlmNTYzNy0wYWIxLTRkZTAtYjJkMi1kMzY0ZTM5MDMxMjQiLCJ0b2tlbklkIjoiYTFjMWEyMjEtY2NhOS00NWViLTk0OWMtYzAwZWUyZTNlYWI0In0.assinatura\",\n  \"user\": {\n    \"id\": \"b29f5637-0ab1-4de0-b2d2-d364e3903124\",\n    \"name\": \"Administrador\",\n    \"email\": \"admin@kpicorp.com\",\n    \"role\": \"ADMIN\",\n    \"position\": null\n  }\n}"
+            },
+            {
+              "name": "401 — credencial invalida",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Autentica o admin do seed e guarda os tokens no environment.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"UNAUTHORIZED\",\n  \"status\": 401,\n  \"message\": \"Invalid email or password\",\n  \"data\": {\n    \"code\": \"INVALID_CREDENTIALS\"\n  }\n}"
+            },
+            {
+              "name": "403 — conta desativada",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Autentica o admin do seed e guarda os tokens no environment.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"FORBIDDEN\",\n  \"status\": 403,\n  \"message\": \"Account is deactivated\",\n  \"data\": {\n    \"code\": \"ACCOUNT_DEACTIVATED\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login — Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Autentica um membro do seed. Use para checar 403 em rota administrativa.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{memberEmail}}\",\n  \"password\": \"{{memberPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ok = pm.response.code === 200;",
+                  "",
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (ok) {",
+                  "  const res = pm.response.json();",
+                  "",
+                  "  pm.test('devolve accessToken e refreshToken', () => {",
+                  "    pm.expect(res.accessToken).to.be.a('string');",
+                  "    pm.expect(res.refreshToken).to.be.a('string');",
+                  "  });",
+                  "",
+                  "  pm.test('devolve o usuario com position', () => {",
+                  "    pm.expect(res.user).to.have.property('id');",
+                  "    pm.expect(res.user).to.have.property('role');",
+                  "    pm.expect(res.user).to.have.property('position');",
+                  "  });",
+                  "",
+                  "  // Guardados aqui para todas as demais rotas usarem sem copiar nada a mao.",
+                  "  pm.environment.set('accessToken', res.accessToken);",
+                  "  pm.environment.set('refreshToken', res.refreshToken);",
+                  "  pm.environment.set('userId', res.user.id);",
+                  "  pm.environment.set('userRole', res.user.role);",
+                  "",
+                  "  console.log('Logado como ' + res.user.email + ' (' + res.user.role + ')');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — sessao criada",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Autentica um membro do seed. Use para checar 403 em rota administrativa.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{memberEmail}}\",\n  \"password\": \"{{memberPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiMjlmNTYzNy0wYWIxLTRkZTAtYjJkMi1kMzY0ZTM5MDMxMjQiLCJlbWFpbCI6ImFkbWluQGtwaWNvcnAuY29tIiwicm9sZSI6IkFETUlOIn0.assinatura\",\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiMjlmNTYzNy0wYWIxLTRkZTAtYjJkMi1kMzY0ZTM5MDMxMjQiLCJ0b2tlbklkIjoiYTFjMWEyMjEtY2NhOS00NWViLTk0OWMtYzAwZWUyZTNlYWI0In0.assinatura\",\n  \"user\": {\n    \"id\": \"26a1f9b0-0dc1-4ee3-9696-d0e4434e9caf\",\n    \"name\": \"Ana Souza\",\n    \"email\": \"ana@kpicorp.com\",\n    \"role\": \"MEMBER\",\n    \"position\": \"Designer\"\n  }\n}"
+            },
+            {
+              "name": "401 — credencial invalida",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Autentica um membro do seed. Use para checar 403 em rota administrativa.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{memberEmail}}\",\n  \"password\": \"{{memberPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"UNAUTHORIZED\",\n  \"status\": 401,\n  \"message\": \"Invalid email or password\",\n  \"data\": {\n    \"code\": \"INVALID_CREDENTIALS\"\n  }\n}"
+            },
+            {
+              "name": "403 — conta desativada",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Autentica um membro do seed. Use para checar 403 em rota administrativa.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{memberEmail}}\",\n  \"password\": \"{{memberPassword}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"FORBIDDEN\",\n  \"status\": 403,\n  \"message\": \"Account is deactivated\",\n  \"data\": {\n    \"code\": \"ACCOUNT_DEACTIVATED\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Usuario da sessao. Usa o Bearer herdado da collection."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const res = pm.response.json();",
+                  "  pm.test('e o usuario do token', () => {",
+                  "    pm.expect(res.id).to.eql(pm.environment.get('userId'));",
+                  "  });",
+                  "  pm.test('tem position', () => pm.expect(res).to.have.property('position'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — usuario da sessao",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "me"
+                  ]
+                },
+                "description": "Usuario da sessao. Usa o Bearer herdado da collection."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"b29f5637-0ab1-4de0-b2d2-d364e3903124\",\n  \"name\": \"Administrador\",\n  \"email\": \"admin@kpicorp.com\",\n  \"role\": \"ADMIN\",\n  \"position\": null\n}"
+            },
+            {
+              "name": "401 — sem token",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "me"
+                  ]
+                },
+                "description": "Usuario da sessao. Usa o Bearer herdado da collection."
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"UNAUTHORIZED\",\n  \"status\": 401,\n  \"message\": \"Unauthorized\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Refresh",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Rotaciona a sessao. Grava o par novo; o token antigo deixa de valer.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const anterior = pm.environment.get('refreshToken');",
+                  "",
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const res = pm.response.json();",
+                  "",
+                  "  // O refresh rotaciona: o token antigo morre nesta chamada. Guardar o novo",
+                  "  // e obrigatorio, senao o proximo refresh usa um token ja revogado e o",
+                  "  // servidor derruba a familia inteira por suspeita de replay.",
+                  "  pm.test('refresh token rotacionou', () => {",
+                  "    pm.expect(res.refreshToken).to.not.eql(anterior);",
+                  "  });",
+                  "",
+                  "  pm.environment.set('accessToken', res.accessToken);",
+                  "  pm.environment.set('refreshToken', res.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — sessao rotacionada",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/refresh",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "refresh"
+                  ]
+                },
+                "description": "Rotaciona a sessao. Grava o par novo; o token antigo deixa de valer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiMjlmNTYzNy0wYWIxLTRkZTAtYjJkMi1kMzY0ZTM5MDMxMjQiLCJlbWFpbCI6ImFkbWluQGtwaWNvcnAuY29tIiwicm9sZSI6IkFETUlOIn0.assinatura\",\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiMjlmNTYzNy0wYWIxLTRkZTAtYjJkMi1kMzY0ZTM5MDMxMjQiLCJ0b2tlbklkIjoiYTFjMWEyMjEtY2NhOS00NWViLTk0OWMtYzAwZWUyZTNlYWI0In0.assinatura\",\n  \"user\": {\n    \"id\": \"b29f5637-0ab1-4de0-b2d2-d364e3903124\",\n    \"name\": \"Administrador\",\n    \"email\": \"admin@kpicorp.com\",\n    \"role\": \"ADMIN\",\n    \"position\": null\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Register (convite)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Cadastro por convite.\n\n`position` e opcional — e o cargo que a pessoa informa no proprio cadastro, e volta no `user` da resposta. Omitir grava null.\n\n`password` exige no minimo 8 caracteres.\n\n`{{inviteToken}}` e gravado por Members > Convidar membros; rode aquele request antes.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{inviteToken}}\",\n  \"name\": \"Joana Ribeiro\",\n  \"position\": \"Product Designer\",\n  \"password\": \"senha12345\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const inviteToken = pm.environment.get('inviteToken');",
+                  "",
+                  "if (!inviteToken) {",
+                  "  pm.test.skip('precisa de {{inviteToken}} — rode Members > Convidar membros antes');",
+                  "} else {",
+                  "  pm.test('200', () => pm.response.to.have.status(200));",
+                  "",
+                  "  if (pm.response.code === 200) {",
+                  "    const res = pm.response.json();",
+                  "    const enviado = JSON.parse(pm.request.body.raw).position;",
+                  "",
+                  "    pm.test('devolve o position informado no cadastro', () => {",
+                  "      pm.expect(res.user.position).to.eql(enviado);",
+                  "    });",
+                  "",
+                  "    pm.environment.set('accessToken', res.accessToken);",
+                  "    pm.environment.set('refreshToken', res.refreshToken);",
+                  "    pm.environment.set('userId', res.user.id);",
+                  "    pm.environment.set('userRole', res.user.role);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 — cadastro concluido",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                },
+                "description": "Cadastro por convite.\n\n`position` e opcional — e o cargo que a pessoa informa no proprio cadastro, e volta no `user` da resposta. Omitir grava null.\n\n`password` exige no minimo 8 caracteres.\n\n`{{inviteToken}}` e gravado por Members > Convidar membros; rode aquele request antes.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"token\": \"{{inviteToken}}\",\n  \"name\": \"Joana Ribeiro\",\n  \"position\": \"Product Designer\",\n  \"password\": \"senha12345\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"accessToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiMjlmNTYzNy0wYWIxLTRkZTAtYjJkMi1kMzY0ZTM5MDMxMjQiLCJlbWFpbCI6ImFkbWluQGtwaWNvcnAuY29tIiwicm9sZSI6IkFETUlOIn0.assinatura\",\n  \"refreshToken\": \"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiMjlmNTYzNy0wYWIxLTRkZTAtYjJkMi1kMzY0ZTM5MDMxMjQiLCJ0b2tlbklkIjoiYTFjMWEyMjEtY2NhOS00NWViLTk0OWMtYzAwZWUyZTNlYWI0In0.assinatura\",\n  \"user\": {\n    \"id\": \"ec4d9aab-68c5-4d53-87ba-d089798a530a\",\n    \"name\": \"Joana Ribeiro\",\n    \"email\": \"joana@kpicorp.com\",\n    \"role\": \"MEMBER\",\n    \"position\": \"Product Designer\"\n  }\n}"
+            },
+            {
+              "name": "401 — convite expirado",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                },
+                "description": "Cadastro por convite.\n\n`position` e opcional — e o cargo que a pessoa informa no proprio cadastro, e volta no `user` da resposta. Omitir grava null.\n\n`password` exige no minimo 8 caracteres.\n\n`{{inviteToken}}` e gravado por Members > Convidar membros; rode aquele request antes.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"token\": \"{{inviteToken}}\",\n  \"name\": \"Joana Ribeiro\",\n  \"position\": \"Product Designer\",\n  \"password\": \"senha12345\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"UNAUTHORIZED\",\n  \"status\": 401,\n  \"message\": \"Invitation expired\",\n  \"data\": {\n    \"code\": \"INVITATION_EXPIRED\"\n  }\n}"
+            },
+            {
+              "name": "409 — e-mail ja cadastrado",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                },
+                "description": "Cadastro por convite.\n\n`position` e opcional — e o cargo que a pessoa informa no proprio cadastro, e volta no `user` da resposta. Omitir grava null.\n\n`password` exige no minimo 8 caracteres.\n\n`{{inviteToken}}` e gravado por Members > Convidar membros; rode aquele request antes.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"token\": \"{{inviteToken}}\",\n  \"name\": \"Joana Ribeiro\",\n  \"position\": \"Product Designer\",\n  \"password\": \"senha12345\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"CONFLICT\",\n  \"status\": 409,\n  \"message\": \"Email already registered\",\n  \"data\": {\n    \"code\": \"EMAIL_ALREADY_REGISTERED\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Revoga o refresh token e limpa o environment. Fica por último na pasta de propósito: limpa os tokens do environment.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "pm.test('success true', () => pm.expect(pm.response.json().success).to.eql(true));",
+                  "",
+                  "pm.environment.unset('accessToken');",
+                  "pm.environment.unset('refreshToken');",
+                  "console.log('Sessao encerrada, tokens limpos do environment.');"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — sessao encerrada",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/logout",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout"
+                  ]
+                },
+                "description": "Revoga o refresh token e limpa o environment. Fica por último na pasta de propósito: limpa os tokens do environment.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": true\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Members (1.6)",
+      "description": "Todas as rotas exigem ADMIN. Rode Auth > Login — Admin antes.",
+      "item": [
+        {
+          "name": "Listar membros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/members?page=1&limit=20&search=&status=ALL",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                },
+                {
+                  "key": "status",
+                  "value": "ALL"
+                }
+              ]
+            },
+            "description": "Paginado, com busca por nome ou e-mail e filtro de status."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const res = pm.response.json();",
+                  "",
+                  "  pm.test('tem paginacao', () => {",
+                  "    pm.expect(res).to.have.property('total');",
+                  "    pm.expect(res).to.have.property('totalPages');",
+                  "  });",
+                  "",
+                  "  pm.test('nao vaza passwordHash', () => {",
+                  "    pm.expect(pm.response.text()).to.not.include('passwordHash');",
+                  "  });",
+                  "",
+                  "  // Guarda alguem que NAO seja o usuario logado: desativar a si mesmo e",
+                  "  // barrado com 409, entao usar o proprio id faria os requests de status",
+                  "  // falharem por um motivo que nao tem a ver com eles.",
+                  "  const outro = res.items.find((m) => m.id !== pm.environment.get('userId'));",
+                  "  if (outro) pm.environment.set('memberId', outro.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — pagina de membros",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/members?page=1&limit=20&search=&status=ALL",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "members"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "search",
+                      "value": ""
+                    },
+                    {
+                      "key": "status",
+                      "value": "ALL"
+                    }
+                  ]
+                },
+                "description": "Paginado, com busca por nome ou e-mail e filtro de status."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"items\": [\n    {\n      \"id\": \"b29f5637-0ab1-4de0-b2d2-d364e3903124\",\n      \"name\": \"Administrador\",\n      \"email\": \"admin@kpicorp.com\",\n      \"role\": \"ADMIN\",\n      \"position\": null,\n      \"active\": true,\n      \"createdAt\": \"2026-08-31T12:00:00.000Z\"\n    },\n    {\n      \"id\": \"26a1f9b0-0dc1-4ee3-9696-d0e4434e9caf\",\n      \"name\": \"Ana Souza\",\n      \"email\": \"ana@kpicorp.com\",\n      \"role\": \"MEMBER\",\n      \"position\": \"Designer\",\n      \"active\": true,\n      \"createdAt\": \"2026-08-31T12:00:00.000Z\"\n    }\n  ],\n  \"page\": 1,\n  \"limit\": 20,\n  \"total\": 2,\n  \"totalPages\": 1\n}"
+            },
+            {
+              "name": "403 — logado como MEMBER",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/members?page=1&limit=20&search=&status=ALL",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "members"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "search",
+                      "value": ""
+                    },
+                    {
+                      "key": "status",
+                      "value": "ALL"
+                    }
+                  ]
+                },
+                "description": "Paginado, com busca por nome ou e-mail e filtro de status."
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"FORBIDDEN\",\n  \"status\": 403,\n  \"message\": \"Forbidden\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Detalhe do membro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/members/{{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "{{memberId}}"
+              ]
+            },
+            "description": "Rode 'Listar membros' antes — ele grava {{memberId}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — membro",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/members/{{memberId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "members",
+                    "{{memberId}}"
+                  ]
+                },
+                "description": "Rode 'Listar membros' antes — ele grava {{memberId}}."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"26a1f9b0-0dc1-4ee3-9696-d0e4434e9caf\",\n  \"name\": \"Ana Souza\",\n  \"email\": \"ana@kpicorp.com\",\n  \"role\": \"MEMBER\",\n  \"position\": \"Designer\",\n  \"active\": true,\n  \"createdAt\": \"2026-08-31T12:00:00.000Z\"\n}"
+            },
+            {
+              "name": "404 — id inexistente",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/members/{{memberId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "members",
+                    "{{memberId}}"
+                  ]
+                },
+                "description": "Rode 'Listar membros' antes — ele grava {{memberId}}."
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"NOT_FOUND\",\n  \"status\": 404,\n  \"message\": \"Member not found\",\n  \"data\": {\n    \"code\": \"MEMBER_NOT_FOUND\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Convidar membros (lote)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/members/invitations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "invitations"
+              ]
+            },
+            "description": "Aceita ate 50 e-mails. Falha de um nao derruba os outros: quem falhou volta em `failed` com o motivo, e a resposta segue 200.\n\nE-mails repetidos na mesma lista sao deduplicados. `inviteUrl` e montada a partir de WEB_APP_URL.\n\nO token do primeiro convite criado e gravado em {{inviteToken}}, para o request Auth > Register (convite) funcionar em seguida.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emails\": [\n    \"joana@kpicorp.com\",\n    \"rafael@kpicorp.com\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "  const res = pm.response.json();",
+                  "  pm.test('separa created e failed', () => {",
+                  "    pm.expect(res.created).to.be.an('array');",
+                  "    pm.expect(res.failed).to.be.an('array');",
+                  "  });",
+                  "",
+                  "  if (res.created.length) {",
+                  "    // Guardado para o request Auth > Register (convite) funcionar em seguida.",
+                  "    pm.environment.set('inviteToken', res.created[0].token);",
+                  "    console.log('Link do convite: ' + res.created[0].inviteUrl);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — um criado, um recusado",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/members/invitations",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "members",
+                    "invitations"
+                  ]
+                },
+                "description": "Aceita ate 50 e-mails. Falha de um nao derruba os outros: quem falhou volta em `failed` com o motivo, e a resposta segue 200.\n\nE-mails repetidos na mesma lista sao deduplicados. `inviteUrl` e montada a partir de WEB_APP_URL.\n\nO token do primeiro convite criado e gravado em {{inviteToken}}, para o request Auth > Register (convite) funcionar em seguida.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"emails\": [\n    \"joana@kpicorp.com\",\n    \"rafael@kpicorp.com\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"created\": [\n    {\n      \"id\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n      \"email\": \"joana@kpicorp.com\",\n      \"token\": \"K0s6aQxgbc-8SLiKHekau5YwkfwN4hSqErUBwzolY8Q\",\n      \"inviteUrl\": \"http://localhost:3001/invite/K0s6aQxgbc-8SLiKHekau5YwkfwN4hSqErUBwzolY8Q\",\n      \"expiresAt\": \"2026-09-03T12:00:00.000Z\"\n    }\n  ],\n  \"failed\": [\n    {\n      \"email\": \"ana@kpicorp.com\",\n      \"code\": \"EMAIL_ALREADY_REGISTERED\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Desativar membro",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/members/{{memberId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "{{memberId}}",
+                "status"
+              ]
+            },
+            "description": "Desativa e revoga as sessoes do membro na mesma transacao.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) pm.test('inativo', () => pm.expect(pm.response.json().active).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — desativado, sessoes revogadas",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/members/{{memberId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "members",
+                    "{{memberId}}",
+                    "status"
+                  ]
+                },
+                "description": "Desativa e revoga as sessoes do membro na mesma transacao.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"active\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"26a1f9b0-0dc1-4ee3-9696-d0e4434e9caf\",\n  \"name\": \"Ana Souza\",\n  \"email\": \"ana@kpicorp.com\",\n  \"role\": \"MEMBER\",\n  \"position\": \"Designer\",\n  \"active\": false,\n  \"createdAt\": \"2026-08-31T12:00:00.000Z\"\n}"
+            },
+            {
+              "name": "409 — voce mesmo",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/members/{{memberId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "members",
+                    "{{memberId}}",
+                    "status"
+                  ]
+                },
+                "description": "Desativa e revoga as sessoes do membro na mesma transacao.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"active\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"CONFLICT\",\n  \"status\": 409,\n  \"message\": \"You cannot deactivate your own account\",\n  \"data\": {\n    \"code\": \"CANNOT_DEACTIVATE_SELF\"\n  }\n}"
+            },
+            {
+              "name": "409 — ultimo admin ativo",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/members/{{memberId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "members",
+                    "{{memberId}}",
+                    "status"
+                  ]
+                },
+                "description": "Desativa e revoga as sessoes do membro na mesma transacao.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"active\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"code\": \"CONFLICT\",\n  \"status\": 409,\n  \"message\": \"The last active admin cannot be deactivated\",\n  \"data\": {\n    \"code\": \"LAST_ADMIN_CANNOT_BE_DEACTIVATED\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Reativar membro",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/members/{{memberId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "{{memberId}}",
+                "status"
+              ]
+            },
+            "description": "Mesmo endpoint, active: true.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) pm.test('ativo', () => pm.expect(pm.response.json().active).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "200 — reativado",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/members/{{memberId}}/status",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "members",
+                    "{{memberId}}",
+                    "status"
+                  ]
+                },
+                "description": "Mesmo endpoint, active: true.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"active\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"id\": \"26a1f9b0-0dc1-4ee3-9696-d0e4434e9caf\",\n  \"name\": \"Ana Souza\",\n  \"email\": \"ana@kpicorp.com\",\n  \"role\": \"MEMBER\",\n  \"position\": \"Designer\",\n  \"active\": true,\n  \"createdAt\": \"2026-08-31T12:00:00.000Z\"\n}"
+            }
+          ]
+        }
+      ],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Garante identidade ADMIN independente da ordem em que o request roda.",
+              "// Sem isto, rodar a collection inteira quebra: o Logout limpa o token",
+              "// antes desta pasta.",
+              "if (pm.environment.get('userRole') !== 'ADMIN' || !pm.environment.get('accessToken')) {",
+              "  pm.sendRequest({",
+              "    url: pm.environment.get('baseUrl') + '/auth/login',",
+              "    method: 'POST',",
+              "    header: { 'Content-Type': 'application/json' },",
+              "    body: { mode: 'raw', raw: JSON.stringify({",
+              "      email: pm.environment.get('adminEmail'),",
+              "      password: pm.environment.get('adminPassword')",
+              "    }) }",
+              "  }, (err, res) => {",
+              "    if (!err && res.code === 200) {",
+              "      const d = res.json();",
+              "      pm.environment.set('accessToken', d.accessToken);",
+              "      pm.environment.set('refreshToken', d.refreshToken);",
+              "      pm.environment.set('userId', d.user.id);",
+              "      pm.environment.set('userRole', d.user.role);",
+              "    }",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Autorizacao (1.5)",
+      "description": "Prova o contrato de 401 e 403.\n\n401 = nao sei quem voce e. 403 = sei e voce nao pode.\n\nOs casos de 403 dependem de rota administrativa, que chega na Fase 1.6.",
+      "item": [
+        {
+          "name": "Me sem token -> 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Sem Authorization. Deve ser 401, nunca 403 e nunca 500.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 sem token', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me com token invalido -> 401",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer token-invalido"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Assinatura invalida vira 401, nao 500. createContext nunca lanca."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 com token invalido', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login senha errada -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Mesma resposta de e-mail inexistente: nao revela quais e-mails existem.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"senha-errada\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 credencial invalida', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login e-mail inexistente -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Deve responder igual ao caso de senha errada, em corpo e em tempo.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ninguem@kpicorp.com\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 e-mail inexistente', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh com token invalido -> 401",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"nao-e-um-jwt\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 refresh invalido', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /members sem token -> 401",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members"
+              ]
+            },
+            "description": "Rota administrativa sem autenticacao.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 sem token', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /members como MEMBER -> 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members"
+              ]
+            },
+            "description": "Rode Auth > Login — Member antes. Prova a guarda de papel: 403, nao 401."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Garante identidade MEMBER independente da ordem em que o request roda.",
+                  "// Sem isto, rodar a collection inteira quebra: o Logout limpa o token",
+                  "// antes desta pasta.",
+                  "if (pm.environment.get('userRole') !== 'MEMBER' || !pm.environment.get('accessToken')) {",
+                  "  pm.sendRequest({",
+                  "    url: pm.environment.get('baseUrl') + '/auth/login',",
+                  "    method: 'POST',",
+                  "    header: { 'Content-Type': 'application/json' },",
+                  "    body: { mode: 'raw', raw: JSON.stringify({",
+                  "      email: pm.environment.get('memberEmail'),",
+                  "      password: pm.environment.get('memberPassword')",
+                  "    }) }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 200) {",
+                  "      const d = res.json();",
+                  "      pm.environment.set('accessToken', d.accessToken);",
+                  "      pm.environment.set('refreshToken', d.refreshToken);",
+                  "      pm.environment.set('userId', d.user.id);",
+                  "      pm.environment.set('userRole', d.user.role);",
+                  "    }",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 para MEMBER', () => pm.response.to.have.status(403));",
+                  "pm.test('nao e 401', () => pm.expect(pm.response.code).to.not.eql(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Membro em id inexistente -> 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/members/00000000-0000-4000-8000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "00000000-0000-4000-8000-000000000000"
+              ]
+            },
+            "description": "Logado como MEMBER, id que nao existe. Deve ser 403 e nunca 404 — a guarda roda antes do banco, entao o status nao revela se o recurso existe."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Garante identidade MEMBER independente da ordem em que o request roda.",
+                  "// Sem isto, rodar a collection inteira quebra: o Logout limpa o token",
+                  "// antes desta pasta.",
+                  "if (pm.environment.get('userRole') !== 'MEMBER' || !pm.environment.get('accessToken')) {",
+                  "  pm.sendRequest({",
+                  "    url: pm.environment.get('baseUrl') + '/auth/login',",
+                  "    method: 'POST',",
+                  "    header: { 'Content-Type': 'application/json' },",
+                  "    body: { mode: 'raw', raw: JSON.stringify({",
+                  "      email: pm.environment.get('memberEmail'),",
+                  "      password: pm.environment.get('memberPassword')",
+                  "    }) }",
+                  "  }, (err, res) => {",
+                  "    if (!err && res.code === 200) {",
+                  "      const d = res.json();",
+                  "      pm.environment.set('accessToken', d.accessToken);",
+                  "      pm.environment.set('refreshToken', d.refreshToken);",
+                  "      pm.environment.set('userId', d.user.id);",
+                  "      pm.environment.set('userRole', d.user.role);",
+                  "    }",
+                  "  });",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403, nao 404', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
