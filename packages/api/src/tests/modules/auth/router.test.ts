@@ -31,6 +31,7 @@ const mockSession = {
 		name: "Admin",
 		email: "admin@kpicorp.com",
 		role: "ADMIN" as const,
+		position: null,
 	},
 };
 
@@ -73,7 +74,7 @@ describe("auth router", () => {
 		it("should return authenticated user", async () => {
 			serviceMock.getAuthenticatedUser.mockResolvedValueOnce({
 				...mockSession.user,
-				avatar: null,
+				position: null,
 			});
 
 			const meCaller = createProcedureClient(authRouter.me, {
@@ -147,6 +148,50 @@ describe("auth router", () => {
 				name: "Ana Souza",
 				password: "member123",
 			});
+		});
+	});
+
+	describe("register input", () => {
+		it("should reject a password shorter than 8 characters", async () => {
+			const caller = createCaller();
+
+			await expect(
+				caller.register({
+					token: "invite-token",
+					name: "Ana",
+					password: "1234567",
+				}),
+			).rejects.toThrow();
+			expect(serviceMock.register).not.toHaveBeenCalled();
+		});
+
+		it("should accept a password with exactly 8 characters", async () => {
+			serviceMock.register.mockResolvedValueOnce(mockSession);
+
+			const caller = createCaller();
+			await caller.register({
+				token: "invite-token",
+				name: "Ana",
+				password: "12345678",
+			});
+
+			expect(serviceMock.register).toHaveBeenCalled();
+		});
+
+		it("should forward the position to the service", async () => {
+			serviceMock.register.mockResolvedValueOnce(mockSession);
+
+			const caller = createCaller();
+			await caller.register({
+				token: "invite-token",
+				name: "Ana",
+				position: "Designer",
+				password: "12345678",
+			});
+
+			expect(serviceMock.register).toHaveBeenCalledWith(
+				expect.objectContaining({ position: "Designer" }),
+			);
 		});
 	});
 

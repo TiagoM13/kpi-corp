@@ -15,6 +15,7 @@ export type PublicUser = {
 	name: string;
 	email: string;
 	role: Role;
+	position: string | null;
 };
 
 export type UserForAuthMapping = Pick<
@@ -33,7 +34,10 @@ export function mapUserToAuthUser(user: UserForAuthMapping): AuthUser {
 	};
 }
 
-export type UserForPublicMapping = Pick<User, "id" | "name" | "email" | "role">;
+export type UserForPublicMapping = Pick<
+	User,
+	"id" | "name" | "email" | "role" | "position"
+>;
 
 export function mapUserToPublicUser(user: UserForPublicMapping): PublicUser {
 	return {
@@ -41,5 +45,6 @@ export function mapUserToPublicUser(user: UserForPublicMapping): PublicUser {
 		name: user.name,
 		email: user.email,
 		role: user.role,
+		position: user.position,
 	};
 }

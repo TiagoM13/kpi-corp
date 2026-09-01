@@ -2,13 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
 	AccountDeactivatedError,
-	EmailAlreadyRegisteredError,
 	InvalidCredentialsError,
 	InvalidInvitationError,
 	InvalidRefreshTokenError,
 	InvitationAlreadyUsedError,
 	InvitationExpiredError,
-	UnauthorizedError,
 } from "../../../modules/auth/auth.errors";
 import { authService } from "../../../modules/auth/auth.service";
 import {
@@ -16,6 +14,10 @@ import {
 	hashToken,
 	verifyRefreshToken,
 } from "../../../modules/auth/auth.tokens";
+import {
+	EmailAlreadyRegisteredError,
+	UnauthorizedError,
+} from "../../../shared/errors/common.errors";
 import { hashPassword } from "../../../shared/security/password";
 
 const { repositoryMock } = vi.hoisted(() => {
@@ -68,7 +70,6 @@ const mockInvitation = {
 	createdAt: new Date(),
 };
 
-/** Builds a refresh token together with the row that should back it. */
 async function createStoredRefreshToken(
 	overrides: {
 		tokenId?: string;
@@ -135,7 +136,6 @@ describe("auth service", () => {
 			const payload = await verifyRefreshToken(result.refreshToken);
 			const persisted = repositoryMock.createRefreshToken.mock.calls[0]?.[0];
 
-			// Without this the row id is a fresh uuid and refresh can never find it.
 			expect(persisted.id).toBe(payload.tokenId);
 			expect(persisted.userId).toBe(mockUser.id);
 			expect(persisted.tokenHash).toBe(hashToken(result.refreshToken));
@@ -179,7 +179,7 @@ describe("auth service", () => {
 
 			expect(result.id).toBe(mockUser.id);
 			expect(result.email).toBe(mockUser.email);
-			expect(result.avatar).toBeNull();
+			expect(result.position).toBeNull();
 		});
 
 		it("should throw UnauthorizedError when the user is gone", async () => {
@@ -329,6 +329,51 @@ describe("auth service", () => {
 			expect(result.user.role).toBe("MEMBER");
 			expect(result.accessToken).toBeDefined();
 			expect(result.refreshToken).toBeDefined();
+		});
+
+		it("should store the position sent by the invitee", async () => {
+			repositoryMock.findInvitationByToken.mockResolvedValueOnce(
+				mockInvitation,
+			);
+			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
+			repositoryMock.executeRegisterTransaction.mockResolvedValueOnce({
+				success: true,
+				user: mockMember,
+			});
+
+			await authService.register({
+				token: "invite-token",
+				name: "Ana Souza",
+				position: "Designer",
+				password: "member12345",
+			});
+
+			expect(repositoryMock.executeRegisterTransaction).toHaveBeenCalledWith(
+				mockInvitation.id,
+				expect.objectContaining({ position: "Designer" }),
+			);
+		});
+
+		it("should store a null position when the invitee omits it", async () => {
+			repositoryMock.findInvitationByToken.mockResolvedValueOnce(
+				mockInvitation,
+			);
+			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
+			repositoryMock.executeRegisterTransaction.mockResolvedValueOnce({
+				success: true,
+				user: mockMember,
+			});
+
+			await authService.register({
+				token: "invite-token",
+				name: "Ana Souza",
+				password: "member12345",
+			});
+
+			expect(repositoryMock.executeRegisterTransaction).toHaveBeenCalledWith(
+				mockInvitation.id,
+				expect.objectContaining({ position: null }),
+			);
 		});
 
 		it("should throw InvalidInvitationError when token does not exist", async () => {

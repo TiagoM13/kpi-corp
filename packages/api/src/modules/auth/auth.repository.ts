@@ -5,6 +5,7 @@ import type { Role } from "@kpi-corp/db/prisma/generated/enums";
 type CreateUserData = {
 	name: string;
 	email: string;
+	position: string | null;
 	passwordHash: string;
 	role: Role;
 };
@@ -46,7 +47,6 @@ export const authRepository = {
 		});
 	},
 
-	/** Revokes a token only if still active; the count tells whether we won the race. */
 	revokeRefreshToken(id: string) {
 		return prisma.refreshToken.updateMany({
 			where: {
@@ -71,12 +71,6 @@ export const authRepository = {
 		});
 	},
 
-	/**
-	 * Claims the invitation and creates the user atomically.
-	 *
-	 * The claim is an `updateMany` guarded by `usedAt: null`, so two concurrent
-	 * registrations with the same token cannot both succeed.
-	 */
 	executeRegisterTransaction(invitationId: string, data: CreateUserData) {
 		return prisma.$transaction(async (tx) => {
 			const claimed = await tx.invitation.updateMany({

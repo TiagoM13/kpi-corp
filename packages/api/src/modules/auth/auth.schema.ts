@@ -5,6 +5,7 @@ const publicUserSchema = z.object({
 	name: z.string(),
 	email: z.email(),
 	role: z.enum(["ADMIN", "MEMBER"]),
+	position: z.string().nullable(),
 });
 
 export const loginInputSchema = z.object({
@@ -33,7 +34,7 @@ export const meResponseSchema = z.object({
 	name: z.string(),
 	email: z.email(),
 	role: z.enum(["ADMIN", "MEMBER"]),
-	avatar: z.string().nullable().optional(),
+	position: z.string().nullable(),
 });
 
 export const logoutInputSchema = z.object({
@@ -47,7 +48,8 @@ export const logoutResponseSchema = z.object({
 export const registerInputSchema = z.object({
 	token: z.string().min(1),
 	name: z.string().min(1),
-	password: z.string().min(6),
+	position: z.string().trim().min(1).optional(),
+	password: z.string().min(8),
 });
 
 export const registerResponseSchema = z.object({
