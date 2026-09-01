@@ -9,7 +9,7 @@ Este arquivo cobre **apenas** `apps/server`. Setup geral do monorepo e comandos 
 **Este app é só o host HTTP.** Ele não tem lógica de negócio, nem procedures, nem acesso a banco.
 
 - `apps/server/src/index.ts` é o único arquivo do app: CORS, handlers oRPC e `listen`.
-- Endpoint novo → `packages/api/src/routers/`.
+- Endpoint novo → `packages/api/src/modules/<módulo>/`.
 - Query nova → `packages/db` (Prisma).
 - Variável de ambiente nova → `packages/env/src/server.ts`.
 
@@ -69,15 +69,27 @@ O schema OpenAPI vem do Zod das procedures via `ZodToJsonSchemaConverter` (`@orp
 
 - **`onError` interceptor** só faz `console.error` nos dois handlers. É o lugar de plugar observabilidade se for preciso.
 
-- **CORS** (`baseCorsConfig`) tem `credentials: true` e origem única vinda de `env.CORS_ORIGIN`. Quando o auth real entrar com cookie httpOnly, essa é a config que já sustenta.
+- **CORS** (`baseCorsConfig`) tem `credentials: true` e origem única vinda de `env.CORS_ORIGIN`. O auth hoje usa `Authorization: Bearer`, não cookie — mas essa config já sustenta a troca para cookie `httpOnly` quando ela acontecer.
 
 - **Logger do Fastify ligado** (`Fastify({ logger: true })`) — usar `fastify.log`, não `console.log`, em código novo dentro do app.
 
 ## Contexto das procedures
 
-`createContext` mora em `packages/api/src/context.ts` e recebe os headers da request. Hoje devolve `{ auth: null, session: null }` — **auth ainda não existe**.
+`createContext` mora em **`packages/api/src/shared/context.ts`** (mudou de lugar quando a camada `shared/` nasceu) e recebe os headers da request.
 
-O `Context` é o ponto de extensão: quando o login real entrar, é ali que o token/cookie vira sessão, e é dali que sai o `protectedProcedure` (hoje só existe `publicProcedure`).
+Ele lê `Authorization: Bearer`, valida a assinatura do access token e devolve
+`{ headers, auth }`. Token ausente, expirado ou com assinatura inválida resultam todos em
+`auth: null` — **o contexto nunca lança**. Quem decide se isso é erro é a procedure.
+
+As três procedures vivem em `packages/api/src/index.ts`:
+
+| Procedure | Garante | Falha com |
+| --- | --- | --- |
+| `publicProcedure` | nada | — |
+| `protectedProcedure` | `context.auth` não nulo | `ORPCError("UNAUTHORIZED")` → 401 |
+| `adminProcedure` | `role === "ADMIN"` | `ORPCError("FORBIDDEN")` → 403 |
+
+Nenhuma validação de token acontece dentro deste app.
 
 ## Banco
 
@@ -88,7 +100,7 @@ import prisma from "@kpi-corp/db";
 ```
 
 - Schema dividido por modelo em `packages/db/prisma/schema/*.prisma` — arquivo novo é detectado sozinho.
-- Modelos: `User`, `Kpi`, `KpiAssignment`, `Meeting`, `MeetingAttendee`, `Todo` (`Todo` é resíduo do scaffold do Better-T-Stack, junto com `todoRouter`).
+- Modelos: `User`, `RefreshToken`, `Invitation`, `Kpi`, `KpiAssignment`, `Meeting`, `MeetingAttendee`. Ids são `uuid` com `@db.Uuid`.
 - `packages/db/prisma/generated/` é gerado — fora do Biome e do git de revisão.
 - `prisma.config.ts` lê `../../apps/server/.env`: **o `.env` da API é a fonte do `DATABASE_URL` para todos os comandos Prisma**, mesmo rodando da raiz.
 
@@ -102,6 +114,10 @@ import prisma from "@kpi-corp/db";
 | `CORS_ORIGIN` | — | URL do web, obrigatória e validada como URL |
 | `HOST` | `localhost` | bind do Fastify |
 | `PORT` | `3000` | porta do Fastify |
+| `JWT_SECRET` | — | assinatura do access token (obrigatória) |
+| `JWT_REFRESH_SECRET` | — | assinatura do refresh token, distinta da anterior (obrigatória) |
+| `JWT_ACCESS_EXPIRES_IN` | `15m` | vida do access token |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | vida do refresh token |
 | `NODE_ENV` | `development` | `development` \| `production` \| `test` |
 
 Validação em runtime com `@t3-oss/env-core` + Zod em `packages/env/src/server.ts`. Ler `process.env` direto não é o padrão — declarar no schema e importar `env` de `@kpi-corp/env/server`. `SKIP_ENV_VALIDATION=1` pula a validação (uso em build/CI).
@@ -118,7 +134,9 @@ Turborepo cacheia `build` com `dependsOn: ["^build"]` e passa `DATABASE_URL`, `C
 
 ## Testes
 
-**Não há testes aqui hoje.** O app não tem script `test` e o Turbo simplesmente pula. Teste de lógica de API pertence a `packages/api`, junto da procedure.
+**Não há testes aqui hoje**, e é assim de propósito. O app não tem script `test` e o Turbo simplesmente pula.
+
+Teste de lógica de API pertence a `packages/api`, junto da procedure — são 52 lá, nenhum precisando de banco. Este app não tem lógica para testar.
 
 ## Estilo
 

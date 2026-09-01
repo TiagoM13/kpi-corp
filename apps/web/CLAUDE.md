@@ -74,11 +74,36 @@ Motivo: a tela fica testável e reaproveitável sem depender do router, e o `rou
 - `_authed.tsx` também envolve tudo no `AppShell` (sidebar + nav por perfil + botão sair).
 - Guard de perfil fica no `beforeLoad` da rota, nunca no componente. Perfil vem sempre da sessão, nunca de escolha do usuário na tela.
 
+## A API de auth já existe
+
+`packages/api` tem `auth.login`, `auth.register`, `auth.refresh`, `auth.logout` e
+`auth.me` implementados, testados e validados contra o banco. **O front ainda não os
+consome** — continua no mock descrito abaixo.
+
+Ao migrar:
+
+| Hoje (mock) | Vira |
+| --- | --- |
+| `signIn` em `lib/auth.ts` | `orpc.auth.login` |
+| `acceptInvite` em `lib/invite.ts` | `orpc.auth.register` |
+| sessão em `localStorage` | `accessToken` + `refreshToken` da resposta |
+| `getSession()` síncrono | precisa repensar os guards — hoje eles dependem de leitura síncrona |
+
+O ponto de atrito é o último: `beforeLoad` roda antes do render e hoje lê `localStorage`
+sem `await`. Com token real é preciso decidir onde o access token fica e como o refresh
+acontece antes de a rota resolver. Não é substituição linha a linha.
+
+Os erros vêm com `data.code` estável (`INVALID_CREDENTIALS`, `INVITATION_EXPIRED`, ...) —
+ramifique por ele, nunca pela mensagem. Contrato completo em `docs/modules/auth.md`.
+
+Credenciais do seed: `admin@kpicorp.com` / `admin123`, e três membros com `member123`
+(`npm run db:seed`).
+
 ## Autenticação (mock — temporário)
 
 `src/lib/auth.ts` + `src/mocks/users.ts`. Sessão fake em `localStorage` (chave `kpicorp.mock-session`), senha única em texto puro (`kpicorp123`), sem token, sem expiração, sem API.
 
-Existe só para o protótipo navegar. Sai quando `auth.login` existir em `packages/api` — a substituição prevista é cookie httpOnly.
+Existe só para o protótipo navegar. `auth.login` **já existe** em `packages/api` — este mock é dívida ativa, não espera.
 
 Invariantes que os testes (`src/test/auth.test.ts`) travam e que devem continuar valendo:
 
@@ -111,7 +136,11 @@ Regras que devem continuar valendo:
 - o aceite queima o token em `kpicorp.mock-invites-used`; limpar o `localStorage` reseta.
 
 A conta criada **não** entra em `MOCK_USERS`: dá para navegar depois do cadastro, mas não
-dá para sair e entrar de novo por login. Some quando `invite.accept` gravar no banco.
+dá para sair e entrar de novo por login. Some quando o front passar a chamar
+`orpc.auth.register`, que já grava no banco.
+
+Nota: o convite real vive na tabela `invitation` e **não há endpoint que o emita** —
+hoje a linha é inserida à mão. Ver pendências em `docs/modules/auth.md`.
 
 ## Dados / API
 
@@ -121,13 +150,13 @@ Nada de `fetch` manual. O client tipado é `src/utils/orpc.ts`:
 import { useQuery } from "@tanstack/react-query";
 import { orpc } from "@/utils/orpc";
 
-const { data } = useQuery(orpc.todo.getAll.queryOptions());
+const { data } = useQuery(orpc.auth.me.queryOptions());
 ```
 
 - Tipos vêm de `@kpi-corp/api` (`AppRouterClient`) — o front importa o **tipo** do router do servidor, então mudança de contrato quebra no type check.
 - URL base vem de `env.VITE_SERVER_URL` (`@kpi-corp/env/web`), sufixada com `/rpc`.
 - Erros de query já caem num `toast.error` global com botão de retry, configurado no `QueryCache`. Não duplicar tratamento de erro por query sem motivo.
-- Procedure nova: criar em `packages/api/src/routers/`, não aqui.
+- Procedure nova: criar em `packages/api/src/modules/<módulo>/`, não aqui.
 
 ## UI e estilo
 
