@@ -6,6 +6,7 @@ export const env = createEnv({
 	server: {
 		DATABASE_URL: z.string().min(1),
 		CORS_ORIGIN: z.url(),
+		WEB_APP_URL: z.url(),
 		HOST: z.string().min(1).default("localhost"),
 		PORT: z.coerce.number().int().positive().default(3000),
 		NODE_ENV: z

@@ -88,7 +88,8 @@ passa a existir depois de declarada no schema — ler `process.env` direto não 
 | Variável | Obrigatória | Default | Descrição |
 | --- | --- | --- | --- |
 | `DATABASE_URL` | Sim | — | Connection string do Postgres |
-| `CORS_ORIGIN` | Sim | — | URL do app web, validada como URL |
+| `CORS_ORIGIN` | Sim | — | Origem aceita pelo CORS, validada como URL |
+| `WEB_APP_URL` | Sim | — | Base dos links abertos no navegador (convite). Separada do CORS: uma é de onde se aceita requisição, a outra é para onde se manda o usuário |
 | `JWT_SECRET` | Sim | — | Assinatura do access token |
 | `JWT_REFRESH_SECRET` | Sim | — | Assinatura do refresh token, distinta da anterior |
 | `JWT_ACCESS_EXPIRES_IN` | Não | `15m` | Vida do access token |

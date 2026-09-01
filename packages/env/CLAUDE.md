@@ -31,6 +31,7 @@ O ganho: falta de variável quebra **no boot**, com mensagem dizendo qual, em ve
 | --- | --- | --- |
 | `DATABASE_URL` | sim | — |
 | `CORS_ORIGIN` | sim | — (validada como URL) |
+| `WEB_APP_URL` | sim | — (validada como URL) |
 | `JWT_SECRET` | sim | — |
 | `JWT_REFRESH_SECRET` | sim | — |
 | `JWT_ACCESS_EXPIRES_IN` | não | `15m` |
@@ -41,6 +42,17 @@ O ganho: falta de variável quebra **no boot**, com mensagem dizendo qual, em ve
 
 Os dois segredos de JWT são **distintos de propósito**: access token roubado não pode ser
 forjado em refresh.
+
+`CORS_ORIGIN` e `WEB_APP_URL` também são separadas de propósito, apesar de apontarem
+para o mesmo lugar em desenvolvimento:
+
+| Variável | Responde | Pode virar lista? |
+| --- | --- | --- |
+| `CORS_ORIGIN` | de onde aceito requisição | sim |
+| `WEB_APP_URL` | para onde mando o usuário (link de convite) | não — precisa ser canônica |
+
+Derivar link de convite da configuração de CORS acopla segurança a roteamento: no dia em
+que o CORS virar lista, o convite passaria a apontar para uma origem arbitrária.
 
 `HOST` e `NODE_ENV` existem no schema mas não estão no `.env.example` — funcionam pelo
 default.

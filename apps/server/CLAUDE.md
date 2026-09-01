@@ -111,7 +111,8 @@ import prisma from "@kpi-corp/db";
 | Variável | Default | Uso |
 | --- | --- | --- |
 | `DATABASE_URL` | — | Postgres (obrigatória) |
-| `CORS_ORIGIN` | — | URL do web, obrigatória e validada como URL |
+| `CORS_ORIGIN` | — | origem aceita pelo CORS, obrigatória e validada como URL |
+| `WEB_APP_URL` | — | base dos links abertos no navegador (convite), obrigatória |
 | `HOST` | `localhost` | bind do Fastify |
 | `PORT` | `3000` | porta do Fastify |
 | `JWT_SECRET` | — | assinatura do access token (obrigatória) |
