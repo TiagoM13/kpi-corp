@@ -9,9 +9,11 @@ o que o código não consegue dizer sozinho.
 ## O que vive aqui
 
 - **[Decisões de arquitetura (ADR)](/docs/adr)** — por que a stack é o que é, e o que
-  cada escolha custou.
-- Convenções de código — a definir.
-- Regras de domínio — a definir, quando o domínio existir.
+  cada escolha custou. São 13 hoje.
+
+E só. Este app é a casa das **decisões** — o "por quê" que sobrevive ao código. O resto da
+documentação segue o guideline da empresa e mora em arquivos Markdown no repositório,
+listados abaixo.
 
 ## O que **não** vive aqui
 
@@ -19,8 +21,16 @@ o que o código não consegue dizer sozinho.
 | --- | --- | --- |
 | Referência de endpoint | `http://localhost:3000/api-reference` | Gerada do schema Zod pelo oRPC. Escrever à mão cria uma segunda fonte de verdade. |
 | Setup do ambiente | `README.md` na raiz | É o primeiro lugar onde alguém olha. Duplicar garante divergência. |
+| Arquitetura (C4 níveis 1 a 3) | `docs/architecture/OVERVIEW.md` e `COMPONENTS.md` | Estrutura exigida pelo guideline de documentação da empresa. |
+| Regras de negócio por módulo | `docs/modules/` | Idem. Ex.: `docs/modules/auth.md`. |
+| Histórico de mudanças | `CHANGELOG.md` na raiz | Keep a Changelog, para quem consome o projeto. |
+| Como contribuir | `CONTRIBUTING.md` na raiz | Fluxo, commits, padrão de módulo. |
+| Convenções para agentes | `CLAUDE.md` de cada app e pacote | Contexto local, junto do código que descreve. |
 | Stories / backlog | `docs/stories/` | Nascem, viram código, morrem na entrega. Documentação é o que sobrevive. |
 | Mockup | `docs/Mockup-KPICorp/` | Referência visual congelada, não documentação. |
+
+`docs/architecture/decisions/` existe só com um `README.md` apontando para cá — é o
+caminho que o guideline manda procurar, e ele precisa levar a algum lugar.
 
 ## Convenção de ADR
 
