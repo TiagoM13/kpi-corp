@@ -20,7 +20,7 @@ export function UserAvatar({ name, hue, className }: UserAvatarProps) {
 		<span
 			aria-hidden
 			className={cn(
-				"inline-flex size-7 shrink-0 items-center justify-center rounded-full font-semibold text-[11px] text-white",
+				"inline-flex size-7 shrink-0 items-center justify-center rounded-full font-semibold text-white text-xs",
 				className,
 			)}
 			style={{

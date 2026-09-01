@@ -16,7 +16,7 @@ import {
 	InputGroupInput,
 } from "@kpi-corp/ui/components/input-group";
 import { Spinner } from "@kpi-corp/ui/components/spinner";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
 	AlertCircleIcon,
 	ArrowRightIcon,
@@ -71,16 +71,16 @@ export function LoginForm() {
 			<form
 				noValidate
 				onSubmit={onSubmit}
-				className="flex w-full max-w-[380px] flex-col gap-4"
+				className="flex w-full max-w-sm flex-col gap-4"
 			>
 				<div className="flex flex-col gap-2">
-					<span className="font-medium text-[10.5px] text-fg-2 uppercase tracking-[0.1em]">
+					<span className="font-medium text-2xs text-fg-2 uppercase tracking-widest">
 						Entrar
 					</span>
-					<h2 className="font-semibold text-[28px] tracking-[-0.02em]">
+					<h2 className="font-semibold text-heading tracking-tight">
 						Bem-vindo de volta
 					</h2>
-					<p className="text-[13px] text-fg-2">
+					<p className="text-fg-2 text-sm">
 						Use o e-mail corporativo. Convidados acessam pelo link que o chefe
 						enviou.
 					</p>
@@ -110,18 +110,21 @@ export function LoginForm() {
 					<Field data-invalid={errors.password ? true : undefined}>
 						<div className="flex items-center justify-between">
 							<FieldLabel htmlFor="password">Senha</FieldLabel>
-							<a
-								href="/login"
-								className="text-[11px] text-primary hover:underline"
+							{/* Recuperacao de senha ainda nao tem rota — aponta para o proprio
+							    login ate a story existir. */}
+							<Link
+								to="/login"
+								className="text-primary text-xs hover:underline"
 							>
 								esqueci
-							</a>
+							</Link>
 						</div>
 						<InputGroup>
 							<InputGroupInput
 								id="password"
 								type={showPassword ? "text" : "password"}
 								autoComplete="current-password"
+								placeholder="Sua senha"
 								aria-invalid={errors.password ? true : undefined}
 								{...register("password")}
 							/>
@@ -161,7 +164,7 @@ export function LoginForm() {
 					Usar SSO corporativo
 				</Button>
 
-				<p className="mt-1 text-center text-[12px] text-fg-3">
+				<p className="mt-1 text-center text-fg-3 text-xs">
 					Primeira vez aqui?{" "}
 					<span className="text-fg-1">
 						Use o link de convite que o chefe enviou.
@@ -169,7 +172,7 @@ export function LoginForm() {
 				</p>
 
 				{/* Atalho do protótipo — sai junto com os mocks quando a API existir. */}
-				<p className="rounded-sm border border-dashed px-3 py-2 text-center text-[11px] text-fg-3">
+				<p className="rounded-sm border border-dashed px-3 py-2 text-center text-fg-3 text-xs">
 					Mock: <span className="text-fg-1">ana.souza@kpicorp.io</span> (admin)
 					ou <span className="text-fg-1">bruno.c@kpicorp.io</span> (membro) ·
 					senha <span className="text-fg-1">{MOCK_PASSWORD}</span>

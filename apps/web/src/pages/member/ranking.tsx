@@ -1,13 +1,22 @@
-import { TrophyIcon } from "lucide-react";
+import { RankingBoard } from "@/components/ranking";
+import type { RankingPeriod } from "@/lib/ranking";
 
-import { PagePlaceholder } from "@/components/page-placeholder";
+type MemberRankingPageProps = {
+	memberId: string;
+	period: RankingPeriod;
+	onPeriodChange: (period: RankingPeriod) => void;
+};
 
-export function MemberRankingPage() {
+export function MemberRankingPage({
+	memberId,
+	period,
+	onPeriodChange,
+}: MemberRankingPageProps) {
 	return (
-		<PagePlaceholder
-			title="Ranking"
-			description="Classificação por pontos acumulados."
-			icon={TrophyIcon}
+		<RankingBoard
+			period={period}
+			onPeriodChange={onPeriodChange}
+			highlightMemberId={memberId}
 		/>
 	);
 }

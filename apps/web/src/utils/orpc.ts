@@ -1,5 +1,4 @@
 import type { AppRouterClient } from "@kpi-corp/api/routers/index";
-import { env } from "@kpi-corp/env/web";
 import { createORPCClient } from "@orpc/client";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
@@ -60,8 +59,22 @@ function getServerUrl(url: string) {
 
 	return `http://localhost:3000${normalized}`;
 }
+
+// `@kpi-corp/env/web` valida com Zod no momento do import. Estatico, isso ancora
+// o zod no chunk de entrada, que toda rota baixa e executa no boot. Resolvido sob
+// demanda, o env (e o zod junto) so carrega na primeira chamada RPC.
+let rpcUrl: Promise<string> | undefined;
+
+async function resolveRpcUrl(): Promise<string> {
+	const { env } = await import("@kpi-corp/env/web");
+	return `${getServerUrl(env.VITE_SERVER_URL)}/rpc`;
+}
+
 export const link = new RPCLink({
-	url: `${getServerUrl(env.VITE_SERVER_URL)}/rpc`,
+	url: () => {
+		rpcUrl ??= resolveRpcUrl();
+		return rpcUrl;
+	},
 });
 
 export const client: AppRouterClient = createORPCClient(link);

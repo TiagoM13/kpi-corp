@@ -15,13 +15,36 @@ export class InvalidCredentialsError extends Error {
 	}
 }
 
+function isSession(value: unknown): value is Session {
+	if (typeof value !== "object" || value === null) {
+		return false;
+	}
+
+	const candidate = value as Record<string, unknown>;
+
+	return (
+		typeof candidate.userId === "string" &&
+		typeof candidate.name === "string" &&
+		typeof candidate.email === "string" &&
+		typeof candidate.position === "string" &&
+		typeof candidate.hue === "number" &&
+		(candidate.role === "ADMIN" || candidate.role === "MEMBER")
+	);
+}
+
 /** Leitura sincrona: os guards de rota rodam antes de qualquer render. */
 export function getSession(): Session | null {
 	try {
 		const raw = localStorage.getItem(STORAGE_KEY);
-		return raw ? (JSON.parse(raw) as Session) : null;
+		if (!raw) {
+			return null;
+		}
+
+		const parsed: unknown = JSON.parse(raw);
+
+		return isSession(parsed) ? parsed : null;
 	} catch {
-		// localStorage indisponivel (modo privado, cookies bloqueados)
+		// localStorage indisponivel (modo privado, cookies bloqueados) ou JSON invalido
 		return null;
 	}
 }
@@ -36,8 +59,11 @@ export function signIn(email: string, password: string): Session {
 	}
 
 	const { id, ...rest } = user;
-	const session: Session = { userId: id, ...rest };
 
+	return startSession({ userId: id, ...rest });
+}
+
+export function startSession(session: Session): Session {
 	try {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 	} catch {

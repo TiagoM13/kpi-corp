@@ -4,12 +4,124 @@
 
 Como usuário, quero fazer logout para encerrar minha sessão com segurança.
 
-## ✅ Critérios de Aceite
+## 🖥️ Web — `apps/web` ✅ concluído · 1 pendência
 
-- [ ]  Botão de logout acessível em qualquer tela
-- [ ]  Token invalidado no backend ao fazer logout
-- [ ]  Usuário redirecionado para tela de login
-- [ ]  Dados da sessão limpos do frontend
+Responsável por oferecer a saída em qualquer tela autenticada, limpar o estado local e
+tirar o usuário da área protegida. **Não invalida token** — hoje não existe token para
+invalidar, e quando existir quem revoga é a API.
+
+- [x] Botão de logout acessível em qualquer tela autenticada
+- [x] Rótulo acessível (`aria-label="Sair"` + `title`) em botão só de ícone
+- [x] Redireciona para `/login` após sair
+- [x] Limpa a sessão do `localStorage`
+- [x] `/login` não devolve o usuário para dentro depois do logout
+- [x] Rota protegida acessada após o logout manda para `/login`
+- [x] `signOut()` não quebra com `localStorage` indisponível
+- [ ] Limpar o cache do TanStack Query no logout
+
+### Estrutura entregue
+
+| Caminho | Responsabilidade |
+| --- | --- |
+| `components/app-shell.tsx` | Botão "Sair" no rodapé da sidebar — `signOut()` + `navigate({ to: "/login" })` |
+| `lib/auth.ts` | `signOut()` remove a chave `kpicorp.mock-session` do `localStorage` |
+| `routes/_authed.tsx` | Monta o `AppShell`, então o botão existe em **toda** rota autenticada |
+| `routes/login.tsx` | Sem sessão, renderiza o login normalmente |
+
+### Fluxo atual
+
+```
+clique em "Sair"
+  └─ signOut()                    remove kpicorp.mock-session
+  └─ navigate({ to: "/login" })
+       └─ /login beforeLoad → getSession() === null → renderiza o login
+
+voltar no navegador para /dashboard
+  └─ /_authed beforeLoad → getSession() === null → redirect /login
+```
+
+O botão fica junto do bloco de identidade do usuário na sidebar — mesma posição do
+mockup. Como é ícone puro, tem `aria-label` e `title`.
+
+### Verificação
+
+`src/test/auth.test.ts` cobre o lado de estado: `signOut()` apaga a sessão
+(`getSession()` volta `null`) e `getSession()` devolve `null` em vez de lançar quando o
+storage está corrompido. Suíte do web: **9 testes passando**.
+
+Não há teste de interação do botão (renderizar o `AppShell`, clicar em "Sair", conferir
+a navegação). O guard de `_authed` já garante o efeito, então a lacuna é de regressão de
+UI, não de comportamento.
+
+### Pendência: cache do TanStack Query
+
+`signOut()` limpa o `localStorage`, mas o `queryClient` é um singleton criado em
+`utils/orpc.ts` e **nunca** recebe `.clear()`. Hoje é inofensivo — todas as telas são
+cascas e nenhuma query carrega dado de usuário. Vira vazamento no primeiro dashboard
+real: sai um usuário, entra outro na mesma aba, e o cache antigo aparece antes do
+refetch.
+
+Correção prevista quando a primeira tela com dados existir:
+
+```ts
+// no handler do botão, depois de signOut()
+queryClient.clear();
+```
+
+## ⚙️ API — `apps/server` + `packages/api`
+
+Responsável por revogar a sessão do lado do servidor e derrubar o cookie. É o único
+lado que consegue tornar um token inutilizável.
+
+- [ ] Procedure `auth.logout` que encerra a sessão corrente
+- [ ] Limpa o cookie `httpOnly` (`Set-Cookie` com `Max-Age=0` e os mesmos atributos da emissão)
+- [ ] Revogação real do token — denylist por `jti` ou sessão persistida em banco
+- [ ] Requisição posterior com o token antigo é recusada
+- [ ] Idempotente: logout sem sessão válida responde sucesso, não erro
+- [ ] Decidir e implementar "sair de todos os dispositivos"
+
+### Ponto de partida
+
+| Item | Estado |
+| --- | --- |
+| `createContext` devolvendo `{ auth: null, session: null }` | Gancho pronto, sem implementação |
+| CORS com `credentials: true` | Já configurado — necessário para apagar o cookie |
+| Emissão de token / cookie | **Não existe** — depende de `001-login.md` |
+| Modelo de sessão ou denylist no Prisma | Não existe; JWT stateless não some só apagando o cookie |
+
+Esta story não anda sem a parte de API do `001`. Sem token emitido não há o que revogar.
+
+### O que o front espera da API
+
+Contrato que o mock já assume:
+
+```
+signOut() -> void, sincrono, nunca lanca
+```
+
+Trocar por `await auth.logout()` muda a natureza da chamada: passa a ser assíncrona e
+pode falhar. **Decisão fixada aqui:** o estado local é limpo e a navegação acontece
+mesmo se a chamada falhar. Deixar o usuário preso numa sessão que ele mandou encerrar é
+pior que uma revogação que não confirmou.
+
+## ⚠️ Dívidas do mock
+
+**Não há nada para invalidar.** A sessão é um JSON no `localStorage`. `signOut()` apaga
+esse JSON e acabou — nenhum servidor sabe que alguém saiu. O critério "token invalidado
+no backend" fica integralmente para a API.
+
+**Outras abas continuam logadas.** Não há listener de `storage`. Sair na aba A não
+derruba a aba B: ela só percebe no próximo `beforeLoad`, ou seja, na próxima navegação
+ou recarga. Com cookie `httpOnly` isso melhora sozinho (a próxima requisição falha),
+mas a navegação client-side ainda vai precisar reagir ao 401.
+
+## ⚠️ Ainda em aberto
+
+**Escopo do logout.** Encerra só a sessão do dispositivo atual ou todas? O critério não
+diz, e a escolha define o modelo de persistência da sessão na API.
+
+**Confirmação antes de sair.** Hoje o clique sai direto, sem diálogo. Não está no
+critério; se for desejado, é mudança de UI nesta story.
 
 ## 📌 Informações
 
@@ -17,3 +129,6 @@ Como usuário, quero fazer logout para encerrar minha sessão com segurança.
 - Perfil: Admin / Membro
 - Prioridade: Alta
 - Fase: MVP
+- Web: concluído com sessão mock — falta limpar o cache de queries
+- API: não iniciado, bloqueado por `001-login.md`
+- Relacionada: `001-login.md`, `004-route-protected.md`

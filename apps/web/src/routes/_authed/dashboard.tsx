@@ -8,5 +8,11 @@ export const Route = createFileRoute("/_authed/dashboard")({
 			throw redirect({ to: "/admin" });
 		}
 	},
-	component: MemberDashboardPage,
+	component: MemberDashboardRoute,
 });
+
+function MemberDashboardRoute() {
+	const { session } = Route.useRouteContext();
+
+	return <MemberDashboardPage memberId={session.userId} name={session.name} />;
+}
