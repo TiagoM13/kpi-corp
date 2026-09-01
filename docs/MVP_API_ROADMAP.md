@@ -279,16 +279,44 @@ Pode:
 * visualizar seus pontos;
 * visualizar seu nível;
 * visualizar seus badges;
-* visualizar ranking geral.
+* visualizar ranking geral;
+* visualizar o perfil público de outro membro (somente leitura).
 
 Não pode:
 
 * criar KPI;
 * editar KPI;
 * atribuir KPI;
-* acessar dados privados de outro membro;
 * gerenciar membros;
-* criar reuniões.
+* criar reuniões;
+* acessar dados administrativos ou de contato de outro membro
+  (e-mail, status de ativação).
+
+### Perfil público de membro
+
+Um membro **pode** consultar o perfil de outro membro, apenas para leitura. A
+regra anterior — *"não pode acessar dados privados de outro membro"* — era ampla
+demais e contradizia o ranking, que já expõe nome, cargo, nível e pontos de todos
+para todo mundo.
+
+O recorte é por campo, não por rota:
+
+| Campo | Admin | Membro vendo outro |
+| --- | --- | --- |
+| id, nome, cargo, avatar | sim | sim |
+| pontos, nível, badges | sim | sim |
+| pontuação por categoria | sim | sim |
+| histórico de KPI | sim | sim, **somente KPIs de pontuação positiva** |
+| e-mail | sim | **não** |
+| status de ativação | sim | **não** |
+
+O histórico é filtrado por pontuação positiva de propósito. Hoje todo KPI modelado
+é de reconhecimento, mas `Kpi.points` aceita valor negativo — sem o filtro, um KPI
+punitivo criado depois viraria registro disciplinar visível entre colegas.
+
+Vale a partir da **Fase 2**: os dados que dão sentido ao perfil (pontos, nível,
+categorias, badges, histórico) só existem lá. Na Fase 1 `GET /members/:id`
+permanece exclusivo do Admin.
 
 ---
 
@@ -757,6 +785,24 @@ Nível
         +
 Badges
 ```
+
+## Perfil público de outro membro
+
+```http
+GET /members/:id/profile
+```
+
+Disponível para **ADMIN e MEMBER** — é o endpoint que sustenta a regra de perfil
+público definida em [1.5](#15--autorização).
+
+Retorna o mesmo conteúdo de `/me/profile`, exceto:
+
+* **sem e-mail**;
+* **sem status de ativação**;
+* histórico de KPI **filtrado para pontuação positiva**.
+
+Quando o `:id` é o do próprio usuário autenticado, o comportamento é idêntico ao de
+outro membro — para ver os próprios dados completos existe `/me/profile`.
 
 ---
 
