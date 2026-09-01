@@ -51,6 +51,35 @@ async function main() {
 		console.log(`Member seeded: ${user.email} (${user.id})`);
 	}
 
+	const kpis = [
+		{ name: "Presença na reunião", points: 5, category: "PRESENCE" as const },
+		{ name: "Chegou no horário", points: 3, category: "PRESENCE" as const },
+		{ name: "Entregou no prazo", points: 12, category: "PERFORMANCE" as const },
+		{
+			name: "Resolveu bug crítico",
+			points: 25,
+			category: "PERFORMANCE" as const,
+		},
+		{ name: "Ajudou um colega", points: 10, category: "BEHAVIOR" as const },
+		{ name: "Feedback construtivo", points: 7, category: "BEHAVIOR" as const },
+		{
+			name: "Boa ideia em reunião",
+			points: 15,
+			category: "INITIATIVE" as const,
+		},
+		{ name: "Documentou processo", points: 8, category: "INITIATIVE" as const },
+	];
+
+	for (const item of kpis) {
+		const kpi = await prisma.kpi.upsert({
+			where: { name: item.name },
+			update: {},
+			create: item,
+		});
+
+		console.log(`KPI seeded: ${kpi.name} (${kpi.points} pts, ${kpi.category})`);
+	}
+
 	await prisma.$disconnect();
 }
 
