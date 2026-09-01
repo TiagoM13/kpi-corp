@@ -53,30 +53,3 @@ export class InvitationExpiredError extends DomainError {
 		super("Invitation expired");
 	}
 }
-
-export class EmailAlreadyRegisteredError extends DomainError {
-	readonly code = "EMAIL_ALREADY_REGISTERED";
-	readonly status = "CONFLICT" as const;
-
-	constructor() {
-		super("Email already registered");
-	}
-}
-
-export class UnauthorizedError extends DomainError {
-	readonly code = "UNAUTHORIZED";
-	readonly status = "UNAUTHORIZED" as const;
-
-	constructor() {
-		super("Unauthorized");
-	}
-}
-
-export class ForbiddenError extends DomainError {
-	readonly code = "FORBIDDEN";
-	readonly status = "FORBIDDEN" as const;
-
-	constructor() {
-		super("Forbidden");
-	}
-}

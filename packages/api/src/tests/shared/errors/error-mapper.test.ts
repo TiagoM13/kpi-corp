@@ -3,11 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
 	AccountDeactivatedError,
-	EmailAlreadyRegisteredError,
 	InvalidCredentialsError,
 	InvalidRefreshTokenError,
 	InvitationAlreadyUsedError,
 } from "../../../modules/auth/auth.errors";
+import { EmailAlreadyRegisteredError } from "../../../shared/errors/common.errors";
 import { mapDomainErrorToORPCError } from "../../../shared/errors/error-mapper";
 
 describe("mapDomainErrorToORPCError", () => {

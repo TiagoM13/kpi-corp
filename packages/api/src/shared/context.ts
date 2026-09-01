@@ -1,6 +1,6 @@
 import type { IncomingHttpHeaders } from "node:http";
 
-import { verifyAccessToken } from "../modules/auth/auth.tokens";
+import { verifyAccessToken } from "./security/access-token";
 
 export async function createContext(headers: IncomingHttpHeaders) {
 	const authHeader = headers.authorization ?? "";

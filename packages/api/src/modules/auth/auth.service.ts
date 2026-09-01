@@ -1,6 +1,9 @@
 import { Prisma } from "@kpi-corp/db/prisma/generated/client";
 import { env } from "@kpi-corp/env/server";
-
+import {
+	EmailAlreadyRegisteredError,
+	UnauthorizedError,
+} from "../../shared/errors/common.errors";
 import {
 	DUMMY_PASSWORD_HASH,
 	hashPassword,
@@ -9,13 +12,11 @@ import {
 import { durationToMs } from "../../shared/security/tokens";
 import {
 	AccountDeactivatedError,
-	EmailAlreadyRegisteredError,
 	InvalidCredentialsError,
 	InvalidInvitationError,
 	InvalidRefreshTokenError,
 	InvitationAlreadyUsedError,
 	InvitationExpiredError,
-	UnauthorizedError,
 } from "./auth.errors";
 import {
 	mapUserToAuthUser,
@@ -49,14 +50,10 @@ export type LoginInput = {
 export type RegisterInput = {
 	token: string;
 	name: string;
+	position?: string;
 	password: string;
 };
 
-/**
- * Mints an access token plus a rotated refresh token, persisting the refresh
- * token's hash under the very id embedded in its payload so it can be looked
- * up again on refresh.
- */
 async function issueSession(user: UserForAuthMapping): Promise<Session> {
 	const authUser = mapUserToAuthUser(user);
 	const tokenId = generateTokenId();
@@ -84,8 +81,6 @@ export const authService = {
 	async login(input: LoginInput): Promise<Session> {
 		const user = await authRepository.findUserByEmail(input.email);
 
-		// Always run a full password verification, against a dummy hash when the
-		// email is unknown, so response time cannot be used to enumerate accounts.
 		const passwordMatches = await verifyPassword(
 			input.password,
 			user?.passwordHash ?? DUMMY_PASSWORD_HASH,
@@ -114,7 +109,7 @@ export const authService = {
 			name: user.name,
 			email: user.email,
 			role: user.role,
-			avatar: null,
+			position: user.position,
 		};
 	},
 
@@ -133,7 +128,6 @@ export const authService = {
 			throw new InvalidRefreshTokenError();
 		}
 
-		// A token presented after rotation means it leaked: drop the whole family.
 		if (storedToken.revokedAt) {
 			await authRepository.revokeAllRefreshTokensForUser(storedToken.userId);
 			throw new InvalidRefreshTokenError();
@@ -149,7 +143,6 @@ export const authService = {
 
 		const revoked = await authRepository.revokeRefreshToken(storedToken.id);
 
-		// Lost the race against a concurrent refresh: only one may rotate.
 		if (revoked.count === 0) {
 			throw new InvalidRefreshTokenError();
 		}
@@ -206,11 +199,11 @@ export const authService = {
 			.executeRegisterTransaction(invitation.id, {
 				name: input.name,
 				email: invitation.email,
+				position: input.position ?? null,
 				passwordHash,
 				role: "MEMBER",
 			})
 			.catch((error: unknown) => {
-				// The check above is advisory; the unique index is what actually decides.
 				if (
 					error instanceof Prisma.PrismaClientKnownRequestError &&
 					error.code === UNIQUE_CONSTRAINT_VIOLATION

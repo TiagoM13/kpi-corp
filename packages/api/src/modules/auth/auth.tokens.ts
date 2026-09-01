@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { env } from "@kpi-corp/env/server";
 
+import { signAccessToken } from "../../shared/security/access-token";
 import {
 	hashOpaqueToken,
 	signToken,
@@ -10,33 +11,13 @@ import {
 
 import type { AuthUser } from "./auth.mapper";
 
-export type AccessTokenPayload = {
-	sub: string;
-	email: string;
-	role: "ADMIN" | "MEMBER";
-};
-
 export type RefreshTokenPayload = {
 	sub: string;
 	tokenId: string;
 };
 
 export async function generateAccessToken(user: AuthUser): Promise<string> {
-	return signToken(
-		{
-			sub: user.id,
-			email: user.email,
-			role: user.role,
-		},
-		env.JWT_SECRET,
-		env.JWT_ACCESS_EXPIRES_IN,
-	);
-}
-
-export async function verifyAccessToken(
-	token: string,
-): Promise<AccessTokenPayload> {
-	return verifyToken(token, env.JWT_SECRET);
+	return signAccessToken(user);
 }
 
 export async function generateRefreshTokenPayload(

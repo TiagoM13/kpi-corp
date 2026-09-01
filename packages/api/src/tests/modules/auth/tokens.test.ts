@@ -5,10 +5,10 @@ import {
 	generateRefreshTokenPayload,
 	generateTokenId,
 	hashToken,
-	verifyAccessToken,
 	verifyRefreshToken,
 	verifyTokenHash,
 } from "../../../modules/auth/auth.tokens";
+import { verifyAccessToken } from "../../../shared/security/access-token";
 
 describe("auth tokens", () => {
 	const mockUser = {
