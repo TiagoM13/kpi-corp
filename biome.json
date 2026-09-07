@@ -107,7 +107,12 @@
 							"options": {
 								"patterns": [
 									{
-										"group": ["../auth/**", "../kpis/**", "../members/**"],
+										"group": [
+											"../auth/**",
+											"../kpis/**",
+											"../members/**",
+											"../assignments/**"
+										],
 										"message": "Um modulo nao importa de outro. O que os dois precisam vai para packages/api/src/shared/."
 									}
 								]
