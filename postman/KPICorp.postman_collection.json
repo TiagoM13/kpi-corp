@@ -2497,6 +2497,169 @@
       ]
     },
     {
+      "name": "Profile (2C)",
+      "item": [
+        {
+          "name": "Minha pontuação",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me/score",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "score"
+              ]
+            },
+            "description": "protectedProcedure — qualquer usuario autenticado (MEMBER ou ADMIN).\n\nSoma so atribuicoes com revokedAt IS NULL, usando `points` congelado na atribuicao. O bloco `level` e funcao pura dos pontos validos: revogar um KPI derruba o total e o nivel junto."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Meus KPIs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me/kpis?revoked=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "kpis"
+              ],
+              "query": [
+                {
+                  "key": "revoked",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Uma linha por atribuicao recebida, ordenada por data decrescente. Traz as revogadas marcadas (revokedAt preenchido) — e o historico do proprio usuario.\n\nFiltro opcional `revoked`: true so revogadas, false so validas, ausente traz tudo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Resumo dos meus KPIs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me/kpis/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "kpis",
+                "summary"
+              ]
+            },
+            "description": "Quantidade total recebida, quantidade por categoria, pontuacao por categoria (so validas) e a ultima atribuicao. Sem atribuicao, lastAssignment e null."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Meu perfil",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/me/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "me",
+                "profile"
+              ]
+            },
+            "description": "Dados pessoais (com e-mail e status), pontuacao, pontuação por categoria, KPIs e nivel. Sem badges (fase 2D)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Perfil público do membro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/members/{{memberId}}/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "members",
+                "{{memberId}}",
+                "profile"
+              ]
+            },
+            "description": "protectedProcedure — MEMBER tambem acessa. Requer `memberId` no environment.\n\nMesmo conteudo do /me/profile, mas sem e-mail, sem status de ativacao e sem atribuicoes revogadas no historico. Membro desativado ou id inexistente -> 404 MEMBER_NOT_FOUND. Pedir o proprio id devolve a versao publica."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Autorizacao (1.5)",
       "description": "Prova o contrato de 401 e 403.\n\n401 = nao sei quem voce e. 403 = sei e voce nao pode.\n\nOs casos de 403 dependem de rota administrativa, que chega na Fase 1.6.",
       "item": [
