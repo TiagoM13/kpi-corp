@@ -80,6 +80,97 @@ async function main() {
 		console.log(`KPI seeded: ${kpi.name} (${kpi.points} pts, ${kpi.category})`);
 	}
 
+	const assignmentCount = await prisma.kpiAssignment.count();
+
+	if (assignmentCount === 0) {
+		const users = await prisma.user.findMany({
+			where: { email: { in: members.map((member) => member.email) } },
+		});
+		const kpiByName = new Map(
+			(
+				await prisma.kpi.findMany({
+					where: { name: { in: kpis.map((item) => item.name) } },
+				})
+			).map((kpi) => [kpi.name, kpi]),
+		);
+
+		const pick = (email: string, kpiName: string, note: string | null) => {
+			const user = users.find((item) => item.email === email);
+			const kpi = kpiByName.get(kpiName);
+
+			if (!user || !kpi) {
+				throw new Error(`Seed inconsistente: ${email} / ${kpiName}`);
+			}
+
+			return { user, kpi, note };
+		};
+
+		const assignments = [
+			pick(
+				"ana@kpicorp.com",
+				"Presença na reunião",
+				"Presença na reunião semanal",
+			),
+			pick(
+				"ana@kpicorp.com",
+				"Entregou no prazo",
+				"Sprint 34 entregue sem atraso",
+			),
+			pick(
+				"bruno@kpicorp.com",
+				"Presença na reunião",
+				"Presença na reunião semanal",
+			),
+			pick(
+				"bruno@kpicorp.com",
+				"Ajudou um colega",
+				"Pair programming com a Carla",
+			),
+			pick(
+				"carla@kpicorp.com",
+				"Boa ideia em reunião",
+				"Sugestão de métrica de churn",
+			),
+		];
+
+		for (const { user, kpi, note } of assignments) {
+			await prisma.kpiAssignment.create({
+				data: {
+					kpiId: kpi.id,
+					userId: user.id,
+					assignedBy: admin.id,
+					note,
+					points: kpi.points,
+				},
+			});
+
+			console.log(
+				`Assignment seeded: ${kpi.name} (${kpi.points} pts) -> ${user.name}`,
+			);
+		}
+
+		const revokedPick = pick(
+			"ana@kpicorp.com",
+			"Feedback construtivo",
+			"Atribuição revogada de exemplo",
+		);
+
+		const revoked = await prisma.kpiAssignment.create({
+			data: {
+				kpiId: revokedPick.kpi.id,
+				userId: revokedPick.user.id,
+				assignedBy: admin.id,
+				note: revokedPick.note,
+				points: revokedPick.kpi.points,
+				revokedAt: new Date(),
+			},
+		});
+
+		console.log(`Assignment revogado seeded: ${revoked.id}`);
+	} else {
+		console.log(`Assignments already seeded (${assignmentCount}), pulando.`);
+	}
+
 	await prisma.$disconnect();
 }
 
