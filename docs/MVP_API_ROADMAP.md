@@ -672,10 +672,24 @@ Exemplo:
   "categories": {
     "presence": 300,
     "performance": 400,
-    "behavior": 150
+    "behavior": 100,
+    "initiative": 50
+  },
+  "level": {
+    "level": 6,
+    "tier": "COMPROMETIDO",
+    "nextLevel": 7,
+    "nextLevelPoints": 900,
+    "progress": 75
   }
 }
 ```
+
+São **quatro** categorias desde a Fase 2A, quando `INITIATIVE` entrou no enum. Categoria
+sem nenhum ponto vem como `0`, nunca omitida.
+
+O bloco `level` entra aqui além de em `/me/profile`: o dashboard do membro precisa de
+pontos e nível juntos, e o nível é função pura de um número que já está na resposta.
 
 A pontuação deve ser derivada das atribuições válidas.
 
@@ -715,52 +729,80 @@ Permitir que o frontend obtenha:
 
 # 2.7 — Níveis
 
-Implementar os níveis definidos no PRD:
+Implementar os vinte níveis e as cinco faixas definidos no PRD § 7.
 
 ```text
-0     → INICIANTE
-500   → COMPROMETIDO
-1000  → DESTAQUE
-2000  → ELITE
-5000  → LENDA
+nivel    0    1    2    3    4    5    6    7    8    9   10
+pts      0  100  200  300  400  500  700  900 1100 1300 1500
+
+nivel   11   12   13   14   15   16   17   18   19   20
+pts   1900 2300 2700 3100 3500 4300 5100 5900 6700 7500
+```
+
+Faixa por banda de nível — troca em 5, 10, 15 e 20:
+
+```text
+0-4    INICIANTE
+5-9    COMPROMETIDO
+10-14  DESTAQUE
+15-19  ELITE
+20     LENDA
 ```
 
 Criar uma regra centralizada para calcular:
 
 ```text
-currentLevel
+level          nivel atual, 0 a 20
+tier           faixa do nivel atual
 currentPoints
-nextLevel
+levelFloor     limiar do nivel atual
+nextLevel      null no nivel 20
 nextLevelPoints
-progress
+nextTier       null quando ja e LENDA
+progress       0-100 dentro do nivel atual
 ```
 
-Exemplo:
+Exemplo, para 850 pontos:
 
 ```json
 {
-  "level": "COMPROMETIDO",
+  "level": 6,
+  "tier": "COMPROMETIDO",
   "points": 850,
-  "nextLevel": "DESTAQUE",
-  "nextLevelPoints": 1000,
-  "progress": 70
+  "levelFloor": 700,
+  "nextLevel": 7,
+  "nextLevelPoints": 900,
+  "nextTier": "DESTAQUE",
+  "progress": 75
 }
 ```
+
+O nível é função pura da pontuação válida — não há estado guardado, e revogar
+atribuição pode derrubar o nível. Nível 20 é o teto: `nextLevel` e `nextTier` vêm
+`null` e `progress` vem 100.
 
 ---
 
 # 2.8 — Badges
 
+> **Adiado para a entrega 2D**, depois de pontuação e níveis. Dos quatro badges,
+> `TOP_THREE` depende do ranking (§ 3.7) e `TEN_MEETINGS` depende de reunião (Fase 3) —
+> só dois são calculáveis com o que a Fase 2 produz.
+
 Implementar os badges básicos definidos no MVP:
 
 ```text
-FIRST_WEEK
-FIVE_PERFORMANCE
-TOP_THREE
-TEN_MEETINGS
+FIRST_WEEK         calculavel na Fase 2
+FIVE_PERFORMANCE   calculavel na Fase 2
+TOP_THREE          depende do ranking, § 3.7
+TEN_MEETINGS       depende de reuniao, Fase 3
 ```
 
 As regras devem ser implementadas como regras de domínio, evitando que o frontend determine se um usuário possui ou não uma conquista.
+
+A decisão em aberto, que a spec de 2D precisa tomar: badge é **fato gravado** — tem data
+de conquista e não some quando o KPI que o gerou é revogado — ou **consequência
+calculada**, que some junto? A resposta decide se existe tabela.
 
 ---
 
@@ -808,21 +850,31 @@ outro membro — para ver os próprios dados completos existe `/me/profile`.
 
 # 2.10 — Critérios de aceite da Fase 2
 
-* [ ] Admin consegue criar KPI.
-* [ ] Admin consegue editar KPI.
-* [ ] Admin consegue desativar KPI.
-* [ ] Admin consegue listar KPIs.
-* [ ] Admin consegue atribuir KPI.
-* [ ] Admin consegue atribuir KPI para múltiplos membros.
-* [ ] Admin consegue revogar atribuição.
-* [ ] Histórico permanece após revogação.
-* [ ] Pontuação considera somente atribuições válidas.
-* [ ] Member consegue visualizar seus KPIs.
-* [ ] Member consegue visualizar seus pontos.
-* [ ] Pontuação por categoria funciona.
-* [ ] Nível é calculado corretamente.
-* [ ] Badges são calculados corretamente.
-* [ ] Member não consegue executar ações administrativas.
+A fase é **quatro entregas**, não uma. A dependência é estrita: não se atribui KPI que
+não existe, nem se calcula pontuação sem atribuição.
+
+| Entrega | Cobre | Estado |
+| --- | --- | --- |
+| **2A — Catálogo de KPIs** | 2.1 | entregue |
+| **2B — Atribuições** | 2.2, 2.3 | spec em `docs/specs/fase-2b-atribuicoes.md` |
+| **2C — Pontuação, níveis e perfil** | 2.4 a 2.7, 2.9 | spec em `docs/specs/fase-2c-pontuacao-e-niveis.md` |
+| **2D — Badges** | 2.8 | sem spec |
+
+* [x] Admin consegue criar KPI. · 2A
+* [x] Admin consegue editar KPI. · 2A
+* [x] Admin consegue desativar KPI. · 2A
+* [x] Admin consegue listar KPIs. · 2A
+* [ ] Admin consegue atribuir KPI. · 2B
+* [ ] Admin consegue atribuir KPI para múltiplos membros. · 2B
+* [ ] Admin consegue revogar atribuição. · 2B
+* [ ] Histórico permanece após revogação. · 2B
+* [ ] Pontuação considera somente atribuições válidas. · 2C
+* [ ] Member consegue visualizar seus KPIs. · 2C
+* [ ] Member consegue visualizar seus pontos. · 2C
+* [ ] Pontuação por categoria funciona. · 2C
+* [ ] Nível é calculado corretamente. · 2C
+* [ ] Badges são calculados corretamente. · 2D
+* [x] Member não consegue executar ações administrativas. · 2A
 
 ---
 
@@ -1063,8 +1115,9 @@ Exemplo:
   "rankingPosition": 4,
   "kpiCount": 18,
   "level": {
-    "name": "COMPROMETIDO",
-    "progress": 70
+    "level": 6,
+    "tier": "COMPROMETIDO",
+    "progress": 75
   },
   "recentKpis": []
 }

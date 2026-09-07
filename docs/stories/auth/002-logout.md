@@ -68,28 +68,37 @@ Correção prevista quando a primeira tela com dados existir:
 queryClient.clear();
 ```
 
-## ⚙️ API — `apps/server` + `packages/api`
+## ⚙️ API — `apps/server` + `packages/api` ⚠️ parcial
 
 Responsável por revogar a sessão do lado do servidor e derrubar o cookie. É o único
 lado que consegue tornar um token inutilizável.
 
-- [ ] Procedure `auth.logout` que encerra a sessão corrente
+- [x] Procedure `auth.logout` que encerra a sessão corrente
 - [ ] Limpa o cookie `httpOnly` (`Set-Cookie` com `Max-Age=0` e os mesmos atributos da emissão)
-- [ ] Revogação real do token — denylist por `jti` ou sessão persistida em banco
+- [x] Revogação real do token — sessão persistida em banco (`refresh_token.revokedAt`)
 - [ ] Requisição posterior com o token antigo é recusada
-- [ ] Idempotente: logout sem sessão válida responde sucesso, não erro
+- [x] Idempotente: logout sem sessão válida responde sucesso, não erro
 - [ ] Decidir e implementar "sair de todos os dispositivos"
+
+**O access token sobrevive ao logout.** `auth.logout` revoga o refresh token; o access
+token continua válido até expirar, no máximo 15 minutos. É o custo do JWT stateless sem
+denylist — e é por isso que "requisição posterior com o token antigo é recusada" segue
+desmarcado. Revogação instantânea exigiria checar o banco a cada request, que é
+exatamente o que a
+[ADR 0011](http://localhost:4000/docs/adr/0011-jwt-refresh-token-rotativo) decidiu não
+fazer.
+
+Revogar **todos** os tokens do usuário já acontece, mas só como reação a replay de
+refresh token — não como ação que o usuário possa pedir.
 
 ### Ponto de partida
 
 | Item | Estado |
 | --- | --- |
-| `createContext` devolvendo `{ auth: null, session: null }` | Gancho pronto, sem implementação |
+| `createContext` resolvendo `context.auth` a partir do `Bearer` | Implementado |
 | CORS com `credentials: true` | Já configurado — necessário para apagar o cookie |
-| Emissão de token / cookie | **Não existe** — depende de `001-login.md` |
-| Modelo de sessão ou denylist no Prisma | Não existe; JWT stateless não some só apagando o cookie |
-
-Esta story não anda sem a parte de API do `001`. Sem token emitido não há o que revogar.
+| Emissão de token | Implementada — no corpo da resposta, não em cookie |
+| Modelo de sessão no Prisma | `refresh_token`, com `tokenHash` e `revokedAt` |
 
 ### O que o front espera da API
 
@@ -130,5 +139,5 @@ critério; se for desejado, é mudança de UI nesta story.
 - Prioridade: Alta
 - Fase: MVP
 - Web: concluído com sessão mock — falta limpar o cache de queries
-- API: não iniciado, bloqueado por `001-login.md`
+- API: implementada — `auth.logout` revoga o refresh token
 - Relacionada: `001-login.md`, `004-route-protected.md`

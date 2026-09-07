@@ -206,21 +206,53 @@ O **KPICorp** é uma plataforma web corporativa onde o Admin cadastra KPIs (indi
 
 ---
 
-## 7. Níveis e Gamificação (Fase 1 — básico)
+## 7. Níveis e Gamificação
 
-| Nível       | Pontuação mínima |
-|-------------|-----------------|
-| Iniciante   | 0 pts           |
-| Comprometido| 500 pts         |
-| Destaque    | 1.000 pts       |
-| Elite       | 2.000 pts       |
-| Lenda       | 5.000 pts       |
+A progressão tem **vinte níveis** agrupados em **cinco faixas**. O nível é a régua fina,
+que se move quase toda semana; a faixa é o nome que aparece na tela. As trocas de faixa
+caem nos níveis 5, 10, 15 e 20.
+
+O passo dobra a cada bloco de cinco níveis — 100, 200, 400, 800 — então subir do 19 para
+o 20 custa oito vezes o que custou chegar ao nível 1.
+
+| Faixa | Níveis | Pontuação |
+|--------------|---------|-------------------|
+| Iniciante | 0 – 4 | 0 a 400 pts |
+| Comprometido | 5 – 9 | 500 a 1.300 pts |
+| Destaque | 10 – 14 | 1.500 a 3.100 pts |
+| Elite | 15 – 19 | 3.500 a 6.700 pts |
+| Lenda | 20 | 7.500 pts |
+
+Limiar de cada nível:
+
+```text
+nivel    0    1    2    3    4    5    6    7    8    9   10
+pts      0  100  200  300  400  500  700  900 1100 1300 1500
+
+nivel   11   12   13   14   15   16   17   18   19   20
+pts   1900 2300 2700 3100 3500 4300 5100 5900 6700 7500
+```
+
+O nível é **função pura da pontuação válida**: KPI revogado tira os pontos e pode
+derrubar o nível — coerente com a regra de que KPI removido perde os pontos
+retroativamente. Nível 20 é o teto; acima de 7.500 os pontos continuam somando, o nível
+não sobe mais.
+
+Calibrado para um membro engajado (~500 pts/mês, com KPIs de presença, câmera ligada,
+tarefa documentada e entrega): nível 5 em ~1 mês, nível 10 em ~3 meses, nível 15 em ~7
+meses e nível 20 em pouco mais de um ano.
+
+### Badges
 
 Badges visuais para:
 - 🔥 Primeira semana consecutiva com KPIs
 - ⚡ 5 KPIs de Desempenho acumulados
 - 🏅 Entrou no Top 3 do ranking
 - 🤝 Presente em 10 reuniões
+
+Dois deles dependem de dado que só existe na Fase 3: **Top 3** precisa de ranking e
+**10 reuniões** precisa de reunião. Por isso os badges não saem junto com os níveis —
+viram entrega própria (2D), depois da pontuação.
 
 ---
 

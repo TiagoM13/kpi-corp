@@ -139,8 +139,10 @@ A conta criada **não** entra em `MOCK_USERS`: dá para navegar depois do cadast
 dá para sair e entrar de novo por login. Some quando o front passar a chamar
 `orpc.auth.register`, que já grava no banco.
 
-Nota: o convite real vive na tabela `invitation` e **não há endpoint que o emita** —
-hoje a linha é inserida à mão. Ver pendências em `docs/modules/auth.md`.
+Nota: o convite real vive na tabela `invitation`. A emissão **já existe**
+(`members.invite`, `POST /members/invitations`, devolve `inviteUrl`), mas **não há
+endpoint que valide um token antes do cadastro** — `auth.register` só consome. É essa
+lacuna que mantém `validateInvite` no mock. Ver pendências em `docs/modules/auth.md`.
 
 ## Dados / API
 

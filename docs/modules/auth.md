@@ -182,7 +182,7 @@ dele — a única dependência de `shared/` para `modules/` no projeto.
 | --- | --- |
 | Rate limiting em `login`, `register` e `refresh` | Não existe. Tentativas ilimitadas |
 | Limpeza de `refresh_token` revogado/expirado | Nenhuma rotina; a tabela só cresce |
-| Emissão de convite | Não há endpoint. Linha inserida à mão no banco |
+| Validação de convite antes do cadastro | Não há endpoint. `auth.register` consome o token, mas nada responde se ele é válido antes do formulário |
 | Envio de e-mail do convite | Fora de escopo; o link é entregue por fora |
 | Troca e recuperação de senha | Não implementado |
 | Tokens em cookie `httpOnly` | Hoje vão no corpo; CORS já preparado para a troca |
