@@ -62,6 +62,8 @@ A referência navegável fica em `http://localhost:3000/api-reference`.
 | **Auth** | login (admin e member), me, refresh, register, logout |
 | **Members (1.6)** | listar, detalhe, convidar em lote, desativar, reativar |
 | **KPIs (2A)** | listar, criar, buscar, editar, desativar, reativar |
+| **KPI Assignments (2B)** | atribuir, atribuir em massa, listar, revogar |
+| **Profile (2C)** | pontuação, KPIs, resumo, perfil próprio e perfil público — os dois últimos com exemplos das dez badges (2D) |
 | **Autorizacao (1.5)** | os casos de 401 e 403 |
 
 **Cada pasta se autentica sozinha.** Members e os casos de 403 têm pre-request que faz
