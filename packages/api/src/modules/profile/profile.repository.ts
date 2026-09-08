@@ -2,6 +2,8 @@ import prisma from "@kpi-corp/db";
 
 import type { KpiCategory } from "@kpi-corp/db/prisma/generated/enums";
 
+import type { BadgeAssignment } from "./profile.badges";
+
 export type ScoredAssignmentRow = {
 	points: number;
 	kpi: { category: KpiCategory };
@@ -62,6 +64,36 @@ export const profileRepository = {
 				revokedAt: true,
 				kpi: KPI_SELECT,
 			},
+		});
+	},
+
+	listValidAssignments(userId: string): Promise<BadgeAssignment[]> {
+		return prisma.kpiAssignment.findMany({
+			where: { userId, revokedAt: null, points: { gt: 0 } },
+			orderBy: { assignedAt: "asc" },
+			select: {
+				points: true,
+				assignedAt: true,
+				kpi: { select: { category: true } },
+			},
+		});
+	},
+
+	listEarnedBadges(userId: string) {
+		return prisma.userBadge.findMany({
+			where: { userId },
+			select: { code: true, earnedAt: true },
+		});
+	},
+
+	stampBadges(userId: string, badges: { code: string; earnedAt: Date }[]) {
+		return prisma.userBadge.createMany({
+			data: badges.map((badge) => ({
+				userId,
+				code: badge.code,
+				earnedAt: badge.earnedAt,
+			})),
+			skipDuplicates: true,
 		});
 	},
 };

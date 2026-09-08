@@ -1,3 +1,8 @@
+import {
+	type BadgeContractEntry,
+	buildBadgeResponse,
+	evaluateBadges,
+} from "./profile.badges";
 import { MemberNotFoundError } from "./profile.errors";
 import { levelFor } from "./profile.levels";
 import { mapMemberBase, mapMyKpi } from "./profile.mapper";
@@ -86,6 +91,34 @@ export const profileService = {
 		};
 	},
 
+	async getMyBadges(
+		userId: string,
+		now = new Date(),
+	): Promise<BadgeContractEntry[]> {
+		const [assignments, earnedRows] = await Promise.all([
+			profileRepository.listValidAssignments(userId),
+			profileRepository.listEarnedBadges(userId),
+		]);
+
+		const evaluations = evaluateBadges(assignments, now);
+		const newlyEarned = evaluations
+			.filter(
+				(evaluation) =>
+					evaluation.earned &&
+					!earnedRows.some((row) => row.code === evaluation.code),
+			)
+			.map((evaluation) => ({
+				code: evaluation.code,
+				earnedAt: evaluation.earnedAt ?? now,
+			}));
+
+		if (newlyEarned.length > 0) {
+			await profileRepository.stampBadges(userId, newlyEarned);
+		}
+
+		return buildBadgeResponse(evaluations, earnedRows);
+	},
+
 	async getMyProfile(userId: string) {
 		const user = await profileRepository.findUserById(userId);
 
@@ -93,10 +126,12 @@ export const profileService = {
 			throw new MemberNotFoundError();
 		}
 
-		const [{ total, categories, level }, { items: kpis }] = await Promise.all([
-			profileService.getMyScore(userId),
-			profileService.getMyKpis(userId, {}),
-		]);
+		const [{ total, categories, level }, { items: kpis }, badges] =
+			await Promise.all([
+				profileService.getMyScore(userId),
+				profileService.getMyKpis(userId, {}),
+				profileService.getMyBadges(userId),
+			]);
 
 		return {
 			member: {
@@ -109,6 +144,7 @@ export const profileService = {
 			categories,
 			level,
 			kpis,
+			badges,
 		};
 	},
 
@@ -119,10 +155,12 @@ export const profileService = {
 			throw new MemberNotFoundError();
 		}
 
-		const [{ total, categories, level }, { items: kpis }] = await Promise.all([
-			profileService.getMyScore(userId),
-			profileService.getMyKpis(userId, { revoked: false }),
-		]);
+		const [{ total, categories, level }, { items: kpis }, badges] =
+			await Promise.all([
+				profileService.getMyScore(userId),
+				profileService.getMyKpis(userId, { revoked: false }),
+				profileService.getMyBadges(userId),
+			]);
 
 		return {
 			member: mapMemberBase(user),
@@ -130,6 +168,7 @@ export const profileService = {
 			categories,
 			level,
 			kpis,
+			badges,
 		};
 	},
 };

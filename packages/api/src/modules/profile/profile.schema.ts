@@ -33,6 +33,35 @@ export const levelSchema = z.object({
 	nextTier: levelTierSchema.nullable(),
 });
 
+export const badgeCodeSchema = z.enum([
+	"FIRST_POINT",
+	"FIVE_PERFORMANCE",
+	"ALL_CATEGORIES",
+	"TWENTY_FIVE_KPIS",
+	"FOUR_WEEK_STREAK",
+	"TWELVE_WEEK_STREAK",
+	"TEN_MEETINGS",
+	"TOP_THREE",
+	"PERFECT_MONTH",
+	"PODIUM_STREAK",
+]);
+
+export const badgeRaritySchema = z.enum(["COMUM", "RARA", "EPICA", "LENDARIA"]);
+
+export const badgeSchema = z.object({
+	code: badgeCodeSchema,
+	name: z.string(),
+	description: z.string(),
+	icon: z.string(),
+	rarity: badgeRaritySchema,
+	available: z.boolean(),
+	earned: z.boolean(),
+	earnedAt: z.date().nullable(),
+	current: z.number(),
+	target: z.number().nullable(),
+	progress: z.number(),
+});
+
 export const myScoreResponseSchema = z.object({
 	total: z.number(),
 	categories: scoreCategoriesSchema,
@@ -78,6 +107,7 @@ export const myProfileResponseSchema = z.object({
 	categories: scoreCategoriesSchema,
 	level: levelSchema,
 	kpis: z.array(myKpiSchema),
+	badges: z.array(badgeSchema).length(10),
 });
 
 export const publicProfileResponseSchema = z.object({
@@ -86,6 +116,7 @@ export const publicProfileResponseSchema = z.object({
 	categories: scoreCategoriesSchema,
 	level: levelSchema,
 	kpis: z.array(myKpiSchema),
+	badges: z.array(badgeSchema).length(10),
 });
 
 const booleanFromQuery = (value: unknown) => {
