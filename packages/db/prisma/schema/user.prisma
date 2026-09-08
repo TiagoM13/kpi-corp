@@ -12,6 +12,7 @@ model User {
   assignedByMe  KpiAssignment[]   @relation("AssignedBy")
   meetings      MeetingAttendee[]
   refreshTokens RefreshToken[]
+  badges        UserBadge[]
 
   @@map("user")
 }

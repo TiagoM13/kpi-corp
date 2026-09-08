@@ -1,0 +1,12 @@
+model UserBadge {
+  id       String   @id @default(uuid()) @db.Uuid
+  userId   String   @db.Uuid
+  code     String
+  earnedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, code])
+  @@index([userId])
+  @@map("user_badge")
+}
