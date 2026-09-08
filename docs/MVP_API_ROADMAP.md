@@ -785,24 +785,32 @@ atribuição pode derrubar o nível. Nível 20 é o teto: `nextLevel` e `nextTie
 
 # 2.8 — Badges
 
-> **Adiado para a entrega 2D**, depois de pontuação e níveis. Dos quatro badges,
-> `TOP_THREE` depende do ranking (§ 3.7) e `TEN_MEETINGS` depende de reunião (Fase 3) —
-> só dois são calculáveis com o que a Fase 2 produz.
+**Entregue na Fase 2D.** O perfil expõe sempre dez badges, em ordem de catálogo, nas
+respostas de `GET /me/profile` e `GET /members/:id/profile`; não há endpoint granular de
+badges.
 
-Implementar os badges básicos definidos no MVP:
+| Código | Regra | Fase |
+| --- | --- | --- |
+| `FIRST_POINT` | primeira atribuição válida | 2 |
+| `FIVE_PERFORMANCE` | 5 atribuições de `PERFORMANCE` | 2 |
+| `ALL_CATEGORIES` | todas as categorias de KPI | 2 |
+| `TWENTY_FIVE_KPIS` | 25 atribuições válidas | 2 |
+| `FOUR_WEEK_STREAK` | 4 semanas ISO consecutivas | 2 |
+| `TWELVE_WEEK_STREAK` | 12 semanas ISO consecutivas | 2 |
+| `TEN_MEETINGS`, `TOP_THREE`, `PERFECT_MONTH`, `PODIUM_STREAK` | presença e ranking | 3 |
 
-```text
-FIRST_WEEK         calculavel na Fase 2
-FIVE_PERFORMANCE   calculavel na Fase 2
-TOP_THREE          depende do ranking, § 3.7
-TEN_MEETINGS       depende de reuniao, Fase 3
-```
+Toda regra recebe apenas atribuições não revogadas e de pontuação positiva. O streak usa
+semanas ISO em `America/Sao_Paulo`, com a melhor sequência histórica para decidir a
+conquista e a sequência atual para informar o progresso.
 
-As regras devem ser implementadas como regras de domínio, evitando que o frontend determine se um usuário possui ou não uma conquista.
+Badge é **fato gravado e consequência calculada**: a regra pura deriva a conquista do
+histórico, e `user_badge` persiste o `earnedAt` derivado da atribuição que a fechou. O
+carimbo ocorre na leitura, com `createMany({ skipDuplicates })` sob
+`@@unique([userId, code])`; assim, uma conquista permanece depois de revogar o KPI que a
+gerou. As quatro badges de Fase 3 ficam no contrato com `available: false` e nunca são
+conquistadas até seus avaliadores existirem.
 
-A decisão em aberto, que a spec de 2D precisa tomar: badge é **fato gravado** — tem data
-de conquista e não some quando o KPI que o gerou é revogado — ou **consequência
-calculada**, que some junto? A resposta decide se existe tabela.
+Detalhes, contrato e calibração estão na [spec da Fase 2D](specs/fase-2d-badges.md).
 
 ---
 
@@ -858,7 +866,7 @@ não existe, nem se calcula pontuação sem atribuição.
 | **2A — Catálogo de KPIs** | 2.1 | entregue |
 | **2B — Atribuições** | 2.2, 2.3 | spec em `docs/specs/fase-2b-atribuicoes.md` |
 | **2C — Pontuação, níveis e perfil** | 2.4 a 2.7, 2.9 | spec em `docs/specs/fase-2c-pontuacao-e-niveis.md` |
-| **2D — Badges** | 2.8 | sem spec |
+| **2D — Badges** | 2.8 | entregue — `docs/specs/fase-2d-badges.md` |
 
 * [x] Admin consegue criar KPI. · 2A
 * [x] Admin consegue editar KPI. · 2A
@@ -873,7 +881,7 @@ não existe, nem se calcula pontuação sem atribuição.
 * [ ] Member consegue visualizar seus pontos. · 2C
 * [ ] Pontuação por categoria funciona. · 2C
 * [ ] Nível é calculado corretamente. · 2C
-* [ ] Badges são calculados corretamente. · 2D
+* [x] Badges são calculados corretamente. · 2D
 * [x] Member não consegue executar ações administrativas. · 2A
 
 ---

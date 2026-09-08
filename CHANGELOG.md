@@ -8,6 +8,18 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-08 — API Fase 2D: Badges
+
+#### Adicionado
+- Catálogo de dez badges no módulo `profile`, com progresso, raridade, disponibilidade e
+  `earnedAt` nas respostas de perfil próprio e público.
+- Modelo Prisma `UserBadge` e migration para carimbar conquistas de forma idempotente.
+- Avaliadores puros para categoria, volume e streak ISO em `America/Sao_Paulo`; quatro
+  badges de Fase 3 permanecem declaradas e bloqueadas.
+
+#### Corrigido
+- Badge bloqueada não pode ser desbloqueada por uma linha legada em `user_badge`.
+
 ### 2026-08-31 — API de autenticação
 
 #### Adicionado

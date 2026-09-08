@@ -244,15 +244,43 @@ meses e nível 20 em pouco mais de um ano.
 
 ### Badges
 
-Badges visuais para:
-- 🔥 Primeira semana consecutiva com KPIs
-- ⚡ 5 KPIs de Desempenho acumulados
-- 🏅 Entrou no Top 3 do ranking
-- 🤝 Presente em 10 reuniões
+Badges medem eixos que o nível não vê: **categoria**, **volume em contagem** e
+**consistência no tempo** — e, na Fase 3, **posição** e **presença**. O catálogo
+tem **dez badges**, seis da Fase 2 e quatro declaradas de Fase 3:
 
-Dois deles dependem de dado que só existe na Fase 3: **Top 3** precisa de ranking e
-**10 reuniões** precisa de reunião. Por isso os badges não saem junto com os níveis —
-viram entrega própria (2D), depois da pontuação.
+| Badge | Regra | Alvo | Raridade | Fase |
+| --- | --- | --- | --- | --- |
+| 🌱 Primeira pontuação | primeira atribuição válida | 1 | Comum | 2 |
+| ⚡ Alta performance | atribuições de `PERFORMANCE` | 5 | Rara | 2 |
+| 🧭 Completista | categorias distintas com ≥ 1 KPI | todas | Rara | 2 |
+| 📚 Colecionador | atribuições válidas | 25 | Rara | 2 |
+| 🔥 Constante | semanas ISO consecutivas com ≥ 1 KPI | 4 | Épica | 2 |
+| 💎 Inabalável | semanas ISO consecutivas com ≥ 1 KPI | 12 | Épica | 2 |
+| 🤝 Presente | reuniões com presença registrada | 10 | Rara | 3 |
+| 🏅 Pódio | top 3 do ranking geral | — | Épica | 3 |
+| ⏱️ Pontual | todas as reuniões do mês | — | Comum | 3 |
+| 👑 Lendário | meses consecutivos no top 3 | 3 | Lendária | 3 |
+
+Badge é **fato gravado e consequência calculada ao mesmo tempo**: a regra pura
+decide, a partir do histórico, se o membro ganhou; a tabela `user_badge`
+carimba a data da atribuição que fechou a regra — nunca a data da leitura. Uma
+conquista carimbada **não some** quando o KPI que a gerou é revogado: `earned`
+e `progress: 100` são grudentos, só o `current` regride.
+
+O streak conta **semana ISO consecutiva**, não dia: KPI nasce de reunião e de
+entrega, e uma semana de férias não pode matar o que um sábado sem ponto não
+matava. Quem decide a conquista é a **melhor sequência histórica**, não a
+sequência atual.
+
+O catálogo é **código, não dado**: sem tabela de badges, sem CRUD, sem seed.
+Cada badge é uma entrada em `profile.badges.ts` com o avaliador ao lado — badge
+nova é commit, revisão e teste. As quatro de Fase 3 entram declaradas com
+`available: false`, para que a tela mostre o slot sem fingir progresso.
+
+As badges entram nas duas respostas de perfil (`/me/profile` e
+`/members/:id/profile`), sempre as dez, na ordem do catálogo — o front nunca
+reconstrói o catálogo do lado dele. Detalhes e calibração em
+[spec da Fase 2D](../specs/fase-2d-badges.md).
 
 ---
 
