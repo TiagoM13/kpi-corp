@@ -1,6 +1,7 @@
 import { createProcedureClient, ORPCError } from "@orpc/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { BADGE_CATALOG } from "../../../modules/profile/profile.badges";
 import { profileRouter } from "../../../modules/profile/profile.router";
 import type { Context } from "../../../shared/context";
 
@@ -9,6 +10,7 @@ const { serviceMock } = vi.hoisted(() => ({
 		getMyScore: vi.fn(),
 		getMyKpis: vi.fn(),
 		getMySummary: vi.fn(),
+		getMyBadges: vi.fn(),
 		getMyProfile: vi.fn(),
 		getPublicProfile: vi.fn(),
 	},
@@ -56,6 +58,17 @@ const summary = {
 	scoreByCategory: zeros,
 	lastAssignment: null,
 };
+const badges = BADGE_CATALOG.map((badge) => {
+	const earned = badge.code === "FIRST_POINT";
+
+	return {
+		...badge,
+		earned,
+		earnedAt: earned ? new Date("2026-03-02T12:00:00.000Z") : null,
+		current: earned ? 1 : 0,
+		progress: earned ? 100 : 0,
+	};
+});
 const myProfile = {
 	member: {
 		id: MEMBER_ID,
@@ -70,6 +83,7 @@ const myProfile = {
 	categories: zeros,
 	level,
 	kpis: [],
+	badges,
 };
 const publicProfile = {
 	member: { id: OTHER_ID, name: "Bruno Lima", position: null, role: "MEMBER" },
@@ -77,6 +91,7 @@ const publicProfile = {
 	categories: zeros,
 	level,
 	kpis: [],
+	badges,
 };
 
 function caller(context: Context) {
@@ -225,6 +240,22 @@ describe("profile router", () => {
 				caller(asMember).getPublicProfile({ id: "abc" }),
 			).rejects.toThrow();
 			expect(serviceMock.getPublicProfile).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("badges", () => {
+		it("returns the badges section on the own profile", async () => {
+			const result = await caller(asMember).getMyProfile();
+
+			expect(result.badges).toEqual(badges);
+		});
+
+		it("returns the badges section on the public profile", async () => {
+			const result = await caller(asMember).getPublicProfile({
+				id: OTHER_ID,
+			});
+
+			expect(result.badges).toEqual(badges);
 		});
 	});
 });

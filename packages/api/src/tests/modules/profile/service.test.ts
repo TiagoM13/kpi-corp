@@ -9,6 +9,9 @@ const { repositoryMock } = vi.hoisted(() => ({
 		findActivePublicUserById: vi.fn(),
 		listScoredAssignments: vi.fn(),
 		listAssignments: vi.fn(),
+		listValidAssignments: vi.fn(),
+		listEarnedBadges: vi.fn(),
+		stampBadges: vi.fn(),
 	},
 }));
 
@@ -44,6 +47,9 @@ function assignment(overrides: Record<string, unknown> = {}) {
 describe("profile service", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		repositoryMock.listValidAssignments.mockResolvedValue([]);
+		repositoryMock.listEarnedBadges.mockResolvedValue([]);
+		repositoryMock.stampBadges.mockResolvedValue({ count: 0 });
 	});
 
 	describe("getMyScore", () => {
@@ -185,6 +191,132 @@ describe("profile service", () => {
 		});
 	});
 
+	describe("getMyBadges", () => {
+		const NOW = new Date("2026-03-16T12:00:00.000Z");
+
+		function validAssignment(
+			isoDate: string,
+			category = "PRESENCE",
+		): { points: number; assignedAt: Date; kpi: { category: string } } {
+			return {
+				points: 5,
+				assignedAt: new Date(isoDate),
+				kpi: { category },
+			};
+		}
+
+		it("loads the valid assignments and the earned rows by user id", async () => {
+			await profileService.getMyBadges(USER_ID, NOW);
+
+			expect(repositoryMock.listValidAssignments).toHaveBeenCalledWith(USER_ID);
+			expect(repositoryMock.listEarnedBadges).toHaveBeenCalledWith(USER_ID);
+		});
+
+		it("keeps an earned badge after the KPI that generated it is revoked", async () => {
+			const earnedAt = new Date("2026-03-02T12:00:00.000Z");
+			repositoryMock.listValidAssignments.mockResolvedValueOnce([]);
+			repositoryMock.listEarnedBadges.mockResolvedValueOnce([
+				{ code: "FIVE_PERFORMANCE", earnedAt },
+			]);
+
+			const badges = await profileService.getMyBadges(USER_ID, NOW);
+			const badge = badges.find((entry) => entry.code === "FIVE_PERFORMANCE");
+
+			expect(badge).toMatchObject({
+				earned: true,
+				earnedAt,
+				progress: 100,
+				current: 0,
+				target: 5,
+			});
+			expect(repositoryMock.stampBadges).not.toHaveBeenCalled();
+		});
+
+		it("does not restamp an already stamped badge", async () => {
+			repositoryMock.listValidAssignments.mockResolvedValueOnce([
+				validAssignment("2026-03-02T12:00:00.000Z"),
+			]);
+			repositoryMock.listEarnedBadges.mockResolvedValueOnce([
+				{
+					code: "FIRST_POINT",
+					earnedAt: new Date("2026-03-02T12:00:00.000Z"),
+				},
+			]);
+
+			const badges = await profileService.getMyBadges(USER_ID, NOW);
+
+			expect(badges.find((entry) => entry.code === "FIRST_POINT")?.earned).toBe(
+				true,
+			);
+			expect(repositoryMock.stampBadges).not.toHaveBeenCalled();
+		});
+
+		it("stamps only the newly earned badges", async () => {
+			const fifth = validAssignment("2026-03-06T12:00:00.000Z", "PERFORMANCE");
+			repositoryMock.listValidAssignments.mockResolvedValueOnce([
+				validAssignment("2026-03-02T12:00:00.000Z", "PERFORMANCE"),
+				validAssignment("2026-03-03T12:00:00.000Z", "PERFORMANCE"),
+				validAssignment("2026-03-04T12:00:00.000Z", "PERFORMANCE"),
+				validAssignment("2026-03-05T12:00:00.000Z", "PERFORMANCE"),
+				fifth,
+			]);
+			repositoryMock.listEarnedBadges.mockResolvedValueOnce([
+				{
+					code: "FIRST_POINT",
+					earnedAt: new Date("2026-03-02T12:00:00.000Z"),
+				},
+			]);
+
+			const badges = await profileService.getMyBadges(USER_ID, NOW);
+
+			expect(repositoryMock.stampBadges).toHaveBeenCalledTimes(1);
+			expect(repositoryMock.stampBadges).toHaveBeenCalledWith(USER_ID, [
+				{ code: "FIVE_PERFORMANCE", earnedAt: fifth.assignedAt },
+			]);
+			expect(
+				badges.find((entry) => entry.code === "FIVE_PERFORMANCE"),
+			).toMatchObject({ earned: true, earnedAt: fifth.assignedAt });
+		});
+
+		it("ignores an earned row whose code is outside the catalog", async () => {
+			repositoryMock.listEarnedBadges.mockResolvedValueOnce([
+				{ code: "MENTOR", earnedAt: new Date("2026-03-02T12:00:00.000Z") },
+			]);
+
+			const badges = await profileService.getMyBadges(USER_ID, NOW);
+
+			expect(badges).toHaveLength(10);
+			expect(badges.some((entry) => entry.code === ("MENTOR" as never))).toBe(
+				false,
+			);
+			expect(repositoryMock.stampBadges).not.toHaveBeenCalled();
+		});
+
+		it("returns the Fase 3 badges unavailable and unearned", async () => {
+			const badges = await profileService.getMyBadges(USER_ID, NOW);
+
+			for (const code of [
+				"TEN_MEETINGS",
+				"TOP_THREE",
+				"PERFECT_MONTH",
+				"PODIUM_STREAK",
+			]) {
+				expect(
+					badges.find((entry) => entry.code === code),
+					code,
+				).toMatchObject({ available: false, earned: false });
+			}
+		});
+
+		// O filtro revokedAt IS NULL / points > 0 é responsabilidade do
+		// repository (where do Prisma); aqui o mock já devolve só o válido.
+		it("relies on the repository for the valid-assignment filter", async () => {
+			await profileService.getMyBadges(USER_ID, NOW);
+
+			expect(repositoryMock.listValidAssignments).toHaveBeenCalledTimes(1);
+		});
+	});
+
 	describe("getMyProfile", () => {
 		it("returns the member with email and status", async () => {
 			repositoryMock.findUserById.mockResolvedValueOnce(user);
@@ -243,6 +375,24 @@ describe("profile service", () => {
 			expect(repositoryMock.listAssignments).toHaveBeenCalledWith(USER_ID, {
 				revoked: false,
 			});
+		});
+
+		it("returns the ten badges alongside the public profile", async () => {
+			repositoryMock.findActivePublicUserById.mockResolvedValueOnce({
+				id: USER_ID,
+				name: "Ana Souza",
+				position: null,
+				role: "MEMBER",
+			});
+			repositoryMock.listScoredAssignments.mockResolvedValueOnce([]);
+			repositoryMock.listAssignments.mockResolvedValueOnce([]);
+
+			const profile = await profileService.getPublicProfile(USER_ID);
+
+			expect(profile.badges).toHaveLength(10);
+			expect(
+				profile.badges.find((entry) => entry.code === "FIRST_POINT"),
+			).toMatchObject({ earned: false, available: true });
 		});
 
 		it("throws MemberNotFoundError for an inactive or unknown member", async () => {
