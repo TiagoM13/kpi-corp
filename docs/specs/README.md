@@ -42,7 +42,7 @@ FASE 2                          FASE 3
 | 2 | **2B** — Atribuições | [`fase-2b-atribuicoes.md`](fase-2b-atribuicoes.md) | § 2.2, § 2.3 | entregue |
 | 3 | **2C** — Pontuação, níveis e perfil | [`fase-2c-pontuacao-e-niveis.md`](fase-2c-pontuacao-e-niveis.md) | § 2.4 a § 2.7, § 2.9 | entregue |
 | 4 | **2D** — Badges | [`fase-2d-badges.md`](fase-2d-badges.md) | § 2.8 | entregue |
-| 5 | **3A** — Reuniões | [`fase-3a-reunioes.md`](fase-3a-reunioes.md) | § 3.1 a § 3.6, § 3.11 | spec escrita |
+| 5 | **3A** — Reuniões | [`fase-3a-reunioes.md`](fase-3a-reunioes.md) | § 3.1 a § 3.6, § 3.11 | entregue |
 | 6 | **3B** — Ranking | [`fase-3b-ranking.md`](fase-3b-ranking.md) | § 3.7 | spec escrita |
 | 7 | **3C** — Histórico de atribuições | [`fase-3c-historico-de-atribuicoes.md`](fase-3c-historico-de-atribuicoes.md) | § 3.10 | spec escrita |
 | 8 | **3D** — Dashboards | [`fase-3d-dashboards.md`](fase-3d-dashboards.md) | § 3.8, § 3.9 | spec escrita |

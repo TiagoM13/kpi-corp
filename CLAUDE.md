@@ -107,7 +107,7 @@ Desenvolvimento local apenas — **sem deploy, sem CI, sem release**.
 
 | Área | Situação |
 | --- | --- |
-| API de auth | Implementada, 52 testes, validada ponta a ponta |
-| Demais módulos da API | Não existem — roadmap em `docs/MVP_API_ROADMAP.md` |
+| API de auth | Implementada, validada ponta a ponta |
+| Demais módulos da API | `members`, `kpis`, `assignments`, `profile` e `meetings` implementados; `ranking` em spec — roadmap em `docs/MVP_API_ROADMAP.md` |
 | Front | Telas ainda consomem mock em `apps/web/src/mocks/` |
 | Rate limiting | Não existe |

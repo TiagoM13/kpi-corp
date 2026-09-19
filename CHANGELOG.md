@@ -8,6 +8,34 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-19 — API Fase 3A: Reuniões
+
+#### Adicionado
+- Módulo `meetings` com as sete rotas do Modo Reunião: criar, detalhes, escalar
+  participantes, registrar presença, KPI ao vivo, encerrar e histórico — todas exclusivas
+  do Admin.
+- Presença em transação única: valida reunião aberta, KPI de categoria `PRESENCE` e
+  membros, carimba `presentAt` e cria um `kpi_assignment` por presente, todos com
+  `meetingId` e `points` congelado. Falha no meio da lista não deixa nada criado, e
+  presença dupla não dobra a pontuação.
+- Reconhecimento ao vivo (`POST /meetings/{id}/kpi-assignments`) só para quem está
+  presente; ausente recebe 409 `ATTENDEE_NOT_PRESENT` e continua reconhecível pela rota
+  de atribuição avulsa, com `meetingId` nulo.
+- `closedAt` substitui o booleano `closed`: reunião encerrada é imutável para
+  participante, presença e atribuição, com 409 `MEETING_CLOSED`; segundo encerramento é
+  409 `MEETING_ALREADY_CLOSED`. Revogar atribuição feita na reunião segue permitido pela
+  rota da 2B. Histórico paginado com filtros `status`, `from`/`to` e contadores.
+- Erros de domínio redeclarados no módulo (`KPI_NOT_FOUND`, `KPI_INACTIVE`,
+  `MEMBER_NOT_FOUND`, `MEMBER_INACTIVE`), preservando o contrato `data.code` sem importar
+  o módulo `assignments`. `KPI_NOT_PRESENCE` responde 422.
+- Migration `20260919143727`: `meeting.closedAt`, `meeting_attendee.presentAt` e índices
+  em `date` e `closedAt`.
+- Seed com duas reuniões — uma aberta escalada e uma encerrada com presença mista e
+  atribuições vinculadas.
+- Pasta "Reuniões (3A)" na collection do Postman.
+- Suíte da API sobe para 378 testes em 18 arquivos (service com repository mockado,
+  router com service mockado) e módulo documentado em `docs/modules/meetings.md`.
+
 ### 2026-09-08 — API Fase 2D: Badges
 
 #### Adicionado

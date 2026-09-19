@@ -1,6 +1,6 @@
 # Spec — Fase 3A: Reuniões
 
-**Fase:** 3 · **Status:** proposta, aguardando validação · **Data:** 2026-09-08
+**Fase:** 3 · **Status:** entregue · **Data:** 2026-09-08 · **Entregue em:** 2026-09-19
 
 Referência: [MVP_API_ROADMAP.md § 3.1 a § 3.6 e § 3.11](../MVP_API_ROADMAP.md) ·
 Depende de: Fase 2B — Atribuições
@@ -494,23 +494,23 @@ Service com repository mockado, router com service mockado. Nenhum precisa de ba
 
 ## Critérios de aceite
 
-- [ ] Admin cria reunião
-- [ ] Admin visualiza reunião, com responsável, participantes e atribuições
-- [ ] Admin escala participantes
-- [ ] Admin registra presença
-- [ ] KPI de presença é atribuído automaticamente no registro de presença
-- [ ] KPI de presença só aceita KPI de categoria `PRESENCE`, ativo
-- [ ] Falha parcial no registro de presença não deixa nada criado
-- [ ] Presença registrada duas vezes não dobra a pontuação
-- [ ] Admin atribui KPI durante a reunião
-- [ ] Atribuições da reunião ficam vinculadas a ela por `meetingId`
-- [ ] Membro ausente não recebe KPI vinculado à reunião
-- [ ] Admin encerra reunião
-- [ ] Reunião encerrada não aceita participante, presença nem atribuição
-- [ ] Reunião encerrada continua legível, com histórico completo
-- [ ] Histórico filtra por status e por intervalo de datas
-- [ ] MEMBER recebe 403 nas sete rotas
-- [ ] Módulo `meetings` não importa de `assignments`, `kpis`, `members` nem `profile`
+- [x] Admin cria reunião
+- [x] Admin visualiza reunião, com responsável, participantes e atribuições
+- [x] Admin escala participantes
+- [x] Admin registra presença
+- [x] KPI de presença é atribuído automaticamente no registro de presença
+- [x] KPI de presença só aceita KPI de categoria `PRESENCE`, ativo
+- [x] Falha parcial no registro de presença não deixa nada criado
+- [x] Presença registrada duas vezes não dobra a pontuação
+- [x] Admin atribui KPI durante a reunião
+- [x] Atribuições da reunião ficam vinculadas a ela por `meetingId`
+- [x] Membro ausente não recebe KPI vinculado à reunião
+- [x] Admin encerra reunião
+- [x] Reunião encerrada não aceita participante, presença nem atribuição
+- [x] Reunião encerrada continua legível, com histórico completo
+- [x] Histórico filtra por status e por intervalo de datas
+- [x] MEMBER recebe 403 nas sete rotas
+- [x] Módulo `meetings` não importa de `assignments`, `kpis`, `members` nem `profile`
 
 Com estes, o § 3.12 fica atendido menos ranking, dashboards e histórico de atribuições.
 

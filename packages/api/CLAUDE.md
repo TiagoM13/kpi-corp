@@ -154,13 +154,15 @@ npm run test          # da raiz
 npx vitest            # watch, de dentro do pacote
 ```
 
-52 testes, **nenhum precisa de banco**.
+378 testes, **nenhum precisa de banco**.
 
 | Arquivo | Mocka |
 | --- | --- |
 | `tests/modules/auth/service.test.ts` | `authRepository` inteiro |
 | `tests/modules/auth/router.test.ts` | `authService` inteiro |
 | `tests/modules/auth/tokens.test.ts` | nada |
+| `tests/modules/meetings/service.test.ts` | `meetingsRepository` inteiro |
+| `tests/modules/meetings/router.test.ts` | `meetingsService` inteiro |
 | `tests/shared/**` | nada |
 
 ```ts
@@ -188,4 +190,4 @@ quebra. Foi por isso que o seed hasheia senha com `bcryptjs` direto.
 
 - Rate limiting em `login`, `register` e `refresh` — não existe.
 - Limpeza de `refresh_token` revogado/expirado — a tabela só cresce.
-- Módulos `users`, `kpis`, `meetings` — ver `docs/MVP_API_ROADMAP.md`.
+- Próximos módulos da API — `ranking` (3B), `assignments history` (3C), `dashboards` (3D) e badges de Fase 3 (3E), ver `docs/MVP_API_ROADMAP.md`.

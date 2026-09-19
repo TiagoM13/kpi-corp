@@ -20,6 +20,14 @@ packages/api/src/
 │       ├── auth.errors.ts       # erros de domínio do módulo
 │       ├── auth.tokens.ts       # JWT de access e refresh
 │       └── index.ts             # barrel
+│   └── meetings/                # Modo Reunião — adminProcedure nas sete rotas
+│       ├── meetings.router.ts
+│       ├── meetings.service.ts      # presença em transação única, reunião imutável
+│       ├── meetings.repository.ts   # Prisma, inclusive escrita em kpi_assignment
+│       ├── meetings.schema.ts
+│       ├── meetings.mapper.ts       # closedAt → status OPEN/CLOSED
+│       ├── meetings.errors.ts
+│       └── index.ts
 ├── shared/
 │   ├── context.ts           # createContext — Bearer → context.auth
 │   ├── errors/
@@ -32,8 +40,12 @@ packages/api/src/
 │       └── tokens.ts        # JWT genérico, sha256, timingSafeEqual, durações
 └── tests/
     ├── modules/auth/        # router, service e tokens
+    ├── modules/meetings/    # router e service
     └── shared/              # error-mapper, password
 ```
+
+Os demais módulos (`members`, `kpis`, `assignments`, `profile`) seguem o mesmo formato de
+sete arquivos — ver `docs/modules/<nome>.md` para as regras de cada um.
 
 ## Camadas
 
@@ -152,7 +164,9 @@ a dependência está invertida.
 | `tests/modules/auth/service.test.ts` | regra de negócio | `authRepository` inteiro |
 | `tests/modules/auth/router.test.ts` | contrato HTTP e tradução de erro | `authService` inteiro |
 | `tests/modules/auth/tokens.test.ts` | JWT, sha256, comparação | nada |
+| `tests/modules/meetings/service.test.ts` | regras e transações do Modo Reunião | `meetingsRepository` inteiro |
+| `tests/modules/meetings/router.test.ts` | contrato e autorização das sete rotas | `meetingsService` inteiro |
 | `tests/shared/errors/error-mapper.test.ts` | status por erro, vazamento | nada |
 | `tests/shared/security/password.test.ts` | bcrypt e o hash dummy | nada |
 
-52 testes, nenhum precisa de banco. `npm run test` da raiz.
+378 testes, nenhum precisa de banco. `npm run test` da raiz.

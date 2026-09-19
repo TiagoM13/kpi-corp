@@ -1222,16 +1222,16 @@ O histórico deverá permitir ao Admin visualizar:
 
 # 3.12 — Critérios de aceite da Fase 3
 
-* [ ] Admin consegue criar reunião.
-* [ ] Admin consegue visualizar reunião.
-* [ ] Admin consegue adicionar participantes.
-* [ ] Admin consegue registrar presença.
-* [ ] KPI de presença é atribuído automaticamente.
-* [ ] Admin consegue atribuir KPIs durante a reunião.
-* [ ] Atribuições ficam vinculadas à reunião.
-* [ ] Admin consegue encerrar reunião.
-* [ ] Reunião encerrada não aceita novas atribuições.
-* [ ] Histórico da reunião permanece disponível.
+* [x] Admin consegue criar reunião.
+* [x] Admin consegue visualizar reunião.
+* [x] Admin consegue adicionar participantes.
+* [x] Admin consegue registrar presença.
+* [x] KPI de presença é atribuído automaticamente.
+* [x] Admin consegue atribuir KPIs durante a reunião.
+* [x] Atribuições ficam vinculadas à reunião.
+* [x] Admin consegue encerrar reunião.
+* [x] Reunião encerrada não aceita novas atribuições.
+* [x] Histórico da reunião permanece disponível.
 * [ ] Ranking semanal funciona.
 * [ ] Ranking mensal funciona.
 * [ ] Ranking total funciona.
