@@ -112,6 +112,7 @@
 											"../kpis/**",
 											"../members/**",
 											"../assignments/**",
+											"../meetings/**",
 											"../profile/**"
 										],
 										"message": "Um modulo nao importa de outro. O que os dois precisam vai para packages/api/src/shared/."
