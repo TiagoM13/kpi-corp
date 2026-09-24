@@ -2465,6 +2465,73 @@
      "response": []
     },
     {
+     "name": "Histórico de atribuições (3C)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{baseUrl}}/kpi-assignments?userId=&kpiId=&category=&from=&to=&revoked=&page=1&limit=20",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "kpi-assignments"
+       ],
+       "query": [
+        {
+         "key": "userId",
+         "value": ""
+        },
+        {
+         "key": "kpiId",
+         "value": ""
+        },
+        {
+         "key": "category",
+         "value": ""
+        },
+        {
+         "key": "from",
+         "value": ""
+        },
+        {
+         "key": "to",
+         "value": ""
+        },
+        {
+         "key": "revoked",
+         "value": ""
+        },
+        {
+         "key": "page",
+         "value": "1"
+        },
+        {
+         "key": "limit",
+         "value": "20"
+        }
+       ]
+      },
+      "description": "Requer `accessToken` de Admin. MEMBER recebe 403.\n\nTodas as atribuicoes da equipe, paginadas no shape de `GET /members` (`items`, `page`, `limit`, `total`, `totalPages`). Cada linha traz o KPI e o `user` (nome e cargo).\n\nFiltros opcionais e combinaveis: `userId`, `kpiId`, `category`, `from`/`to` (YYYY-MM-DD, inclusivos nas duas pontas em America/Sao_Paulo), `revoked` (true so revogadas, false so validas, ausente traz tudo). `to` antes de `from` e 400.\n\nOrdenado por assignedAt decrescente, desempate por id. `userId` inexistente devolve lista vazia, nao 404."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('200', () => pm.response.to.have.status(200));",
+         "if (pm.response.code === 200) {",
+         "  const body = pm.response.json();",
+         "  pm.test('paginado', () => pm.expect(body).to.include.keys('items', 'page', 'limit', 'total', 'totalPages'));",
+         "  pm.test('linha traz user', () => body.items.forEach(i => pm.expect(i.user).to.have.property('name')));",
+         "}"
+        ]
+       }
+      }
+     ]
+    },
+    {
      "name": "Revogar atribuição",
      "request": {
       "method": "DELETE",
@@ -2652,7 +2719,7 @@
         }
        ],
        "cookie": [],
-       "body": "{\n  \"member\": {\n    \"id\": \"9c1c2f6e-7b3a-4d2e-9f5a-2e8b1c4d6a70\",\n    \"name\": \"Ana Souza\",\n    \"position\": \"Desenvolvedora\",\n    \"role\": \"MEMBER\",\n    \"email\": \"ana@kpicorp.com\",\n    \"active\": true,\n    \"createdAt\": \"2026-08-03T13:24:00.000Z\"\n  },\n  \"total\": 320,\n  \"categories\": {\n    \"presence\": 140,\n    \"performance\": 95,\n    \"behavior\": 55,\n    \"initiative\": 30\n  },\n  \"level\": {\n    \"level\": 3,\n    \"tier\": \"INICIANTE\",\n    \"currentPoints\": 320,\n    \"levelFloor\": 300,\n    \"nextLevel\": 4,\n    \"nextLevelPoints\": 400,\n    \"progress\": 20,\n    \"nextTier\": \"INICIANTE\"\n  },\n  \"kpis\": [\n    {\n      \"id\": \"c3d4e5f6-8a7b-4c5d-9e0f-1a2b3c4d5e6f\",\n      \"kpiId\": \"b2c3d4e5-6f7a-48c9-9d0e-1f2a3b4c5d6e\",\n      \"name\": \"Presença na reunião\",\n      \"category\": \"PRESENCE\",\n      \"points\": 5,\n      \"note\": null,\n      \"assignedAt\": \"2026-09-07T14:00:00.000Z\",\n      \"revokedAt\": null\n    },\n    {\n      \"id\": \"d4e5f6a7-9b8c-4d0e-9f1a-2b3c4d5e6f7a\",\n      \"kpiId\": \"c3d4e5f6-7a8b-49d0-8e1f-1a2b3c4d5e6f\",\n      \"name\": \"Resolveu bug crítico\",\n      \"category\": \"PERFORMANCE\",\n      \"points\": 25,\n      \"note\": \"Correção do bug que bloqueava o deploy\",\n      \"assignedAt\": \"2026-09-04T15:30:00.000Z\",\n      \"revokedAt\": null\n    },\n    {\n      \"id\": \"e5f6a7b8-0c9d-4e1f-8a2b-3c4d5e6f7a8b\",\n      \"kpiId\": \"d4e5f6a7-8b9c-40e1-9d2f-2a3b4c5d6e7f\",\n      \"name\": \"Entregou no prazo\",\n      \"category\": \"PERFORMANCE\",\n      \"points\": 12,\n      \"note\": null,\n      \"assignedAt\": \"2026-09-02T17:10:00.000Z\",\n      \"revokedAt\": \"2026-09-06T10:00:00.000Z\"\n    }\n  ],\n  \"badges\": [\n    {\n      \"code\": \"FIRST_POINT\",\n      \"name\": \"Primeira pontuação\",\n      \"description\": \"Recebeu a primeira atribuição válida de KPI.\",\n      \"icon\": \"🌱\",\n      \"rarity\": \"COMUM\",\n      \"available\": true,\n      \"earned\": true,\n      \"earnedAt\": \"2026-09-01T14:00:00.000Z\",\n      \"current\": 1,\n      \"target\": 1,\n      \"progress\": 100\n    },\n    {\n      \"code\": \"FIVE_PERFORMANCE\",\n      \"name\": \"Alta performance\",\n      \"description\": \"Acumulou 5 atribuições válidas na categoria performance.\",\n      \"icon\": \"⚡\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": true,\n      \"earnedAt\": \"2026-09-04T15:30:00.000Z\",\n      \"current\": 4,\n      \"target\": 5,\n      \"progress\": 100\n    },\n    {\n      \"code\": \"ALL_CATEGORIES\",\n      \"name\": \"Completista\",\n      \"description\": \"Pontuou em todas as categorias de KPI.\",\n      \"icon\": \"🧭\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": true,\n      \"earnedAt\": \"2026-09-05T14:00:00.000Z\",\n      \"current\": 4,\n      \"target\": 4,\n      \"progress\": 100\n    },\n    {\n      \"code\": \"TWENTY_FIVE_KPIS\",\n      \"name\": \"Colecionador\",\n      \"description\": \"Acumulou 25 atribuições válidas de KPI.\",\n      \"icon\": \"📚\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 8,\n      \"target\": 25,\n      \"progress\": 32\n    },\n    {\n      \"code\": \"FOUR_WEEK_STREAK\",\n      \"name\": \"Constante\",\n      \"description\": \"Pontuou em 4 semanas ISO consecutivas.\",\n      \"icon\": \"🔥\",\n      \"rarity\": \"EPICA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 2,\n      \"target\": 4,\n      \"progress\": 50\n    },\n    {\n      \"code\": \"TWELVE_WEEK_STREAK\",\n      \"name\": \"Inabalável\",\n      \"description\": \"Pontuou em 12 semanas ISO consecutivas.\",\n      \"icon\": \"💎\",\n      \"rarity\": \"EPICA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 2,\n      \"target\": 12,\n      \"progress\": 16\n    },\n    {\n      \"code\": \"TEN_MEETINGS\",\n      \"name\": \"Presente\",\n      \"description\": \"Participou de 10 reuniões com presença registrada.\",\n      \"icon\": \"🤝\",\n      \"rarity\": \"RARA\",\n      \"available\": false,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": 10,\n      \"progress\": 0\n    },\n    {\n      \"code\": \"TOP_THREE\",\n      \"name\": \"Pódio\",\n      \"description\": \"Terminou entre os 3 primeiros do ranking geral.\",\n      \"icon\": \"🏅\",\n      \"rarity\": \"EPICA\",\n      \"available\": false,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": null,\n      \"progress\": 0\n    },\n    {\n      \"code\": \"PERFECT_MONTH\",\n      \"name\": \"Pontual\",\n      \"description\": \"Esteve presente em todas as reuniões de um mês.\",\n      \"icon\": \"⏱️\",\n      \"rarity\": \"COMUM\",\n      \"available\": false,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": null,\n      \"progress\": 0\n    },\n    {\n      \"code\": \"PODIUM_STREAK\",\n      \"name\": \"Lendário\",\n      \"description\": \"Terminou 3 meses consecutivos no top 3 do ranking.\",\n      \"icon\": \"👑\",\n      \"rarity\": \"LENDARIA\",\n      \"available\": false,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": 3,\n      \"progress\": 0\n    }\n  ]\n}"
+       "body": "{\n  \"member\": {\n    \"id\": \"9c1c2f6e-7b3a-4d2e-9f5a-2e8b1c4d6a70\",\n    \"name\": \"Ana Souza\",\n    \"position\": \"Desenvolvedora\",\n    \"role\": \"MEMBER\",\n    \"email\": \"ana@kpicorp.com\",\n    \"active\": true,\n    \"createdAt\": \"2026-08-03T13:24:00.000Z\"\n  },\n  \"total\": 320,\n  \"categories\": {\n    \"presence\": 140,\n    \"performance\": 95,\n    \"behavior\": 55,\n    \"initiative\": 30\n  },\n  \"level\": {\n    \"level\": 3,\n    \"tier\": \"INICIANTE\",\n    \"currentPoints\": 320,\n    \"levelFloor\": 300,\n    \"nextLevel\": 4,\n    \"nextLevelPoints\": 400,\n    \"progress\": 20,\n    \"nextTier\": \"INICIANTE\"\n  },\n  \"kpis\": [\n    {\n      \"id\": \"c3d4e5f6-8a7b-4c5d-9e0f-1a2b3c4d5e6f\",\n      \"kpiId\": \"b2c3d4e5-6f7a-48c9-9d0e-1f2a3b4c5d6e\",\n      \"name\": \"Presença na reunião\",\n      \"category\": \"PRESENCE\",\n      \"points\": 5,\n      \"note\": null,\n      \"assignedAt\": \"2026-09-07T14:00:00.000Z\",\n      \"revokedAt\": null\n    },\n    {\n      \"id\": \"d4e5f6a7-9b8c-4d0e-9f1a-2b3c4d5e6f7a\",\n      \"kpiId\": \"c3d4e5f6-7a8b-49d0-8e1f-1a2b3c4d5e6f\",\n      \"name\": \"Resolveu bug crítico\",\n      \"category\": \"PERFORMANCE\",\n      \"points\": 25,\n      \"note\": \"Correção do bug que bloqueava o deploy\",\n      \"assignedAt\": \"2026-09-04T15:30:00.000Z\",\n      \"revokedAt\": null\n    },\n    {\n      \"id\": \"e5f6a7b8-0c9d-4e1f-8a2b-3c4d5e6f7a8b\",\n      \"kpiId\": \"d4e5f6a7-8b9c-40e1-9d2f-2a3b4c5d6e7f\",\n      \"name\": \"Entregou no prazo\",\n      \"category\": \"PERFORMANCE\",\n      \"points\": 12,\n      \"note\": null,\n      \"assignedAt\": \"2026-09-02T17:10:00.000Z\",\n      \"revokedAt\": \"2026-09-06T10:00:00.000Z\"\n    }\n  ],\n  \"badges\": [\n    {\n      \"code\": \"FIRST_POINT\",\n      \"name\": \"Primeira pontuação\",\n      \"description\": \"Recebeu a primeira atribuição válida de KPI.\",\n      \"icon\": \"🌱\",\n      \"rarity\": \"COMUM\",\n      \"available\": true,\n      \"earned\": true,\n      \"earnedAt\": \"2026-09-01T14:00:00.000Z\",\n      \"current\": 1,\n      \"target\": 1,\n      \"progress\": 100\n    },\n    {\n      \"code\": \"FIVE_PERFORMANCE\",\n      \"name\": \"Alta performance\",\n      \"description\": \"Acumulou 5 atribuições válidas na categoria performance.\",\n      \"icon\": \"⚡\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": true,\n      \"earnedAt\": \"2026-09-04T15:30:00.000Z\",\n      \"current\": 4,\n      \"target\": 5,\n      \"progress\": 100\n    },\n    {\n      \"code\": \"ALL_CATEGORIES\",\n      \"name\": \"Completista\",\n      \"description\": \"Pontuou em todas as categorias de KPI.\",\n      \"icon\": \"🧭\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": true,\n      \"earnedAt\": \"2026-09-05T14:00:00.000Z\",\n      \"current\": 4,\n      \"target\": 4,\n      \"progress\": 100\n    },\n    {\n      \"code\": \"TWENTY_FIVE_KPIS\",\n      \"name\": \"Colecionador\",\n      \"description\": \"Acumulou 25 atribuições válidas de KPI.\",\n      \"icon\": \"📚\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 8,\n      \"target\": 25,\n      \"progress\": 32\n    },\n    {\n      \"code\": \"FOUR_WEEK_STREAK\",\n      \"name\": \"Constante\",\n      \"description\": \"Pontuou em 4 semanas ISO consecutivas.\",\n      \"icon\": \"🔥\",\n      \"rarity\": \"EPICA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 2,\n      \"target\": 4,\n      \"progress\": 50\n    },\n    {\n      \"code\": \"TWELVE_WEEK_STREAK\",\n      \"name\": \"Inabalável\",\n      \"description\": \"Pontuou em 12 semanas ISO consecutivas.\",\n      \"icon\": \"💎\",\n      \"rarity\": \"EPICA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 2,\n      \"target\": 12,\n      \"progress\": 16\n    },\n    {\n      \"code\": \"TEN_MEETINGS\",\n      \"name\": \"Presente\",\n      \"description\": \"Participou de 10 reuniões com presença registrada.\",\n      \"icon\": \"🤝\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": 10,\n      \"progress\": 0\n    },\n    {\n      \"code\": \"TOP_THREE\",\n      \"name\": \"Pódio\",\n      \"description\": \"Terminou entre os 3 primeiros do ranking geral.\",\n      \"icon\": \"🏅\",\n      \"rarity\": \"EPICA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": null,\n      \"progress\": 0\n    },\n    {\n      \"code\": \"PERFECT_MONTH\",\n      \"name\": \"Pontual\",\n      \"description\": \"Esteve presente em todas as reuniões de um mês.\",\n      \"icon\": \"⏱️\",\n      \"rarity\": \"COMUM\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": null,\n      \"progress\": 0\n    },\n    {\n      \"code\": \"PODIUM_STREAK\",\n      \"name\": \"Lendário\",\n      \"description\": \"Terminou 3 meses consecutivos no top 3 do ranking.\",\n      \"icon\": \"👑\",\n      \"rarity\": \"LENDARIA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": 3,\n      \"progress\": 0\n    }\n  ]\n}"
       }
      ]
     },
@@ -2714,7 +2781,7 @@
         }
        ],
        "cookie": [],
-       "body": "{\n  \"member\": {\n    \"id\": \"9c1c2f6e-7b3a-4d2e-9f5a-2e8b1c4d6a70\",\n    \"name\": \"Ana Souza\",\n    \"position\": \"Desenvolvedora\",\n    \"role\": \"MEMBER\"\n  },\n  \"total\": 320,\n  \"categories\": {\n    \"presence\": 140,\n    \"performance\": 95,\n    \"behavior\": 55,\n    \"initiative\": 30\n  },\n  \"level\": {\n    \"level\": 3,\n    \"tier\": \"INICIANTE\",\n    \"currentPoints\": 320,\n    \"levelFloor\": 300,\n    \"nextLevel\": 4,\n    \"nextLevelPoints\": 400,\n    \"progress\": 20,\n    \"nextTier\": \"INICIANTE\"\n  },\n  \"kpis\": [\n    {\n      \"id\": \"c3d4e5f6-8a7b-4c5d-9e0f-1a2b3c4d5e6f\",\n      \"kpiId\": \"b2c3d4e5-6f7a-48c9-9d0e-1f2a3b4c5d6e\",\n      \"name\": \"Presença na reunião\",\n      \"category\": \"PRESENCE\",\n      \"points\": 5,\n      \"note\": null,\n      \"assignedAt\": \"2026-09-07T14:00:00.000Z\",\n      \"revokedAt\": null\n    },\n    {\n      \"id\": \"d4e5f6a7-9b8c-4d0e-9f1a-2b3c4d5e6f7a\",\n      \"kpiId\": \"c3d4e5f6-7a8b-49d0-8e1f-1a2b3c4d5e6f\",\n      \"name\": \"Resolveu bug crítico\",\n      \"category\": \"PERFORMANCE\",\n      \"points\": 25,\n      \"note\": \"Correção do bug que bloqueava o deploy\",\n      \"assignedAt\": \"2026-09-04T15:30:00.000Z\",\n      \"revokedAt\": null\n    }\n  ],\n  \"badges\": [\n    {\n      \"code\": \"FIRST_POINT\",\n      \"name\": \"Primeira pontuação\",\n      \"description\": \"Recebeu a primeira atribuição válida de KPI.\",\n      \"icon\": \"🌱\",\n      \"rarity\": \"COMUM\",\n      \"available\": true,\n      \"earned\": true,\n      \"earnedAt\": \"2026-09-01T14:00:00.000Z\",\n      \"current\": 1,\n      \"target\": 1,\n      \"progress\": 100\n    },\n    {\n      \"code\": \"FIVE_PERFORMANCE\",\n      \"name\": \"Alta performance\",\n      \"description\": \"Acumulou 5 atribuições válidas na categoria performance.\",\n      \"icon\": \"⚡\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": true,\n      \"earnedAt\": \"2026-09-04T15:30:00.000Z\",\n      \"current\": 4,\n      \"target\": 5,\n      \"progress\": 100\n    },\n    {\n      \"code\": \"ALL_CATEGORIES\",\n      \"name\": \"Completista\",\n      \"description\": \"Pontuou em todas as categorias de KPI.\",\n      \"icon\": \"🧭\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": true,\n      \"earnedAt\": \"2026-09-05T14:00:00.000Z\",\n      \"current\": 4,\n      \"target\": 4,\n      \"progress\": 100\n    },\n    {\n      \"code\": \"TWENTY_FIVE_KPIS\",\n      \"name\": \"Colecionador\",\n      \"description\": \"Acumulou 25 atribuições válidas de KPI.\",\n      \"icon\": \"📚\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 8,\n      \"target\": 25,\n      \"progress\": 32\n    },\n    {\n      \"code\": \"FOUR_WEEK_STREAK\",\n      \"name\": \"Constante\",\n      \"description\": \"Pontuou em 4 semanas ISO consecutivas.\",\n      \"icon\": \"🔥\",\n      \"rarity\": \"EPICA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 2,\n      \"target\": 4,\n      \"progress\": 50\n    },\n    {\n      \"code\": \"TWELVE_WEEK_STREAK\",\n      \"name\": \"Inabalável\",\n      \"description\": \"Pontuou em 12 semanas ISO consecutivas.\",\n      \"icon\": \"💎\",\n      \"rarity\": \"EPICA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 2,\n      \"target\": 12,\n      \"progress\": 16\n    },\n    {\n      \"code\": \"TEN_MEETINGS\",\n      \"name\": \"Presente\",\n      \"description\": \"Participou de 10 reuniões com presença registrada.\",\n      \"icon\": \"🤝\",\n      \"rarity\": \"RARA\",\n      \"available\": false,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": 10,\n      \"progress\": 0\n    },\n    {\n      \"code\": \"TOP_THREE\",\n      \"name\": \"Pódio\",\n      \"description\": \"Terminou entre os 3 primeiros do ranking geral.\",\n      \"icon\": \"🏅\",\n      \"rarity\": \"EPICA\",\n      \"available\": false,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": null,\n      \"progress\": 0\n    },\n    {\n      \"code\": \"PERFECT_MONTH\",\n      \"name\": \"Pontual\",\n      \"description\": \"Esteve presente em todas as reuniões de um mês.\",\n      \"icon\": \"⏱️\",\n      \"rarity\": \"COMUM\",\n      \"available\": false,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": null,\n      \"progress\": 0\n    },\n    {\n      \"code\": \"PODIUM_STREAK\",\n      \"name\": \"Lendário\",\n      \"description\": \"Terminou 3 meses consecutivos no top 3 do ranking.\",\n      \"icon\": \"👑\",\n      \"rarity\": \"LENDARIA\",\n      \"available\": false,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": 3,\n      \"progress\": 0\n    }\n  ]\n}"
+       "body": "{\n  \"member\": {\n    \"id\": \"9c1c2f6e-7b3a-4d2e-9f5a-2e8b1c4d6a70\",\n    \"name\": \"Ana Souza\",\n    \"position\": \"Desenvolvedora\",\n    \"role\": \"MEMBER\"\n  },\n  \"total\": 320,\n  \"categories\": {\n    \"presence\": 140,\n    \"performance\": 95,\n    \"behavior\": 55,\n    \"initiative\": 30\n  },\n  \"level\": {\n    \"level\": 3,\n    \"tier\": \"INICIANTE\",\n    \"currentPoints\": 320,\n    \"levelFloor\": 300,\n    \"nextLevel\": 4,\n    \"nextLevelPoints\": 400,\n    \"progress\": 20,\n    \"nextTier\": \"INICIANTE\"\n  },\n  \"kpis\": [\n    {\n      \"id\": \"c3d4e5f6-8a7b-4c5d-9e0f-1a2b3c4d5e6f\",\n      \"kpiId\": \"b2c3d4e5-6f7a-48c9-9d0e-1f2a3b4c5d6e\",\n      \"name\": \"Presença na reunião\",\n      \"category\": \"PRESENCE\",\n      \"points\": 5,\n      \"note\": null,\n      \"assignedAt\": \"2026-09-07T14:00:00.000Z\",\n      \"revokedAt\": null\n    },\n    {\n      \"id\": \"d4e5f6a7-9b8c-4d0e-9f1a-2b3c4d5e6f7a\",\n      \"kpiId\": \"c3d4e5f6-7a8b-49d0-8e1f-1a2b3c4d5e6f\",\n      \"name\": \"Resolveu bug crítico\",\n      \"category\": \"PERFORMANCE\",\n      \"points\": 25,\n      \"note\": \"Correção do bug que bloqueava o deploy\",\n      \"assignedAt\": \"2026-09-04T15:30:00.000Z\",\n      \"revokedAt\": null\n    }\n  ],\n  \"badges\": [\n    {\n      \"code\": \"FIRST_POINT\",\n      \"name\": \"Primeira pontuação\",\n      \"description\": \"Recebeu a primeira atribuição válida de KPI.\",\n      \"icon\": \"🌱\",\n      \"rarity\": \"COMUM\",\n      \"available\": true,\n      \"earned\": true,\n      \"earnedAt\": \"2026-09-01T14:00:00.000Z\",\n      \"current\": 1,\n      \"target\": 1,\n      \"progress\": 100\n    },\n    {\n      \"code\": \"FIVE_PERFORMANCE\",\n      \"name\": \"Alta performance\",\n      \"description\": \"Acumulou 5 atribuições válidas na categoria performance.\",\n      \"icon\": \"⚡\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": true,\n      \"earnedAt\": \"2026-09-04T15:30:00.000Z\",\n      \"current\": 4,\n      \"target\": 5,\n      \"progress\": 100\n    },\n    {\n      \"code\": \"ALL_CATEGORIES\",\n      \"name\": \"Completista\",\n      \"description\": \"Pontuou em todas as categorias de KPI.\",\n      \"icon\": \"🧭\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": true,\n      \"earnedAt\": \"2026-09-05T14:00:00.000Z\",\n      \"current\": 4,\n      \"target\": 4,\n      \"progress\": 100\n    },\n    {\n      \"code\": \"TWENTY_FIVE_KPIS\",\n      \"name\": \"Colecionador\",\n      \"description\": \"Acumulou 25 atribuições válidas de KPI.\",\n      \"icon\": \"📚\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 8,\n      \"target\": 25,\n      \"progress\": 32\n    },\n    {\n      \"code\": \"FOUR_WEEK_STREAK\",\n      \"name\": \"Constante\",\n      \"description\": \"Pontuou em 4 semanas ISO consecutivas.\",\n      \"icon\": \"🔥\",\n      \"rarity\": \"EPICA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 2,\n      \"target\": 4,\n      \"progress\": 50\n    },\n    {\n      \"code\": \"TWELVE_WEEK_STREAK\",\n      \"name\": \"Inabalável\",\n      \"description\": \"Pontuou em 12 semanas ISO consecutivas.\",\n      \"icon\": \"💎\",\n      \"rarity\": \"EPICA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 2,\n      \"target\": 12,\n      \"progress\": 16\n    },\n    {\n      \"code\": \"TEN_MEETINGS\",\n      \"name\": \"Presente\",\n      \"description\": \"Participou de 10 reuniões com presença registrada.\",\n      \"icon\": \"🤝\",\n      \"rarity\": \"RARA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": 10,\n      \"progress\": 0\n    },\n    {\n      \"code\": \"TOP_THREE\",\n      \"name\": \"Pódio\",\n      \"description\": \"Terminou entre os 3 primeiros do ranking geral.\",\n      \"icon\": \"🏅\",\n      \"rarity\": \"EPICA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": null,\n      \"progress\": 0\n    },\n    {\n      \"code\": \"PERFECT_MONTH\",\n      \"name\": \"Pontual\",\n      \"description\": \"Esteve presente em todas as reuniões de um mês.\",\n      \"icon\": \"⏱️\",\n      \"rarity\": \"COMUM\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": null,\n      \"progress\": 0\n    },\n    {\n      \"code\": \"PODIUM_STREAK\",\n      \"name\": \"Lendário\",\n      \"description\": \"Terminou 3 meses consecutivos no top 3 do ranking.\",\n      \"icon\": \"👑\",\n      \"rarity\": \"LENDARIA\",\n      \"available\": true,\n      \"earned\": false,\n      \"earnedAt\": null,\n      \"current\": 0,\n      \"target\": 3,\n      \"progress\": 0\n    }\n  ]\n}"
       }
      ]
     }
@@ -2979,6 +3046,219 @@
         "type": "text/javascript",
         "exec": [
          "pm.test('200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Ranking (3B)",
+   "item": [
+    {
+     "name": "Ranking semanal",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{baseUrl}}/ranking?period=week",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ranking"
+       ],
+       "query": [
+        {
+         "key": "period",
+         "value": "week"
+        }
+       ]
+      },
+      "description": "Requer `accessToken` (Login). Rota e protegida: Admin e Member leem o mesmo board.\n\nJanela = semana ISO (segunda a domingo) em America/Sao_Paulo. Todo usuario ativo entra, mesmo com 0 pontos; usuario desativado some ate dos periodos passados.\n\nDesempate: pontos DESC, quantidade de KPIs DESC, nome em pt-BR ASC. Ordem estavel entre requisicoes identicas.\n\nNa primeira leitura da semana, a API congela a semana anterior em `ranking_snapshot` (somente se ela teve alguma atribuicao) e devolve `change` = posicao na semana passada − posicao agora. Positivo subiu; `null` e \"sem snapshot\" ou \"nao estava la\"."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('200', () => pm.response.to.have.status(200));",
+         "if (pm.response.code === 200) {",
+         "  const body = pm.response.json();",
+         "  pm.test('isMe unico', () => pm.expect(body.items.filter(i => i.isMe).length).to.eql(1));",
+         "}"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Ranking mensal",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{baseUrl}}/ranking?period=month",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ranking"
+       ],
+       "query": [
+        {
+         "key": "period",
+         "value": "month"
+        }
+       ]
+      },
+      "description": "Mesmo contrato do semanal, janela = mes de calendario. `change` compara com o mes anterior."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Ranking trimestral (só Admin)",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{baseUrl}}/ranking?period=quarter",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ranking"
+       ],
+       "query": [
+        {
+         "key": "period",
+         "value": "quarter"
+        }
+       ]
+      },
+      "description": "Periodo do Admin: MEMBER recebe 403 `PERIOD_NOT_ALLOWED`. A guarda e regra de negocio no service (a rota e dos dois papeis; quem muda e o valor aceito no campo).\n\nJanela = trimestre de calendario. `change` compara com o trimestre anterior."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Ranking total",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{baseUrl}}/ranking",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "ranking"
+       ]
+      },
+      "description": "`period` omissa = `all`: soma de todas as atribuicoes validas, sem janela. `periodStart`/`periodEnd` e `change` vêm null — nao existe \"o all anterior\".\n\nSem paginacao: a equipe inteira vem numa resposta so. O bloco `me` traz a posicao do autenticado para o cabecalho da tela."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('200', () => pm.response.to.have.status(200));"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Dashboards (3D)",
+   "item": [
+    {
+     "name": "Dashboard do membro",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{baseUrl}}/dashboard/member",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "dashboard",
+        "member"
+       ]
+      },
+      "description": "Requer `accessToken` (Admin ou Member). Todo autenticado tem o proprio dashboard de membro — Admin tambem acumula KPI.\n\nTraz `user`, `points` e `kpiCount` validos, `rankingPosition` no ranking geral (period=all) com `teamSize`, `level` completo (o mesmo de `/me/score`) e as cinco ultimas atribuicoes validas em `recentKpis`.\n\nUsuario desativado com token ainda valido recebe 403 `MEMBER_INACTIVE`."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('200', () => pm.response.to.have.status(200));",
+         "if (pm.response.code === 200) {",
+         "  const body = pm.response.json();",
+         "  pm.test('posicao dentro da equipe', () => pm.expect(body.rankingPosition).to.be.at.most(body.teamSize));",
+         "  pm.test('no maximo cinco recentes', () => pm.expect(body.recentKpis.length).to.be.at.most(5));",
+         "}"
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "name": "Dashboard do Admin",
+     "request": {
+      "method": "GET",
+      "header": [],
+      "url": {
+       "raw": "{{baseUrl}}/dashboard/admin",
+       "host": [
+        "{{baseUrl}}"
+       ],
+       "path": [
+        "dashboard",
+        "admin"
+       ]
+      },
+      "description": "Requer `accessToken` de Admin. MEMBER recebe 403.\n\nContadores de semana ISO e mes de calendario correntes (America/Sao_Paulo): `kpis` e `points` sobre atribuicoes validas, `meetings` pela data da reuniao, mais `meetings.open`. `members` traz ativos e total.\n\n`ranking` e o top 5 do mes corrente, sem `change` e sem `isMe` — nao grava snapshot. `recentAssignments` sao as 10 ultimas, validas e revogadas, com `user`. `membersWithoutKpis` lista ativos sem atribuicao valida ha 30 dias corridos ou mais (quem nunca recebeu conta desde a criacao da conta), do caso mais grave para o menos grave."
+     },
+     "event": [
+      {
+       "listen": "test",
+       "script": {
+        "type": "text/javascript",
+        "exec": [
+         "pm.test('200', () => pm.response.to.have.status(200));",
+         "if (pm.response.code === 200) {",
+         "  const body = pm.response.json();",
+         "  pm.test('ranking top 5', () => pm.expect(body.ranking.length).to.be.at.most(5));",
+         "  pm.test('ranking sem change', () => body.ranking.forEach(e => pm.expect(e).to.not.have.property('change')));",
+         "  pm.test('recentes no maximo 10', () => pm.expect(body.recentAssignments.length).to.be.at.most(10));",
+         "}"
         ]
        }
       }
