@@ -1,8 +1,10 @@
-import { MemberNotFoundError } from "../../shared/errors/common.errors";
+import {
+	AccountDeactivatedError,
+	MemberNotFoundError,
+} from "../../shared/errors/common.errors";
 import { levelFor } from "../../shared/gamification";
 import { mapAssignmentHistoryItem } from "../../shared/mappers";
 import { rank, toRankableRow, windowOf } from "../../shared/ranking";
-import { MemberInactiveError } from "./dashboard.errors";
 import { mapDashboardMember, mapRecentKpi } from "./dashboard.mapper";
 import { dashboardRepository } from "./dashboard.repository";
 
@@ -23,7 +25,7 @@ export const dashboardService = {
 		}
 
 		if (!user.active) {
-			throw new MemberInactiveError();
+			throw new AccountDeactivatedError();
 		}
 
 		const [team, recent] = await Promise.all([
@@ -35,7 +37,7 @@ export const dashboardService = {
 		const me = ranked.find((row) => row.userId === userId);
 
 		if (!me) {
-			throw new MemberInactiveError();
+			throw new AccountDeactivatedError();
 		}
 
 		return {

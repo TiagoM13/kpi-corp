@@ -53,3 +53,12 @@ export class KpiInactiveError extends DomainError {
 		super("Inactive KPIs cannot receive new assignments");
 	}
 }
+
+export class AccountDeactivatedError extends DomainError {
+	readonly code = "ACCOUNT_DEACTIVATED";
+	readonly status = "FORBIDDEN" as const;
+
+	constructor() {
+		super("Account is deactivated");
+	}
+}

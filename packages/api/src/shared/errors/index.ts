@@ -1,4 +1,5 @@
 export {
+	AccountDeactivatedError,
 	EmailAlreadyRegisteredError,
 	KpiInactiveError,
 	KpiNotFoundError,

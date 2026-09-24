@@ -9,15 +9,6 @@ export class InvalidCredentialsError extends DomainError {
 	}
 }
 
-export class AccountDeactivatedError extends DomainError {
-	readonly code = "ACCOUNT_DEACTIVATED";
-	readonly status = "FORBIDDEN" as const;
-
-	constructor() {
-		super("Account is deactivated");
-	}
-}
-
 export class InvalidRefreshTokenError extends DomainError {
 	readonly code = "INVALID_REFRESH_TOKEN";
 	readonly status = "UNAUTHORIZED" as const;

@@ -1,4 +1,3 @@
-export { MemberInactiveError } from "./dashboard.errors";
 export {
 	type DashboardMember,
 	mapDashboardMember,

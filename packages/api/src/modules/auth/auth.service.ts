@@ -1,6 +1,7 @@
 import { env } from "@kpi-corp/env/server";
 import {
 	EmailAlreadyRegisteredError,
+	AccountDeactivatedError,
 	UnauthorizedError,
 } from "../../shared/errors/common.errors";
 import {
@@ -10,7 +11,6 @@ import {
 } from "../../shared/security/password";
 import { durationToMs } from "../../shared/security/tokens";
 import {
-	AccountDeactivatedError,
 	InvalidCredentialsError,
 	InvalidInvitationError,
 	InvalidRefreshTokenError,
