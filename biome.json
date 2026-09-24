@@ -109,9 +109,11 @@
 									{
 										"group": [
 											"../auth/**",
+											"../dashboard/**",
 											"../kpis/**",
 											"../members/**",
 											"../assignments/**",
+											"../ranking/**",
 											"../meetings/**",
 											"../profile/**"
 										],
