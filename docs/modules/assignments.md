@@ -18,9 +18,9 @@ Código em `packages/api/src/modules/assignments/`.
 | RN01 | A atribuição **congela** o `points` do KPI no instante em que é criada. Reprecificar o KPI depois não reescreve o passado |
 | RN02 | `assignedBy` vem do contexto autenticado, nunca do corpo |
 | RN03 | KPI inexistente → 404 `KPI_NOT_FOUND`; KPI inativo → 409 `KPI_INACTIVE`. Membro inexistente → 404 `MEMBER_NOT_FOUND`; membro inativo → 409 `MEMBER_INACTIVE` |
-| RN04 | Atribuição em massa é **tudo ou nada**: valida KPI e todos os membros antes, e cria todas as linhas numa transação. `userIds` duplicados são rejeitados no schema |
+| RN04 | Atribuição em massa é **tudo ou nada**: valida KPI e todos os membros (numa consulta só) e cria as linhas **na mesma transação**. `userIds` duplicados ou mais de 200 são rejeitados no schema (400) |
 | RN05 | O mesmo KPI pode ser atribuído várias vezes ao mesmo membro — reconhecimento é evento, não estado |
-| RN06 | Revogar é preencher `revokedAt`, não apagar a linha: `DELETE /kpi-assignments/{id}` responde a atribuição revogada. Inexistente → 404 `ASSIGNMENT_NOT_FOUND`; já revogada → 409 `ASSIGNMENT_ALREADY_REVOKED` |
+| RN06 | Revogar é preencher `revokedAt`, não apagar a linha: `DELETE /kpi-assignments/{id}` responde a atribuição revogada. Inexistente → 404 `ASSIGNMENT_NOT_FOUND`; já revogada → 409 `ASSIGNMENT_ALREADY_REVOKED`, inclusive para a segunda de duas revogações simultâneas (`updateMany` guardado por `revokedAt IS NULL`) |
 | RN07 | Revogação vale inclusive para atribuição feita em reunião encerrada — encerrar congela o que entra, não a correção de erro |
 | RN08 | `GET /members/{id}/kpi-assignments` lista o histórico de um membro, decrescente por `assignedAt`, com filtros `category` e `revoked`, **sem paginação**. Membro sem atribuição → lista vazia |
 

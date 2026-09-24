@@ -37,7 +37,7 @@ packages/api/src/
 │       ├── dashboard.repository.ts  # contagens, somas e listagens próprias
 │       └── ...                      # router, schema, mapper, errors, index
 ├── shared/
-│   ├── context.ts           # createContext — Bearer → context.auth
+│   ├── context.ts           # createContext — Bearer → context.auth, confere active no banco
 │   ├── errors/
 │   │   ├── domain-error.ts  # classe base, carrega code e status
 │   │   ├── error-mapper.ts  # DomainError → ORPCError
@@ -45,11 +45,14 @@ packages/api/src/
 │   │   ├── common.errors.ts # erros usados por mais de um módulo
 │   │   └── index.ts
 │   ├── schemas/             # Zod compartilhado: categoria, nível, atribuição, query
+│   ├── guards/              # assertMembersActive — assignments e meetings
+│   ├── email/               # normalizeEmail — auth e members
 │   ├── mappers/
 │   │   └── kpi-assignment.ts # KpiAssignment e histórico com user
 │   ├── security/
 │   │   ├── password.ts      # bcrypt + DUMMY_PASSWORD_HASH
 │   │   ├── access-token.ts  # assina e valida o access token (typ, role, email)
+│   │   ├── session.repository.ts # status e role atuais do usuário para o contexto
 │   │   └── tokens.ts        # JWT genérico, sha256, timingSafeEqual, durações
 │   ├── time/
 │   │   └── timezone.ts      # TIMEZONE America/Sao_Paulo, dayStart/dayEnd/dayOf

@@ -18,7 +18,7 @@ Código em `packages/api/src/modules/dashboard/`.
 | RN04 | `points` e `kpiCount` somam atribuições com `revokedAt IS NULL`, sem filtro de sinal — a mesma pontuação de `/me/score`. `level` é o objeto inteiro de `levelFor`, idêntico ao de `/me/score` |
 | RN05 | `rankingPosition` é do período `all` — a posição que o membro carrega como identidade — e `teamSize` é a quantidade de ativos: "4º" sem denominador não diz nada |
 | RN06 | `recentKpis` traz as **cinco** últimas atribuições válidas, decrescente. Revogada fica de fora: é vitrine; o histórico com revogação é `/me/kpis` |
-| RN07 | Usuário desativado com token válido recebe **403 `MEMBER_INACTIVE`** — mesmo `code` de `assignments`/`meetings`, status diferente (lá é 409). Usuário inexistente recebe **404 `MEMBER_NOT_FOUND`** |
+| RN07 | Usuário desativado com token válido recebe **403 `ACCOUNT_DEACTIVATED`** — o mesmo erro do login, não o `MEMBER_INACTIVE` (409) de atribuição. Na prática o contexto já derruba a sessão antes (401); este é o segundo muro. Usuário inexistente recebe **404 `MEMBER_NOT_FOUND`** |
 | RN08 | `/dashboard/admin` é `adminProcedure`. Contadores de `kpis`, `points` e `meetings` usam a **semana ISO e o mês de calendário correntes** de `shared/ranking/periods.ts` — na segunda de manhã a semana zera. O "mês" do dashboard é o mesmo "mês" do ranking |
 | RN09 | `meetings.week` e `meetings.month` contam pela `date` da reunião **por dia de calendário**: `meeting.date` é gravado como meia-noite UTC do dia (3A), então a janela compara com `startDay`/`endDay`, não com os instantes de São Paulo — senão a reunião de segunda cairia na semana anterior. `meetings.open` conta `closedAt IS NULL` |
 | RN10 | `ranking` é o top 5 do **mês corrente**, com a entrada da 3B **sem** `change` e **sem** `isMe`. Nenhuma das duas rotas grava `ranking_snapshot` |
@@ -57,7 +57,7 @@ sequenceDiagram
 
 | Método | Rota | Descrição | Auth | Erros |
 | --- | --- | --- | --- | --- |
-| GET | `/dashboard/member` | Pontos, contagem, posição geral, nível e KPIs recentes do autenticado | `Bearer` (ADMIN e MEMBER) | 401, 403 `MEMBER_INACTIVE`, 404 `MEMBER_NOT_FOUND` |
+| GET | `/dashboard/member` | Pontos, contagem, posição geral, nível e KPIs recentes do autenticado | `Bearer` (ADMIN e MEMBER) | 401, 403 `ACCOUNT_DEACTIVATED`, 404 `MEMBER_NOT_FOUND` |
 | GET | `/dashboard/admin` | Contadores, top 5 do mês, feed e membros sem KPI | `Bearer` (ADMIN) | 401, 403 |
 
 | Bloco do Admin | O que é | Janela |

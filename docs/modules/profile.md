@@ -22,7 +22,7 @@ Código em `packages/api/src/modules/profile/`.
 | RN05 | As cinco faixas trocam nos níveis 5, 10, 15 e 20: `INICIANTE` (0–4), `COMPROMETIDO` (5–9), `DESTAQUE` (10–14), `ELITE` (15–19), `LENDA` (20) |
 | RN06 | Nível 20 é o teto: acima de 7.500 os pontos seguem somando, mas `nextLevel`, `nextLevelPoints` e `nextTier` vêm `null` e `progress` vem 100 |
 | RN07 | `progress` é o percentual de pontos dentro do nível atual — nunca o percentual do caminho total |
-| RN08 | O perfil público (`/members/{id}/profile`) devolve o mesmo conteúdo do `/me/profile`, exceto: **sem e-mail**, **sem status de ativação** e histórico **só com atribuições não revogadas**. Membro inativo ou inexistente → 404 |
+| RN08 | O perfil público (`/members/{id}/profile`) devolve o mesmo conteúdo do `/me/profile`, exceto: **sem e-mail**, **sem status de ativação** e histórico **só com atribuições não revogadas e de pontuação positiva** (`points > 0`). Membro inativo ou inexistente → 404 |
 
 ### Badges (2D)
 

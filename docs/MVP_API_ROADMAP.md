@@ -362,13 +362,17 @@ Retornar informações do membro necessárias para a tela administrativa.
 POST /members/invitations
 ```
 
-Entrada:
+Entrada — lote de até 50 e-mails; cada um vira um convite independente, e endereço já
+cadastrado volta em `failed` sem derrubar os outros:
 
 ```json
 {
-  "email": "joao@email.com"
+  "emails": ["joao@email.com"]
 }
 ```
+
+O banco guarda só o SHA-256 do token; o token em texto puro existe apenas na resposta
+(`token` e `inviteUrl`) e no link enviado ao convidado.
 
 Fluxo:
 
@@ -1163,7 +1167,9 @@ GET /dashboard/member
 * `level` é o objeto completo de § 2.7, idêntico ao de `/me/score`.
 * `rankingPosition` é a posição no ranking `all`; `teamSize` é o total de ativos.
 * `recentKpis` traz as cinco últimas atribuições **válidas**, decrescente.
-* Usuário desativado com token ainda válido recebe `403 MEMBER_INACTIVE`.
+* Usuário desativado perde a sessão já na requisição seguinte: o contexto confere
+  `active` no banco e responde 401. O dashboard ainda recusa com `403 ACCOUNT_DEACTIVATED`
+  como segunda barreira.
 
 Uma requisição, uma resposta, sem cache nem agregado gravado.
 
@@ -1541,50 +1547,52 @@ Isso garante que o processamento da reunião não fique parcialmente concluído.
 
 Os testes devem priorizar regras de negócio e fluxos críticos.
 
+Todos cobertos em `packages/api/src/tests/` (Vitest, sem banco).
+
 ## Autenticação
 
-* [ ] Login válido.
-* [ ] Login inválido.
-* [ ] Token expirado.
-* [ ] Refresh token.
-* [ ] Logout.
+* [x] Login válido.
+* [x] Login inválido.
+* [x] Token expirado.
+* [x] Refresh token.
+* [x] Logout.
 
 ## Autorização
 
-* [ ] Admin acessa recursos administrativos.
-* [ ] Member recebe 403 ao tentar acessar recursos administrativos.
-* [ ] Member não consegue acessar dados de outro Member.
+* [x] Admin acessa recursos administrativos.
+* [x] Member recebe 403 ao tentar acessar recursos administrativos.
+* [x] Member não consegue acessar dados de outro Member.
 
 ## KPIs
 
-* [ ] Criar KPI.
-* [ ] Editar KPI.
-* [ ] Desativar KPI.
-* [ ] Impedir atribuição de KPI inativo.
+* [x] Criar KPI.
+* [x] Editar KPI.
+* [x] Desativar KPI.
+* [x] Impedir atribuição de KPI inativo.
 
 ## Atribuições
 
-* [ ] Atribuir KPI.
-* [ ] Atribuir em massa.
-* [ ] Revogar atribuição.
-* [ ] Preservar histórico.
-* [ ] Recalcular pontuação.
+* [x] Atribuir KPI.
+* [x] Atribuir em massa.
+* [x] Revogar atribuição.
+* [x] Preservar histórico.
+* [x] Recalcular pontuação.
 
 ## Gamificação
 
-* [ ] Calcular nível.
-* [ ] Calcular progresso.
-* [ ] Identificar badges.
-* [ ] Calcular ranking.
+* [x] Calcular nível.
+* [x] Calcular progresso.
+* [x] Identificar badges.
+* [x] Calcular ranking.
 
 ## Reuniões
 
-* [ ] Criar reunião.
-* [ ] Adicionar participantes.
-* [ ] Registrar presença.
-* [ ] Atribuir KPI durante reunião.
-* [ ] Encerrar reunião.
-* [ ] Impedir alteração após encerramento.
+* [x] Criar reunião.
+* [x] Adicionar participantes.
+* [x] Registrar presença.
+* [x] Atribuir KPI durante reunião.
+* [x] Encerrar reunião.
+* [x] Impedir alteração após encerramento.
 
 ---
 

@@ -11,16 +11,16 @@ Código em `packages/api/src/modules/auth/`.
 
 | # | Regra |
 | --- | --- |
-| RN01 | E-mail inexistente e senha errada produzem **a mesma** resposta: 401 `"Invalid email or password"` |
+| RN01 | E-mail inexistente e senha errada produzem **a mesma** resposta: 401 `"Invalid email or password"`. O e-mail é normalizado (trim + minúsculas) antes da busca, como no convite |
 | RN02 | A verificação de senha roda sempre, mesmo sem usuário, contra um hash dummy — o tempo de resposta não revela se o e-mail existe |
 | RN03 | Usuário com `active = false` não faz login: 403 `ACCOUNT_DEACTIVATED` |
-| RN04 | Cadastro exige convite válido: token existente, não usado e não expirado |
+| RN04 | Cadastro exige convite válido: token existente, não usado e não expirado. O banco guarda só o SHA-256 do token (`invitation.tokenHash`) e a busca é pelo hash |
 | RN05 | O convite é consumido atomicamente — duas requisições simultâneas com o mesmo token, só uma cria conta |
 | RN06 | O e-mail da conta vem **do convite**, nunca do formulário |
 | RN07 | O perfil de quem se cadastra por convite é sempre `MEMBER`, fixado no servidor |
 | RN08 | Cada refresh rotaciona: o token usado é revogado e um novo par é emitido |
 | RN09 | Refresh já revogado que reaparece revoga **todos** os tokens do usuário (replay) |
-| RN10 | Logout revoga o refresh token; o access token segue válido até expirar (máx. 15 min) |
+| RN10 | Logout revoga o refresh token; o access token segue válido até expirar (máx. 15 min). Desativação corta antes: o contexto confere `active` no banco a cada requisição |
 | RN11 | Refresh token é guardado como hash, nunca em texto puro |
 
 ## Fluxos
@@ -56,7 +56,7 @@ sequenceDiagram
     participant R as authRepository
 
     C->>S: register(token, name, password)
-    S->>R: findInvitationByToken
+    S->>R: findInvitationByTokenHash(sha256(token))
     Note over S: valida existe / não usado / não expirado
     S->>R: executeRegisterTransaction
     Note over R: BEGIN<br/>updateMany invitation<br/>WHERE id = ? AND usedAt IS NULL<br/>count = 0 → convite já usado<br/>INSERT user<br/>COMMIT
@@ -113,7 +113,7 @@ erDiagram
     invitation {
         uuid id PK
         string email
-        string token UK
+        string tokenHash UK
         datetime usedAt "nullable"
         datetime expiresAt
         datetime createdAt

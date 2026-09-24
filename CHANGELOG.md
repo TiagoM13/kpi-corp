@@ -8,6 +8,29 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-24 — Revisão da API MVP, itens 5 a 13
+
+#### Corrigido
+- Usuário desativado perde a sessão na requisição seguinte: `createContext` confere
+  `active` no banco e usa o `role` atual, não o do token.
+- Revogação concorrente da mesma atribuição: a segunda recebe 409
+  `ASSIGNMENT_ALREADY_REVOKED` em vez de sobrescrever `revokedAt`.
+- Atribuição em massa valida KPI e membros dentro da mesma transação da escrita, com uma
+  consulta só para os membros.
+- Login encontra a conta mesmo com o e-mail digitado em maiúsculas.
+- `levelFor` com pontuação negativa devolve nível 0 e `progress` 0, não `NaN`.
+
+#### Alterado
+- `/dashboard/member` responde 403 `ACCOUNT_DEACTIVATED` (antes `MEMBER_INACTIVE`) para
+  conta desativada — o mesmo erro do login. `MEMBER_INACTIVE` fica só com o 409 de
+  atribuição.
+- `POST /kpi-assignments/bulk` aceita no máximo 200 `userIds` (400 acima disso).
+- Token de convite passa a ser guardado como SHA-256 (`invitation.tokenHash`). A
+  migration converte os convites existentes; links já enviados continuam válidos.
+- Perfil público mostra só atribuições de pontuação positiva, como pede o roadmap § 1.5.
+- Erros de constraint do Prisma são traduzidos no repository; nenhum service importa
+  `@kpi-corp/db`.
+
 ### 2026-09-24 — Correções da revisão da API MVP
 
 #### Corrigido

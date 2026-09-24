@@ -132,6 +132,10 @@ O roadmap pede o histórico "filtrado para pontuação positiva". Hoje todo KPI 
 leitura que faz sentido, e que fica valendo: **o perfil público mostra só atribuições
 válidas**, sem as revogadas. Quem revogou o quê é assunto de Admin.
 
+**Revisto em 2026-09-24** (revisão da API MVP, item 13): o filtro `points > 0` foi
+aplicado também. Custa uma cláusula e impede que um KPI punitivo criado depois vire
+registro disciplinar visível entre colegas sem ninguém lembrar desta regra.
+
 ### Membro inativo não tem perfil público
 
 `GET /members/:id/profile` devolve `404 MEMBER_NOT_FOUND` quando o membro está

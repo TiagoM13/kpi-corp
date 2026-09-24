@@ -43,7 +43,11 @@ módulo auth). Erro que só um módulo usa continua no módulo.
 
 O mesmo vale para contrato: `shared/schemas/` (categoria de KPI, nível, atribuição,
 preprocessadores de query) e `shared/mappers/` (atribuição de KPI). Redeclarar num
-módulo o que já existe ali é duplicação, não isolamento.
+módulo o que já existe ali é duplicação, não isolamento. Idem `shared/guards/`
+(`assertMembersActive`) e `shared/email/` (`normalizeEmail`).
+
+Erro de constraint do Prisma (`P2002`, `P2025`) é traduzido **no repository**, que
+devolve um `outcome` discriminado — o service nunca importa `@kpi-corp/db`.
 
 **Como isso é cobrado:**
 
@@ -151,6 +155,9 @@ detalhe de implementação.
   `verifyAccessToken`. Assinatura válida não basta: um refresh token assinado com o mesmo
   segredo não pode virar sessão. O env ainda exige `JWT_SECRET` ≠ `JWT_REFRESH_SECRET`,
   ambos com 32+ caracteres.
+- **`createContext` confere `active` e `role` no banco** a cada requisição autenticada.
+  Token válido de usuário desativado vira `auth: null`.
+- **Token de convite é guardado como SHA-256** (`invitation.tokenHash`), como o refresh.
 - **Escrita em reunião trava a linha de `meeting`** (`lockForUpdate`) antes de ler
   estado. Sem isso duas presenças simultâneas pagam o mesmo membro duas vezes.
 
@@ -164,7 +171,7 @@ npm run test          # da raiz
 npx vitest            # watch, de dentro do pacote
 ```
 
-516 testes em 25 arquivos, **nenhum precisa de banco**.
+534 testes em 26 arquivos, **nenhum precisa de banco**.
 
 | Arquivo | Mocka |
 | --- | --- |
@@ -178,6 +185,7 @@ npx vitest            # watch, de dentro do pacote
 | `tests/modules/dashboard/service.test.ts` | `dashboardRepository` inteiro |
 | `tests/modules/dashboard/router.test.ts` | `dashboardService` inteiro |
 | `tests/modules/assignments/router.test.ts` | `assignmentsService` inteiro |
+| `tests/shared/context.test.ts` | `sessionRepository` inteiro |
 | `tests/shared/**` | nada — `errors`, `security`, `ranking`, `gamification` |
 
 ```ts
