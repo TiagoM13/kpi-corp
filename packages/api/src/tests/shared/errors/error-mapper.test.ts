@@ -2,12 +2,14 @@ import { ORPCError } from "@orpc/server";
 import { describe, expect, it, vi } from "vitest";
 
 import {
-	AccountDeactivatedError,
 	InvalidCredentialsError,
 	InvalidRefreshTokenError,
 	InvitationAlreadyUsedError,
 } from "../../../modules/auth/auth.errors";
-import { EmailAlreadyRegisteredError } from "../../../shared/errors/common.errors";
+import {
+	AccountDeactivatedError,
+	EmailAlreadyRegisteredError,
+} from "../../../shared/errors/common.errors";
 import { mapDomainErrorToORPCError } from "../../../shared/errors/error-mapper";
 
 describe("mapDomainErrorToORPCError", () => {

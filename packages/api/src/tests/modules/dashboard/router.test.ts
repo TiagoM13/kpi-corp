@@ -1,9 +1,8 @@
 import { createProcedureClient, ORPCError } from "@orpc/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import { MemberInactiveError } from "../../../modules/dashboard/dashboard.errors";
 import { dashboardRouter } from "../../../modules/dashboard/dashboard.router";
 import type { Context } from "../../../shared/context";
+import { AccountDeactivatedError } from "../../../shared/errors/common.errors";
 import { levelFor } from "../../../shared/gamification";
 
 const { serviceMock } = vi.hoisted(() => ({
@@ -92,9 +91,9 @@ describe("dashboard router", () => {
 			expect(serviceMock.getMemberDashboard).toHaveBeenCalledWith(ADMIN_ID);
 		});
 
-		it("maps MemberInactiveError to 403 with MEMBER_INACTIVE", async () => {
+		it("maps AccountDeactivatedError to 403 with ACCOUNT_DEACTIVATED", async () => {
 			serviceMock.getMemberDashboard.mockRejectedValueOnce(
-				new MemberInactiveError(),
+				new AccountDeactivatedError(),
 			);
 
 			const error = await caller(asMember)
@@ -103,7 +102,7 @@ describe("dashboard router", () => {
 
 			expect((error as ORPCError<string, unknown>).code).toBe("FORBIDDEN");
 			expect((error as ORPCError<string, { code: string }>).data.code).toBe(
-				"MEMBER_INACTIVE",
+				"ACCOUNT_DEACTIVATED",
 			);
 		});
 	});

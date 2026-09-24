@@ -1,11 +1,9 @@
 import { createProcedureClient, ORPCError } from "@orpc/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-	AccountDeactivatedError,
-	InvalidCredentialsError,
-} from "../../../modules/auth/auth.errors";
+import { InvalidCredentialsError } from "../../../modules/auth/auth.errors";
 import { authRouter } from "../../../modules/auth/auth.router";
+import { AccountDeactivatedError } from "../../../shared/errors/common.errors";
 
 const { serviceMock } = vi.hoisted(() => {
 	return {

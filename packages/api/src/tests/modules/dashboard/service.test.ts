@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MemberInactiveError } from "../../../modules/dashboard/dashboard.errors";
 import { dashboardService } from "../../../modules/dashboard/dashboard.service";
-import { MemberNotFoundError } from "../../../shared/errors/common.errors";
+import {
+	AccountDeactivatedError,
+	MemberNotFoundError,
+} from "../../../shared/errors/common.errors";
 import { levelFor } from "../../../shared/gamification";
 
 const { repositoryMock } = vi.hoisted(() => ({
@@ -211,7 +213,7 @@ describe("dashboard service", () => {
 			});
 		});
 
-		it("membro desativado recebe MEMBER_INACTIVE antes de qualquer agregação", async () => {
+		it("membro desativado recebe ACCOUNT_DEACTIVATED antes de qualquer agregação", async () => {
 			repositoryMock.findUserById.mockResolvedValueOnce({
 				id: ANA_ID,
 				name: "Ana Souza",
@@ -222,12 +224,12 @@ describe("dashboard service", () => {
 
 			await expect(
 				dashboardService.getMemberDashboard(ANA_ID),
-			).rejects.toBeInstanceOf(MemberInactiveError);
+			).rejects.toBeInstanceOf(AccountDeactivatedError);
 			expect(repositoryMock.aggregateTeam).not.toHaveBeenCalled();
 		});
 
-		it("MEMBER_INACTIVE responde 403", () => {
-			expect(new MemberInactiveError().status).toBe("FORBIDDEN");
+		it("ACCOUNT_DEACTIVATED responde 403", () => {
+			expect(new AccountDeactivatedError().status).toBe("FORBIDDEN");
 		});
 
 		it("usuário inexistente recebe MEMBER_NOT_FOUND", async () => {

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
-	AccountDeactivatedError,
 	InvalidCredentialsError,
 	InvalidInvitationError,
 	InvalidRefreshTokenError,
@@ -15,6 +14,7 @@ import {
 	verifyRefreshToken,
 } from "../../../modules/auth/auth.tokens";
 import {
+	AccountDeactivatedError,
 	EmailAlreadyRegisteredError,
 	UnauthorizedError,
 } from "../../../shared/errors/common.errors";
