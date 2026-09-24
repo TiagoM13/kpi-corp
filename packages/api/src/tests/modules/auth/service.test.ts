@@ -19,13 +19,14 @@ import {
 	UnauthorizedError,
 } from "../../../shared/errors/common.errors";
 import { hashPassword } from "../../../shared/security/password";
+import { hashOpaqueToken } from "../../../shared/security/tokens";
 
 const { repositoryMock } = vi.hoisted(() => {
 	return {
 		repositoryMock: {
 			findUserByEmail: vi.fn(),
 			findUserById: vi.fn(),
-			findInvitationByToken: vi.fn(),
+			findInvitationByTokenHash: vi.fn(),
 			createRefreshToken: vi.fn(),
 			findRefreshTokenById: vi.fn(),
 			revokeRefreshToken: vi.fn(),
@@ -64,7 +65,7 @@ const mockMember = {
 const mockInvitation = {
 	id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 	email: "new@kpicorp.com",
-	token: "invite-token",
+	tokenHash: hashOpaqueToken("invite-token"),
 	usedAt: null,
 	expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
 	createdAt: new Date(),
@@ -124,7 +125,6 @@ describe("auth service", () => {
 			expect(result.refreshToken).toBeDefined();
 		});
 
-		it("should persist the refresh token under the id carried in its payload", async () => {
 		it("should look the user up by the lowercased email", async () => {
 			mockUser.passwordHash = await hashPassword("admin123");
 			repositoryMock.findUserByEmail.mockResolvedValueOnce(mockUser);
@@ -139,6 +139,7 @@ describe("auth service", () => {
 			);
 		});
 
+		it("should persist the refresh token under the id carried in its payload", async () => {
 			mockUser.passwordHash = await hashPassword("admin123");
 			repositoryMock.findUserByEmail.mockResolvedValueOnce(mockUser);
 
@@ -325,7 +326,7 @@ describe("auth service", () => {
 
 	describe("register", () => {
 		it("should create a member from a valid invitation", async () => {
-			repositoryMock.findInvitationByToken.mockResolvedValueOnce(
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce(
 				mockInvitation,
 			);
 			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
@@ -345,8 +346,29 @@ describe("auth service", () => {
 			expect(result.refreshToken).toBeDefined();
 		});
 
+		it("should look the invitation up by the sha-256 of the token", async () => {
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce(
+				mockInvitation,
+			);
+			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
+			repositoryMock.executeRegisterTransaction.mockResolvedValueOnce({
+				outcome: "OK",
+				user: mockMember,
+			});
+
+			await authService.register({
+				token: "invite-token",
+				name: "Ana Souza",
+				password: "member123",
+			});
+
+			expect(repositoryMock.findInvitationByTokenHash).toHaveBeenCalledWith(
+				hashOpaqueToken("invite-token"),
+			);
+		});
+
 		it("should store the position sent by the invitee", async () => {
-			repositoryMock.findInvitationByToken.mockResolvedValueOnce(
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce(
 				mockInvitation,
 			);
 			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
@@ -369,7 +391,7 @@ describe("auth service", () => {
 		});
 
 		it("should store a null position when the invitee omits it", async () => {
-			repositoryMock.findInvitationByToken.mockResolvedValueOnce(
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce(
 				mockInvitation,
 			);
 			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
@@ -391,7 +413,7 @@ describe("auth service", () => {
 		});
 
 		it("should throw InvalidInvitationError when token does not exist", async () => {
-			repositoryMock.findInvitationByToken.mockResolvedValueOnce(null);
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce(null);
 
 			await expect(
 				authService.register({
@@ -403,7 +425,7 @@ describe("auth service", () => {
 		});
 
 		it("should throw InvitationAlreadyUsedError when invitation was consumed", async () => {
-			repositoryMock.findInvitationByToken.mockResolvedValueOnce({
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce({
 				...mockInvitation,
 				usedAt: new Date(),
 			});
@@ -418,7 +440,7 @@ describe("auth service", () => {
 		});
 
 		it("should throw InvitationExpiredError when invitation is expired", async () => {
-			repositoryMock.findInvitationByToken.mockResolvedValueOnce({
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce({
 				...mockInvitation,
 				expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
 			});
@@ -433,7 +455,7 @@ describe("auth service", () => {
 		});
 
 		it("should throw EmailAlreadyRegisteredError when email exists", async () => {
-			repositoryMock.findInvitationByToken.mockResolvedValueOnce(
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce(
 				mockInvitation,
 			);
 			repositoryMock.findUserByEmail.mockResolvedValueOnce(mockMember);
@@ -447,8 +469,26 @@ describe("auth service", () => {
 			).rejects.toThrow(EmailAlreadyRegisteredError);
 		});
 
+		it("should throw EmailAlreadyRegisteredError when the email is taken inside the transaction", async () => {
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce(
+				mockInvitation,
+			);
+			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
+			repositoryMock.executeRegisterTransaction.mockResolvedValueOnce({
+				outcome: "EMAIL_TAKEN",
+			});
+
+			await expect(
+				authService.register({
+					token: "invite-token",
+					name: "Ana",
+					password: "member123",
+				}),
+			).rejects.toThrow(EmailAlreadyRegisteredError);
+		});
+
 		it("should throw InvitationAlreadyUsedError when the claim loses the race", async () => {
-			repositoryMock.findInvitationByToken.mockResolvedValueOnce(
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce(
 				mockInvitation,
 			);
 			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);

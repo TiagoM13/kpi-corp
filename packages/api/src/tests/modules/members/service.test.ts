@@ -6,6 +6,7 @@ import {
 } from "../../../modules/members/members.errors";
 import { membersService } from "../../../modules/members/members.service";
 import { MemberNotFoundError } from "../../../shared/errors/common.errors";
+import { hashOpaqueToken } from "../../../shared/security/tokens";
 
 const WEB_APP_URL = "https://app.kpicorp.test";
 const CORS_ORIGIN = "https://cors.kpicorp.test";
@@ -50,7 +51,7 @@ describe("members service", () => {
 		vi.clearAllMocks();
 		repositoryMock.findUsersByEmails.mockResolvedValue([]);
 		repositoryMock.replaceInvitation.mockImplementation(
-			async (data: { email: string; token: string; expiresAt: Date }) => ({
+			async (data: { email: string; tokenHash: string; expiresAt: Date }) => ({
 				id: `inv-${data.email}`,
 				...data,
 				usedAt: null,
@@ -166,6 +167,17 @@ describe("members service", () => {
 				`${WEB_APP_URL}/invite/${created[0]?.token}`,
 			);
 			expect(created[0]?.inviteUrl).not.toContain(CORS_ORIGIN);
+		});
+
+		it("should store only the sha-256 of the token, never the token itself", async () => {
+			const { created } = await membersService.invite(["novo@kpicorp.com"]);
+			const token = created[0]?.token ?? "";
+
+			expect(repositoryMock.replaceInvitation).toHaveBeenCalledWith({
+				email: "novo@kpicorp.com",
+				tokenHash: hashOpaqueToken(token),
+				expiresAt: expect.any(Date),
+			});
 		});
 
 		it("should generate an opaque token, not a uuid", async () => {
