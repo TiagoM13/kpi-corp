@@ -12,6 +12,10 @@ const { repositoryMock } = vi.hoisted(() => ({
 		listValidAssignments: vi.fn(),
 		listEarnedBadges: vi.fn(),
 		stampBadges: vi.fn(),
+		listPresences: vi.fn(),
+		listTeamScores: vi.fn(),
+		listTeamScoresByMonth: vi.fn(),
+		listMonthlyMeetingCoverage: vi.fn(),
 	},
 }));
 
@@ -50,6 +54,13 @@ describe("profile service", () => {
 		repositoryMock.listValidAssignments.mockResolvedValue([]);
 		repositoryMock.listEarnedBadges.mockResolvedValue([]);
 		repositoryMock.stampBadges.mockResolvedValue({ count: 0 });
+		repositoryMock.listPresences.mockResolvedValue([]);
+		repositoryMock.listTeamScores.mockResolvedValue([]);
+		repositoryMock.listTeamScoresByMonth.mockResolvedValue([]);
+		repositoryMock.listMonthlyMeetingCoverage.mockResolvedValue({
+			memberSince: null,
+			meetings: [],
+		});
 	});
 
 	describe("getMyScore", () => {
@@ -292,20 +303,91 @@ describe("profile service", () => {
 			expect(repositoryMock.stampBadges).not.toHaveBeenCalled();
 		});
 
-		it("returns the Fase 3 badges unavailable and unearned", async () => {
+		it("returns the ten badges available, all unearned for a member without history, with no write", async () => {
 			const badges = await profileService.getMyBadges(USER_ID, NOW);
 
-			for (const code of [
-				"TEN_MEETINGS",
-				"TOP_THREE",
-				"PERFECT_MONTH",
-				"PODIUM_STREAK",
-			]) {
-				expect(
-					badges.find((entry) => entry.code === code),
-					code,
-				).toMatchObject({ available: false, earned: false });
+			expect(badges).toHaveLength(10);
+			for (const badge of badges) {
+				expect(badge, badge.code).toMatchObject({
+					available: true,
+					earned: false,
+					earnedAt: null,
+				});
 			}
+			expect(repositoryMock.stampBadges).not.toHaveBeenCalled();
+		});
+
+		it("loads the Fase 3 data: presences, team scores, the 12 closed months and meeting coverage", async () => {
+			await profileService.getMyBadges(USER_ID, NOW);
+
+			expect(repositoryMock.listPresences).toHaveBeenCalledWith(USER_ID);
+			expect(repositoryMock.listTeamScores).toHaveBeenCalledTimes(1);
+			expect(repositoryMock.listMonthlyMeetingCoverage).toHaveBeenCalledWith(
+				USER_ID,
+			);
+			expect(repositoryMock.listTeamScoresByMonth).toHaveBeenCalledWith({
+				start: new Date("2025-03-01T03:00:00.000Z"),
+				end: new Date("2026-03-01T03:00:00.000Z"),
+			});
+		});
+
+		it("stamps TEN_MEETINGS with the tenth presentAt, never now()", async () => {
+			const presences = Array.from(
+				{ length: 10 },
+				(_, index) => new Date(Date.UTC(2026, 0, 5 + index, 14)),
+			);
+			repositoryMock.listPresences.mockResolvedValueOnce(presences);
+
+			const badges = await profileService.getMyBadges(USER_ID, NOW);
+
+			expect(repositoryMock.stampBadges).toHaveBeenCalledWith(USER_ID, [
+				{ code: "TEN_MEETINGS", earnedAt: presences[9] },
+			]);
+			expect(
+				badges.find((entry) => entry.code === "TEN_MEETINGS"),
+			).toMatchObject({ earned: true, progress: 100 });
+		});
+
+		it("stamps TOP_THREE with the latest valid assignment of the member", async () => {
+			const latest = validAssignment("2026-03-09T12:00:00.000Z");
+			repositoryMock.listValidAssignments.mockResolvedValueOnce([
+				validAssignment("2026-03-02T12:00:00.000Z"),
+				latest,
+			]);
+			repositoryMock.listEarnedBadges.mockResolvedValueOnce([
+				{ code: "FIRST_POINT", earnedAt: new Date("2026-03-02T12:00:00.000Z") },
+			]);
+			repositoryMock.listTeamScores.mockResolvedValueOnce([
+				{ userId: USER_ID, name: "Ana Souza", points: 10, kpiCount: 2 },
+				{
+					userId: "b29f5637-0ab1-4de0-b2d2-d364e3903124",
+					name: "Bia",
+					points: 5,
+					kpiCount: 1,
+				},
+			]);
+
+			await profileService.getMyBadges(USER_ID, NOW);
+
+			expect(repositoryMock.stampBadges).toHaveBeenCalledWith(USER_ID, [
+				{ code: "TOP_THREE", earnedAt: latest.assignedAt },
+			]);
+		});
+
+		it("keeps TOP_THREE after the member leaves the podium — the row is sticky", async () => {
+			const earnedAt = new Date("2026-02-02T12:00:00.000Z");
+			repositoryMock.listEarnedBadges.mockResolvedValueOnce([
+				{ code: "TOP_THREE", earnedAt },
+			]);
+
+			const badges = await profileService.getMyBadges(USER_ID, NOW);
+
+			expect(badges.find((entry) => entry.code === "TOP_THREE")).toMatchObject({
+				earned: true,
+				earnedAt,
+				progress: 100,
+			});
+			expect(repositoryMock.stampBadges).not.toHaveBeenCalled();
 		});
 
 		// O filtro revokedAt IS NULL / points > 0 é responsabilidade do
