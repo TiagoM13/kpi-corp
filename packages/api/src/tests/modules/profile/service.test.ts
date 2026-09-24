@@ -442,7 +442,7 @@ describe("profile service", () => {
 			expect(profile.member).not.toHaveProperty("active");
 		});
 
-		it("requests only valid assignments for the history", async () => {
+		it("requests only valid, positive-score assignments for the history", async () => {
 			repositoryMock.findActivePublicUserById.mockResolvedValueOnce({
 				id: USER_ID,
 				name: "Ana Souza",
@@ -456,6 +456,7 @@ describe("profile service", () => {
 
 			expect(repositoryMock.listAssignments).toHaveBeenCalledWith(USER_ID, {
 				revoked: false,
+				positiveOnly: true,
 			});
 		});
 
