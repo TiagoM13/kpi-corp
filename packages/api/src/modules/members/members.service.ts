@@ -4,7 +4,10 @@ import {
 	EmailAlreadyRegisteredError,
 	MemberNotFoundError,
 } from "../../shared/errors/common.errors";
-import { generateOpaqueToken } from "../../shared/security/tokens";
+import {
+	generateOpaqueToken,
+	hashOpaqueToken,
+} from "../../shared/security/tokens";
 import {
 	CannotDeactivateSelfError,
 	LastAdminCannotBeDeactivatedError,
@@ -85,15 +88,15 @@ export const membersService = {
 			);
 			const invitation = await membersRepository.replaceInvitation({
 				email,
-				token,
+				tokenHash: hashOpaqueToken(token),
 				expiresAt,
 			});
 
 			created.push({
 				id: invitation.id,
 				email: invitation.email,
-				token: invitation.token,
-				inviteUrl: inviteUrlFor(invitation.token),
+				token,
+				inviteUrl: inviteUrlFor(token),
 				expiresAt: invitation.expiresAt,
 			});
 		}

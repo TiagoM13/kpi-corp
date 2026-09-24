@@ -26,9 +26,9 @@ export const authRepository = {
 		});
 	},
 
-	findInvitationByToken(token: string) {
+	findInvitationByTokenHash(tokenHash: string) {
 		return prisma.invitation.findUnique({
-			where: { token },
+			where: { tokenHash },
 		});
 	},
 

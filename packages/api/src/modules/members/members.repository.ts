@@ -51,7 +51,11 @@ export const membersRepository = {
 		});
 	},
 
-	replaceInvitation(data: { email: string; token: string; expiresAt: Date }) {
+	replaceInvitation(data: {
+		email: string;
+		tokenHash: string;
+		expiresAt: Date;
+	}) {
 		return prisma.$transaction(async (tx) => {
 			await tx.invitation.updateMany({
 				where: {

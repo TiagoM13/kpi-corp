@@ -1,8 +1,8 @@
 import { env } from "@kpi-corp/env/server";
 import { normalizeEmail } from "../../shared/email";
 import {
-	EmailAlreadyRegisteredError,
 	AccountDeactivatedError,
+	EmailAlreadyRegisteredError,
 	UnauthorizedError,
 } from "../../shared/errors/common.errors";
 import {
@@ -173,7 +173,9 @@ export const authService = {
 	},
 
 	async register(input: RegisterInput): Promise<Session> {
-		const invitation = await authRepository.findInvitationByToken(input.token);
+		const invitation = await authRepository.findInvitationByTokenHash(
+			hashToken(input.token),
+		);
 
 		if (!invitation) {
 			throw new InvalidInvitationError();
