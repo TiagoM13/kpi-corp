@@ -62,8 +62,9 @@ function resolveLevel(points: number) {
 }
 
 export function levelFor(points: number): LevelInfo {
+	const scored = Math.max(points, 0);
 	const { level, levelFloor, nextLevel, nextLevelPoints } =
-		resolveLevel(points);
+		resolveLevel(scored);
 
 	if (nextLevel === null || nextLevelPoints === null) {
 		return {
@@ -79,7 +80,7 @@ export function levelFor(points: number): LevelInfo {
 	}
 
 	const progress = Math.floor(
-		((points - levelFloor) / (nextLevelPoints - levelFloor)) * 100,
+		((scored - levelFloor) / (nextLevelPoints - levelFloor)) * 100,
 	);
 
 	return {
