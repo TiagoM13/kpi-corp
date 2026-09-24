@@ -22,6 +22,8 @@ export const assignmentHistoryResponseSchema = z.object({
 	totalPages: z.number(),
 });
 
+export const MAX_BULK_USERS = 200;
+
 const assignKpiWritableSchema = z.object({
 	kpiId: z.uuid(),
 	note: z.string().trim().max(500).nullish(),
@@ -35,6 +37,7 @@ export const bulkAssignKpisInputSchema = assignKpiWritableSchema.extend({
 	userIds: z
 		.array(z.uuid())
 		.min(1)
+		.max(MAX_BULK_USERS)
 		.refine((ids) => new Set(ids).size === ids.length, {
 			message: "userIds must not contain duplicates",
 		}),

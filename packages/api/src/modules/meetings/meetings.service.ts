@@ -1,9 +1,8 @@
 import {
 	KpiInactiveError,
 	KpiNotFoundError,
-	MemberInactiveError,
-	MemberNotFoundError,
 } from "../../shared/errors/common.errors";
+import { assertMembersActive } from "../../shared/guards";
 import { type KpiAssignment, mapKpiAssignment } from "../../shared/mappers";
 import {
 	AttendeeNotPresentError,
@@ -40,25 +39,6 @@ export type AssignMeetingKpiInput = {
 };
 
 export type ListMeetingsInput = ListMeetingsFilter;
-
-function assertMembersActive(
-	userIds: string[],
-	users: { id: string; active: boolean }[],
-) {
-	const byId = new Map(users.map((user) => [user.id, user]));
-
-	for (const userId of userIds) {
-		const user = byId.get(userId);
-
-		if (!user) {
-			throw new MemberNotFoundError();
-		}
-
-		if (!user.active) {
-			throw new MemberInactiveError();
-		}
-	}
-}
 
 async function getDetail(
 	id: string,

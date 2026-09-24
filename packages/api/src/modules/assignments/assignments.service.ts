@@ -4,6 +4,7 @@ import {
 	MemberInactiveError,
 	MemberNotFoundError,
 } from "../../shared/errors/common.errors";
+import { assertMembersActive } from "../../shared/guards";
 import {
 	type AssignmentHistoryItem,
 	type KpiAssignment,
@@ -16,6 +17,7 @@ import {
 	AssignmentNotFoundError,
 } from "./assignments.errors";
 import {
+	type AssignmentsDbClient,
 	type AssignmentWritableData,
 	assignmentsRepository,
 	type ListMemberAssignmentsFilter,
@@ -50,8 +52,8 @@ export type BulkAssignKpisInput = {
 	note?: string | null;
 };
 
-async function assertKpiAssignable(kpiId: string) {
-	const kpi = await assignmentsRepository.findKpiById(kpiId);
+async function assertKpiAssignable(kpiId: string, db?: AssignmentsDbClient) {
+	const kpi = await assignmentsRepository.findKpiById(kpiId, db);
 
 	if (!kpi) {
 		throw new KpiNotFoundError();
@@ -109,16 +111,23 @@ export const assignmentsService = {
 		input: BulkAssignKpisInput,
 		assignedBy: string,
 	): Promise<KpiAssignment[]> {
-		const kpi = await assertKpiAssignable(input.kpiId);
-		await Promise.all(input.userIds.map(assertMemberAssignable));
+		return assignmentsRepository.transaction(async (tx) => {
+			const kpi = await assertKpiAssignable(input.kpiId, tx);
+			const users = await assignmentsRepository.findUsersByIds(
+				input.userIds,
+				tx,
+			);
+			assertMembersActive(input.userIds, users);
 
-		const assignments = await assignmentsRepository.createMany(
-			input.userIds.map((userId) =>
-				writableFrom({ ...input, userId }, assignedBy, kpi.points),
-			),
-		);
+			const assignments = await assignmentsRepository.createMany(
+				input.userIds.map((userId) =>
+					writableFrom({ ...input, userId }, assignedBy, kpi.points),
+				),
+				tx,
+			);
 
-		return assignments.map(mapKpiAssignment);
+			return assignments.map(mapKpiAssignment);
+		});
 	},
 
 	async listByMember(

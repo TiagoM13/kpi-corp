@@ -2,6 +2,10 @@ import prisma from "@kpi-corp/db";
 
 import type { KpiCategory } from "@kpi-corp/db/prisma/generated/enums";
 
+type DbClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+export type AssignmentsDbClient = DbClient;
+
 export type AssignmentWritableData = {
 	kpiId: string;
 	userId: string;
@@ -55,8 +59,19 @@ function historyWhereFrom(filter: ListAssignmentsFilter) {
 }
 
 export const assignmentsRepository = {
-	findKpiById(id: string) {
-		return prisma.kpi.findUnique({ where: { id } });
+	transaction<T>(run: (tx: DbClient) => Promise<T>): Promise<T> {
+		return prisma.$transaction(run);
+	},
+
+	findKpiById(id: string, db: DbClient = prisma) {
+		return db.kpi.findUnique({ where: { id } });
+	},
+
+	findUsersByIds(ids: string[], db: DbClient = prisma) {
+		return db.user.findMany({
+			where: { id: { in: ids } },
+			select: { id: true, active: true },
+		});
 	},
 
 	findUserById(id: string) {
@@ -67,15 +82,13 @@ export const assignmentsRepository = {
 		return prisma.kpiAssignment.create({ data, include: { kpi: KPI_INCLUDE } });
 	},
 
-	createMany(data: AssignmentWritableData[]) {
-		return prisma.$transaction((tx) =>
-			Promise.all(
-				data.map((item) =>
-					tx.kpiAssignment.create({
-						data: item,
-						include: { kpi: KPI_INCLUDE },
-					}),
-				),
+	createMany(data: AssignmentWritableData[], db: DbClient) {
+		return Promise.all(
+			data.map((item) =>
+				db.kpiAssignment.create({
+					data: item,
+					include: { kpi: KPI_INCLUDE },
+				}),
 			),
 		);
 	},
