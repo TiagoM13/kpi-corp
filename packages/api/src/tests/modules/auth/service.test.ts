@@ -125,6 +125,20 @@ describe("auth service", () => {
 		});
 
 		it("should persist the refresh token under the id carried in its payload", async () => {
+		it("should look the user up by the lowercased email", async () => {
+			mockUser.passwordHash = await hashPassword("admin123");
+			repositoryMock.findUserByEmail.mockResolvedValueOnce(mockUser);
+
+			await authService.login({
+				email: "Admin@KPICorp.com",
+				password: "admin123",
+			});
+
+			expect(repositoryMock.findUserByEmail).toHaveBeenCalledWith(
+				"admin@kpicorp.com",
+			);
+		});
+
 			mockUser.passwordHash = await hashPassword("admin123");
 			repositoryMock.findUserByEmail.mockResolvedValueOnce(mockUser);
 
