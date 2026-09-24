@@ -216,6 +216,9 @@ export const meetingsService = {
 				throw new AttendeeNotPresentError();
 			}
 
+			const users = await meetingsRepository.findUsersByIds([input.userId], tx);
+			assertMembersActive([input.userId], users);
+
 			const kpi = await meetingsRepository.findKpiById(input.kpiId, tx);
 
 			if (!kpi) {
