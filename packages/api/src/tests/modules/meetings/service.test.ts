@@ -18,6 +18,7 @@ const { repositoryMock } = vi.hoisted(() => ({
 		transaction: vi.fn((run: (tx: unknown) => unknown) => run({})),
 		create: vi.fn(),
 		findById: vi.fn(),
+		lockForUpdate: vi.fn(),
 		findCreator: vi.fn(),
 		findDetailById: vi.fn(),
 		findKpiById: vi.fn(),
@@ -110,6 +111,21 @@ const inactiveKpi = { ...presenceKpi, active: false };
 function mockDetail() {
 	repositoryMock.findDetailById.mockResolvedValue(detailRow());
 	repositoryMock.findCreator.mockResolvedValue(creator);
+}
+
+function expectLockedBefore(readMock: {
+	mock: { invocationCallOrder: number[] };
+}) {
+	const [lockOrder] = repositoryMock.lockForUpdate.mock.invocationCallOrder;
+	const [readOrder] = readMock.mock.invocationCallOrder;
+
+	expect(repositoryMock.lockForUpdate).toHaveBeenCalledWith(
+		MEETING_ID,
+		expect.anything(),
+	);
+	expect(lockOrder).toBeDefined();
+	expect(readOrder).toBeDefined();
+	expect(lockOrder as number).toBeLessThan(readOrder as number);
 }
 
 describe("meetings service", () => {
@@ -246,6 +262,15 @@ describe("meetings service", () => {
 			]);
 		}
 
+		it("trava a reuniao antes de ler o estado dela", async () => {
+			mockOpenMeeting();
+			mockDetail();
+
+			await meetingsService.addAttendees(MEETING_ID, [MEMBER_ID]);
+
+			expectLockedBefore(repositoryMock.findById);
+		});
+
 		it("escala membros com presentAt null", async () => {
 			mockOpenMeeting();
 			mockDetail();
@@ -336,6 +361,20 @@ describe("meetings service", () => {
 			]);
 			repositoryMock.findAttendees.mockResolvedValue([]);
 		}
+
+		it("trava a reuniao antes de ler quem ja esta presente", async () => {
+			mockOpenMeeting();
+			mockDetail();
+
+			await meetingsService.registerAttendance(
+				MEETING_ID,
+				{ userIds: [MEMBER_ID], kpiId: KPI_ID },
+				ADMIN_ID,
+			);
+
+			expectLockedBefore(repositoryMock.findAttendees);
+			expectLockedBefore(repositoryMock.findById);
+		});
 
 		it("carimba presentAt e cria um assignment por membro, todos com meetingId", async () => {
 			mockOpenMeeting();
@@ -595,6 +634,18 @@ describe("meetings service", () => {
 			);
 		}
 
+		it("trava a reuniao antes de conferir se esta aberta", async () => {
+			mockOpenMeetingWithPresentAttendee();
+
+			await meetingsService.assignKpi(
+				MEETING_ID,
+				{ kpiId: performanceKpi.id, userId: MEMBER_ID },
+				ADMIN_ID,
+			);
+
+			expectLockedBefore(repositoryMock.findById);
+		});
+
 		it("cria assignment com meetingId preenchido e points congelado", async () => {
 			mockOpenMeetingWithPresentAttendee();
 
@@ -700,6 +751,15 @@ describe("meetings service", () => {
 	});
 
 	describe("end", () => {
+		it("trava a reuniao antes de conferir se ja foi encerrada", async () => {
+			repositoryMock.findById.mockResolvedValueOnce(meetingRow());
+			mockDetail();
+
+			await meetingsService.end(MEETING_ID);
+
+			expectLockedBefore(repositoryMock.findById);
+		});
+
 		it("preenche closedAt e devolve status CLOSED", async () => {
 			const closedAt = new Date("2026-08-30T15:42:00.000Z");
 			repositoryMock.findById.mockResolvedValueOnce(meetingRow());
