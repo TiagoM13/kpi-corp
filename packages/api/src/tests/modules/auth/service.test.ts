@@ -316,7 +316,7 @@ describe("auth service", () => {
 			);
 			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
 			repositoryMock.executeRegisterTransaction.mockResolvedValueOnce({
-				success: true,
+				outcome: "OK",
 				user: mockMember,
 			});
 
@@ -337,7 +337,7 @@ describe("auth service", () => {
 			);
 			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
 			repositoryMock.executeRegisterTransaction.mockResolvedValueOnce({
-				success: true,
+				outcome: "OK",
 				user: mockMember,
 			});
 
@@ -360,7 +360,7 @@ describe("auth service", () => {
 			);
 			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
 			repositoryMock.executeRegisterTransaction.mockResolvedValueOnce({
-				success: true,
+				outcome: "OK",
 				user: mockMember,
 			});
 
@@ -439,7 +439,7 @@ describe("auth service", () => {
 			);
 			repositoryMock.findUserByEmail.mockResolvedValueOnce(null);
 			repositoryMock.executeRegisterTransaction.mockResolvedValueOnce({
-				success: false,
+				outcome: "ALREADY_USED",
 			});
 
 			await expect(

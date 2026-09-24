@@ -1,4 +1,3 @@
-import { Prisma } from "@kpi-corp/db/prisma/generated/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { KpiNameTakenError } from "../../../modules/kpis/kpis.errors";
@@ -31,13 +30,6 @@ const kpi = {
 	createdAt: new Date(),
 };
 
-function prismaError(code: string) {
-	return new Prisma.PrismaClientKnownRequestError("boom", {
-		code,
-		clientVersion: "7.9.1",
-	});
-}
-
 describe("kpis service", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -45,7 +37,10 @@ describe("kpis service", () => {
 
 	describe("create", () => {
 		it("should create a kpi", async () => {
-			repositoryMock.create.mockResolvedValueOnce(kpi);
+			repositoryMock.create.mockResolvedValueOnce({
+				outcome: "OK",
+				kpi: kpi,
+			});
 
 			expect(
 				await kpisService.create({
@@ -57,7 +52,10 @@ describe("kpis service", () => {
 		});
 
 		it("should store a null description when it is omitted", async () => {
-			repositoryMock.create.mockResolvedValueOnce(kpi);
+			repositoryMock.create.mockResolvedValueOnce({
+				outcome: "OK",
+				kpi: kpi,
+			});
 
 			await kpisService.create({
 				name: "Presença na reunião",
@@ -71,7 +69,7 @@ describe("kpis service", () => {
 		});
 
 		it("should translate the unique constraint into KpiNameTakenError", async () => {
-			repositoryMock.create.mockRejectedValueOnce(prismaError("P2002"));
+			repositoryMock.create.mockResolvedValueOnce({ outcome: "NAME_TAKEN" });
 
 			await expect(
 				kpisService.create({
@@ -140,7 +138,10 @@ describe("kpis service", () => {
 
 	describe("update", () => {
 		it("should replace every writable field", async () => {
-			repositoryMock.update.mockResolvedValueOnce({ ...kpi, points: 60 });
+			repositoryMock.update.mockResolvedValueOnce({
+				outcome: "OK",
+				kpi: { ...kpi, points: 60 },
+			});
 
 			await kpisService.update({
 				id: KPI_ID,
@@ -159,7 +160,10 @@ describe("kpis service", () => {
 		});
 
 		it("should clear the description when it is omitted", async () => {
-			repositoryMock.update.mockResolvedValueOnce(kpi);
+			repositoryMock.update.mockResolvedValueOnce({
+				outcome: "OK",
+				kpi: kpi,
+			});
 
 			await kpisService.update({
 				id: KPI_ID,
@@ -175,7 +179,7 @@ describe("kpis service", () => {
 		});
 
 		it("should translate the unique constraint into KpiNameTakenError", async () => {
-			repositoryMock.update.mockRejectedValueOnce(prismaError("P2002"));
+			repositoryMock.update.mockResolvedValueOnce({ outcome: "NAME_TAKEN" });
 
 			await expect(
 				kpisService.update({
@@ -188,7 +192,7 @@ describe("kpis service", () => {
 		});
 
 		it("should translate a missing record into KpiNotFoundError", async () => {
-			repositoryMock.update.mockRejectedValueOnce(prismaError("P2025"));
+			repositoryMock.update.mockResolvedValueOnce({ outcome: "NOT_FOUND" });
 
 			await expect(
 				kpisService.update({
@@ -203,15 +207,21 @@ describe("kpis service", () => {
 
 	describe("setStatus", () => {
 		it("should deactivate and reactivate", async () => {
-			repositoryMock.setStatus.mockResolvedValueOnce({ ...kpi, active: false });
+			repositoryMock.setStatus.mockResolvedValueOnce({
+				outcome: "OK",
+				kpi: { ...kpi, active: false },
+			});
 			expect((await kpisService.setStatus(KPI_ID, false)).active).toBe(false);
 
-			repositoryMock.setStatus.mockResolvedValueOnce({ ...kpi, active: true });
+			repositoryMock.setStatus.mockResolvedValueOnce({
+				outcome: "OK",
+				kpi: { ...kpi, active: true },
+			});
 			expect((await kpisService.setStatus(KPI_ID, true)).active).toBe(true);
 		});
 
 		it("should translate a missing record into KpiNotFoundError", async () => {
-			repositoryMock.setStatus.mockRejectedValueOnce(prismaError("P2025"));
+			repositoryMock.setStatus.mockResolvedValueOnce({ outcome: "NOT_FOUND" });
 
 			await expect(kpisService.setStatus(KPI_ID, false)).rejects.toThrow(
 				KpiNotFoundError,
