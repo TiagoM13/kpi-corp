@@ -171,7 +171,13 @@ export const assignmentsService = {
 			throw new AssignmentAlreadyRevokedError();
 		}
 
-		return mapKpiAssignment(await assignmentsRepository.revoke(id, new Date()));
+		const revoked = await assignmentsRepository.revoke(id, new Date());
+
+		if (!revoked) {
+			throw new AssignmentAlreadyRevokedError();
+		}
+
+		return mapKpiAssignment(revoked);
 	},
 };
 

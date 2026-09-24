@@ -130,10 +130,18 @@ export const assignmentsRepository = {
 		});
 	},
 
-	revoke(id: string, revokedAt: Date) {
-		return prisma.kpiAssignment.update({
-			where: { id },
+	async revoke(id: string, revokedAt: Date) {
+		const revoked = await prisma.kpiAssignment.updateMany({
+			where: { id, revokedAt: null },
 			data: { revokedAt },
+		});
+
+		if (revoked.count === 0) {
+			return null;
+		}
+
+		return prisma.kpiAssignment.findUnique({
+			where: { id },
 			include: { kpi: KPI_INCLUDE },
 		});
 	},
