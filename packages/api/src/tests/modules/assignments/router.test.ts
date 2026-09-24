@@ -60,6 +60,9 @@ function caller(context: Context) {
 		listByMember: createProcedureClient(assignmentsRouter.listByMember, {
 			context,
 		}),
+		bulkAssign: createProcedureClient(assignmentsRouter.bulkAssign, {
+			context,
+		}),
 	};
 }
 
@@ -190,5 +193,35 @@ describe("assignments router — GET /kpi-assignments", () => {
 			});
 			expect(serviceMock.list).not.toHaveBeenCalled();
 		});
+	});
+});
+
+describe("assignments router — POST /kpi-assignments/bulk", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		serviceMock.bulkAssign.mockResolvedValue([]);
+	});
+
+	function userIds(count: number) {
+		return Array.from(
+			{ length: count },
+			(_, index) =>
+				`00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+		);
+	}
+
+	it("aceita até 200 membros", async () => {
+		await expect(
+			caller(asAdmin).bulkAssign({ kpiId: KPI_ID, userIds: userIds(200) }),
+		).resolves.toEqual({ items: [] });
+	});
+
+	it("rejeita mais de 200 membros sem chegar ao service", async () => {
+		expect(
+			await codeOf(
+				caller(asAdmin).bulkAssign({ kpiId: KPI_ID, userIds: userIds(201) }),
+			),
+		).toBe("BAD_REQUEST");
+		expect(serviceMock.bulkAssign).not.toHaveBeenCalled();
 	});
 });

@@ -1,9 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AssignmentAlreadyRevokedError } from "../../../modules/assignments/assignments.errors";
 import { assignmentsService } from "../../../modules/assignments/assignments.service";
+import {
+	KpiInactiveError,
+	MemberInactiveError,
+	MemberNotFoundError,
+} from "../../../shared/errors/common.errors";
 
 const { repositoryMock } = vi.hoisted(() => ({
 	repositoryMock: {
+		transaction: vi.fn(),
+		findUsersByIds: vi.fn(),
 		create: vi.fn(),
 		createMany: vi.fn(),
 		listByUser: vi.fn(),
@@ -21,13 +29,150 @@ vi.mock("../../../modules/assignments/assignments.repository", () => ({
 
 const ASSIGNMENT_ID = "9e2f7a1c-4b8d-4c1e-9a3f-2d5b6c7e8f90";
 const MEETING_ID = "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
+const ADMIN_ID = "b29f5637-0ab1-4de0-b2d2-d364e3903124";
+const ANA_ID = "26a1f9b0-0dc1-4ee3-9696-d0e4434e9caf";
+const BIA_ID = "7c1d9e2f-3a4b-4c5d-8e6f-1a2b3c4d5e6f";
+const KPI_ID = "3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8";
+const TX = { tx: true };
+
+const activeKpi = {
+	id: KPI_ID,
+	name: "Resolveu bug crítico",
+	description: null,
+	points: 25,
+	category: "PERFORMANCE" as const,
+	active: true,
+	createdAt: new Date(),
+};
+
+function createdRow(userId: string) {
+	return {
+		id: `assignment-${userId}`,
+		kpiId: KPI_ID,
+		userId,
+		assignedBy: ADMIN_ID,
+		meetingId: null,
+		note: null,
+		points: 25,
+		revokedAt: null,
+		assignedAt: new Date("2026-09-24T12:00:00.000Z"),
+		kpi: { id: KPI_ID, name: activeKpi.name, category: activeKpi.category },
+	};
+}
 
 describe("assignments service", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		repositoryMock.transaction.mockImplementation(
+			(run: (tx: unknown) => unknown) => run(TX),
+		);
+	});
+
+	describe("bulkAssign", () => {
+		function mockValid() {
+			repositoryMock.findKpiById.mockResolvedValue(activeKpi);
+			repositoryMock.findUsersByIds.mockResolvedValue([
+				{ id: ANA_ID, active: true },
+				{ id: BIA_ID, active: true },
+			]);
+			repositoryMock.createMany.mockResolvedValue([
+				createdRow(ANA_ID),
+				createdRow(BIA_ID),
+			]);
+		}
+
+		it("valida KPI e membros dentro da mesma transação da escrita", async () => {
+			mockValid();
+
+			await assignmentsService.bulkAssign(
+				{ kpiId: KPI_ID, userIds: [ANA_ID, BIA_ID] },
+				ADMIN_ID,
+			);
+
+			expect(repositoryMock.findKpiById).toHaveBeenCalledWith(KPI_ID, TX);
+			expect(repositoryMock.findUsersByIds).toHaveBeenCalledWith(
+				[ANA_ID, BIA_ID],
+				TX,
+			);
+			expect(repositoryMock.createMany).toHaveBeenCalledWith(
+				[
+					expect.objectContaining({ userId: ANA_ID, points: 25 }),
+					expect.objectContaining({ userId: BIA_ID, points: 25 }),
+				],
+				TX,
+			);
+		});
+
+		it("carrega os membros numa consulta só", async () => {
+			mockValid();
+
+			await assignmentsService.bulkAssign(
+				{ kpiId: KPI_ID, userIds: [ANA_ID, BIA_ID] },
+				ADMIN_ID,
+			);
+
+			expect(repositoryMock.findUsersByIds).toHaveBeenCalledTimes(1);
+			expect(repositoryMock.findUserById).not.toHaveBeenCalled();
+		});
+
+		it("membro inativo derruba o lote sem criar nada", async () => {
+			mockValid();
+			repositoryMock.findUsersByIds.mockResolvedValue([
+				{ id: ANA_ID, active: true },
+				{ id: BIA_ID, active: false },
+			]);
+
+			await expect(
+				assignmentsService.bulkAssign(
+					{ kpiId: KPI_ID, userIds: [ANA_ID, BIA_ID] },
+					ADMIN_ID,
+				),
+			).rejects.toThrow(MemberInactiveError);
+			expect(repositoryMock.createMany).not.toHaveBeenCalled();
+		});
+
+		it("membro inexistente derruba o lote sem criar nada", async () => {
+			mockValid();
+			repositoryMock.findUsersByIds.mockResolvedValue([
+				{ id: ANA_ID, active: true },
+			]);
+
+			await expect(
+				assignmentsService.bulkAssign(
+					{ kpiId: KPI_ID, userIds: [ANA_ID, BIA_ID] },
+					ADMIN_ID,
+				),
+			).rejects.toThrow(MemberNotFoundError);
+			expect(repositoryMock.createMany).not.toHaveBeenCalled();
+		});
+
+		it("KPI inativo derruba o lote sem criar nada", async () => {
+			mockValid();
+			repositoryMock.findKpiById.mockResolvedValue({
+				...activeKpi,
+				active: false,
+			});
+
+			await expect(
+				assignmentsService.bulkAssign(
+					{ kpiId: KPI_ID, userIds: [ANA_ID] },
+					ADMIN_ID,
+				),
+			).rejects.toThrow(KpiInactiveError);
+			expect(repositoryMock.createMany).not.toHaveBeenCalled();
+		});
 	});
 
 	describe("revoke", () => {
+		it("revogação concorrente que perde a corrida recebe AssignmentAlreadyRevokedError", async () => {
+			repositoryMock.findById.mockResolvedValueOnce(createdRow(ANA_ID));
+			repositoryMock.revoke.mockResolvedValueOnce(null);
+
+			await expect(assignmentsService.revoke(ASSIGNMENT_ID)).rejects.toThrow(
+				AssignmentAlreadyRevokedError,
+			);
+		});
+
 		it("revoke nao consulta a reuniao: assignment de reuniao encerrada continua revogavel", async () => {
 			const closedMeetingAssignment = {
 				id: ASSIGNMENT_ID,
