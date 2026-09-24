@@ -1,5 +1,5 @@
+import { env } from "@kpi-corp/env/server";
 import { describe, expect, it } from "vitest";
-
 import {
 	generateAccessToken,
 	generateRefreshTokenPayload,
@@ -8,7 +8,9 @@ import {
 	verifyRefreshToken,
 	verifyTokenHash,
 } from "../../../modules/auth/auth.tokens";
+
 import { verifyAccessToken } from "../../../shared/security/access-token";
+import { signToken } from "../../../shared/security/tokens";
 
 describe("auth tokens", () => {
 	const mockUser = {
@@ -36,6 +38,31 @@ describe("auth tokens", () => {
 
 		it("should reject an invalid access token", async () => {
 			await expect(verifyAccessToken("invalid-token")).rejects.toThrow();
+		});
+
+		it("should reject a refresh-shaped token signed with the access secret", async () => {
+			const token = await signToken(
+				{ sub: mockUser.id, tokenId: generateTokenId() },
+				env.JWT_SECRET,
+				"7d",
+			);
+
+			await expect(verifyAccessToken(token)).rejects.toThrow();
+		});
+
+		it("should reject a token whose typ is not access", async () => {
+			const token = await signToken(
+				{
+					sub: mockUser.id,
+					email: mockUser.email,
+					role: mockUser.role,
+					typ: "refresh",
+				},
+				env.JWT_SECRET,
+				"15m",
+			);
+
+			await expect(verifyAccessToken(token)).rejects.toThrow();
 		});
 	});
 
