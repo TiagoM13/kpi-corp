@@ -621,6 +621,9 @@ describe("meetings service", () => {
 		function mockOpenMeetingWithPresentAttendee() {
 			repositoryMock.findById.mockResolvedValue(meetingRow());
 			repositoryMock.findAttendee.mockResolvedValue(presentAttendee);
+			repositoryMock.findUsersByIds.mockResolvedValue([
+				{ id: MEMBER_ID, active: true },
+			]);
 			repositoryMock.findKpiById.mockResolvedValue(performanceKpi);
 			repositoryMock.createAssignment.mockResolvedValue(
 				assignmentRow({
@@ -673,6 +676,23 @@ describe("meetings service", () => {
 			expect(result).toMatchObject({ meetingId: MEETING_ID, points: 12 });
 		});
 
+		it("rejeita membro desativado depois de marcar presenca (RB09)", async () => {
+			mockOpenMeetingWithPresentAttendee();
+			repositoryMock.findUsersByIds.mockResolvedValue([
+				{ id: MEMBER_ID, active: false },
+			]);
+
+			await expect(
+				meetingsService.assignKpi(
+					MEETING_ID,
+					{ kpiId: performanceKpi.id, userId: MEMBER_ID },
+					ADMIN_ID,
+				),
+			).rejects.toThrow(MemberInactiveError);
+
+			expect(repositoryMock.createAssignment).not.toHaveBeenCalled();
+		});
+
 		it("rejeita membro escalado mas ausente", async () => {
 			repositoryMock.findById.mockResolvedValueOnce(meetingRow());
 			repositoryMock.findAttendee.mockResolvedValueOnce({
@@ -707,6 +727,9 @@ describe("meetings service", () => {
 		it("aceita KPI de categoria PRESENCE", async () => {
 			repositoryMock.findById.mockResolvedValueOnce(meetingRow());
 			repositoryMock.findAttendee.mockResolvedValueOnce(presentAttendee);
+			repositoryMock.findUsersByIds.mockResolvedValueOnce([
+				{ id: MEMBER_ID, active: true },
+			]);
 			repositoryMock.findKpiById.mockResolvedValueOnce(presenceKpi);
 			repositoryMock.createAssignment.mockResolvedValueOnce(assignmentRow());
 
@@ -722,6 +745,9 @@ describe("meetings service", () => {
 		it("rejeita KPI inativo", async () => {
 			repositoryMock.findById.mockResolvedValueOnce(meetingRow());
 			repositoryMock.findAttendee.mockResolvedValueOnce(presentAttendee);
+			repositoryMock.findUsersByIds.mockResolvedValueOnce([
+				{ id: MEMBER_ID, active: true },
+			]);
 			repositoryMock.findKpiById.mockResolvedValueOnce(inactiveKpi);
 
 			await expect(
