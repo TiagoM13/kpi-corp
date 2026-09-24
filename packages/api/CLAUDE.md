@@ -41,6 +41,10 @@ Por isso `EmailAlreadyRegisteredError` vive em `shared/errors/common.errors.ts`
 `shared/security/access-token.ts` (o `createContext` precisa dela sem depender do
 módulo auth). Erro que só um módulo usa continua no módulo.
 
+O mesmo vale para contrato: `shared/schemas/` (categoria de KPI, nível, atribuição,
+preprocessadores de query) e `shared/mappers/` (atribuição de KPI). Redeclarar num
+módulo o que já existe ali é duplicação, não isolamento.
+
 **Como isso é cobrado:**
 
 | Onde | O quê |
@@ -143,6 +147,12 @@ detalhe de implementação.
 - **Consumo de convite é `updateMany` guardado por `usedAt: null` dentro da transação.**
   Checar antes e marcar depois deixa duas requisições passarem.
 - **Refresh revogado que reaparece revoga toda a família** do usuário.
+- **Access token carrega `typ: "access"` e o payload é validado** em
+  `verifyAccessToken`. Assinatura válida não basta: um refresh token assinado com o mesmo
+  segredo não pode virar sessão. O env ainda exige `JWT_SECRET` ≠ `JWT_REFRESH_SECRET`,
+  ambos com 32+ caracteres.
+- **Escrita em reunião trava a linha de `meeting`** (`lockForUpdate`) antes de ler
+  estado. Sem isso duas presenças simultâneas pagam o mesmo membro duas vezes.
 
 Ver ADRs [0011](http://localhost:4000/docs/adr/0011-jwt-refresh-token-rotativo) e
 [0012](http://localhost:4000/docs/adr/0012-hash-de-senha-e-de-token).
@@ -154,7 +164,7 @@ npm run test          # da raiz
 npx vitest            # watch, de dentro do pacote
 ```
 
-509 testes em 25 arquivos, **nenhum precisa de banco**.
+516 testes em 25 arquivos, **nenhum precisa de banco**.
 
 | Arquivo | Mocka |
 | --- | --- |

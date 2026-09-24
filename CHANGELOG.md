@@ -8,6 +8,23 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-24 — Correções da revisão da API MVP
+
+#### Corrigido
+- Registro de presença simultâneo (duplo clique) não paga mais o mesmo membro duas
+  vezes: toda escrita em reunião trava a linha de `meeting` com `SELECT … FOR UPDATE`
+  antes de ler presentes e `closedAt`. Também fecha a corrida entre `end` e KPI ao vivo.
+- `POST /meetings/{id}/kpi-assignments` recusa membro desativado depois de marcar
+  presença com 409 `MEMBER_INACTIVE` (RB09).
+- Access token passa a carregar `typ: "access"` e tem o payload validado; um refresh
+  token não é mais aceito como access token mesmo com segredos iguais.
+
+#### Alterado
+- `JWT_SECRET` e `JWT_REFRESH_SECRET` exigem 32+ caracteres e precisam ser diferentes —
+  o servidor não sobe com config fraca. `.env.example` atualizado.
+- Schemas, mapper de atribuição e erros repetidos entre módulos foram para `shared/`
+  (`schemas/`, `mappers/`, `errors/common.errors.ts`). Contrato HTTP inalterado.
+
 ### 2026-09-23 — API Fase 3E: Badges de Fase 3
 
 #### Adicionado

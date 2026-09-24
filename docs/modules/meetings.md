@@ -19,8 +19,8 @@ Código em `packages/api/src/modules/meetings/`.
 | RN04 | Marcar presença de quem não foi escalado cria a linha já com `presentAt` — reunião real tem quem aparece sem estar na lista. Não existe rota de desmarcar presença: o caminho é revogar o assignment pela rota da 2B |
 | RN05 | O KPI de presença vem no corpo (`kpiId`), validado em três eixos: existe (404 `KPI_NOT_FOUND`), ativo (409 `KPI_INACTIVE`), categoria `PRESENCE` (422 `KPI_NOT_PRESENCE`). A API não escolhe o KPI por convenção — o catálogo semeado tem dois de presença |
 | RN06 | Presença é transação única: reunião aberta → KPI válido → membros válidos → upsert de `meeting_attendee` → `createMany` de `kpi_assignment`. Um `userId` inválido no meio da lista derruba a requisição inteira |
-| RN07 | Quem já tem `presentAt` é no-op na presença: sai da lista antes da escrita. Clique duplo não dobra pontuação |
-| RN08 | Reconhecimento ao vivo (`POST /meetings/{id}/kpi-assignments`) exige `presentAt IS NOT NULL` — 409 `ATTENDEE_NOT_PRESENT` para ausente ou para quem não tem linha de attendee. Qualquer categoria vale, inclusive `PRESENCE` |
+| RN07 | Quem já tem `presentAt` é no-op na presença: sai da lista antes da escrita. Clique duplo não dobra pontuação — nem simultâneo: toda escrita na reunião (attendees, presença, KPI ao vivo, `end`) abre a transação com `SELECT … FOR UPDATE` na linha de `meeting`, então a segunda requisição só lê presentes depois do commit da primeira |
+| RN08 | Reconhecimento ao vivo (`POST /meetings/{id}/kpi-assignments`) exige `presentAt IS NOT NULL` — 409 `ATTENDEE_NOT_PRESENT` para ausente ou para quem não tem linha de attendee — e membro ativo: desativado depois de marcar presença recebe 409 `MEMBER_INACTIVE` (RB09). Qualquer categoria vale, inclusive `PRESENCE` |
 | RN09 | Reunião encerrada é imutável: `closedAt` preenchido rejeita attendees, presença, KPI ao vivo e um segundo `end` (409 `MEETING_CLOSED` / `MEETING_ALREADY_CLOSED`). Revogar assignment feito nela continua permitido — encerrar congela o que entra, não a correção de erro |
 | RN10 | `points` do assignment de reunião é copiado do KPI no instante da atribuição — reprecificar o KPI depois não reescreve o passado. A regra existe aqui e na 2B (módulo não importa módulo); há teste cobrindo os dois caminhos |
 | RN11 | O módulo escreve em `kpi_assignment` pelo próprio repository — `meetings` não importa `assignments`, `kpis`, `members` nem `profile` |
@@ -38,6 +38,8 @@ sequenceDiagram
 
     C->>S: registerAttendance(meetingId, userIds, kpiId)
     S->>R: transaction BEGIN
+    S->>R: lockForUpdate(meetingId)
+    Note over R: SELECT … FOR UPDATE —<br/>requisição concorrente espera o commit
     S->>R: findById(meetingId)
     Note over S: fechada? 409 MEETING_CLOSED
     S->>R: findKpiById(kpiId)
@@ -62,6 +64,7 @@ sequenceDiagram
     participant R as meetingsRepository
 
     C->>S: end(meetingId)
+    S->>R: lockForUpdate
     S->>R: findById
     Note over S: já fechada? 409 MEETING_ALREADY_CLOSED
     S->>R: close(id, closedAt = now)

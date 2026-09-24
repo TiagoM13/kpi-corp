@@ -42,9 +42,14 @@ packages/api/src/
 │   │   ├── domain-error.ts  # classe base, carrega code e status
 │   │   ├── error-mapper.ts  # DomainError → ORPCError
 │   │   ├── handle.ts        # wrapper usado por qualquer router
+│   │   ├── common.errors.ts # erros usados por mais de um módulo
 │   │   └── index.ts
+│   ├── schemas/             # Zod compartilhado: categoria, nível, atribuição, query
+│   ├── mappers/
+│   │   └── kpi-assignment.ts # KpiAssignment e histórico com user
 │   ├── security/
 │   │   ├── password.ts      # bcrypt + DUMMY_PASSWORD_HASH
+│   │   ├── access-token.ts  # assina e valida o access token (typ, role, email)
 │   │   └── tokens.ts        # JWT genérico, sha256, timingSafeEqual, durações
 │   ├── time/
 │   │   └── timezone.ts      # TIMEZONE America/Sao_Paulo, dayStart/dayEnd/dayOf
@@ -76,6 +81,14 @@ quem carrega a linha é o repository de cada módulo.
 | Janelas de calendário | `shared/ranking/periods.ts` | ranking, dashboard, profile |
 | Ordenação do ranking | `shared/ranking/rank.ts` | ranking, dashboard, profile |
 | Níveis | `shared/gamification/levels.ts` | profile, dashboard |
+| Linha agregada → linha do ranking | `shared/ranking/rank.ts` (`toRankableRow`) | ranking, dashboard |
+
+Além das regras, contrato repetido também mora em `shared/`: `kpiCategorySchema`,
+`levelSchema`, os schemas de atribuição e os preprocessadores de query em
+`shared/schemas/`; `mapKpiAssignment` e `mapAssignmentHistoryItem` em `shared/mappers/`;
+`KpiNotFoundError`, `KpiInactiveError`, `MemberNotFoundError` e `MemberInactiveError` em
+`shared/errors/common.errors.ts`. O `MemberInactiveError` do dashboard continua no
+módulo: é outro significado (403, "sem dashboard"), não o 409 de atribuição.
 
 ## Camadas
 
