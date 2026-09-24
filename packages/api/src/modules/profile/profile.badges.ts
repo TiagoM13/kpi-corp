@@ -1,6 +1,13 @@
 import { KpiCategory } from "@kpi-corp/db/prisma/generated/enums";
 
-export const BADGE_TIMEZONE = "America/Sao_Paulo";
+import {
+	previousWindow,
+	type RankableRow,
+	type RankingWindow,
+	rank,
+	windowOf,
+} from "../../shared/ranking";
+import { dayOf, TIMEZONE } from "../../shared/time";
 
 export const KPI_CATEGORIES = Object.values(KpiCategory);
 
@@ -101,7 +108,7 @@ export const BADGE_CATALOG = [
 		description: "Participou de 10 reuniões com presença registrada.",
 		icon: "🤝",
 		rarity: "RARA",
-		available: false,
+		available: true,
 		target: 10,
 	},
 	{
@@ -110,7 +117,7 @@ export const BADGE_CATALOG = [
 		description: "Terminou entre os 3 primeiros do ranking geral.",
 		icon: "🏅",
 		rarity: "EPICA",
-		available: false,
+		available: true,
 		target: null,
 	},
 	{
@@ -119,7 +126,7 @@ export const BADGE_CATALOG = [
 		description: "Esteve presente em todas as reuniões de um mês.",
 		icon: "⏱️",
 		rarity: "COMUM",
-		available: false,
+		available: true,
 		target: null,
 	},
 	{
@@ -128,7 +135,7 @@ export const BADGE_CATALOG = [
 		description: "Terminou 3 meses consecutivos no top 3 do ranking.",
 		icon: "👑",
 		rarity: "LENDARIA",
-		available: false,
+		available: true,
 		target: 3,
 	},
 ] as const satisfies readonly BadgeCatalogEntry[];
@@ -155,11 +162,47 @@ export type BadgeContractEntry = {
 	progress: number;
 };
 
+export type BadgeContext = {
+	userId: string;
+	memberSince: Date | null;
+	presences: Date[];
+	team: RankableRow[];
+	monthlyAssignments: { userId: string; points: number; assignedAt: Date }[];
+	meetings: { date: Date; closedAt: Date | null; present: boolean }[];
+};
+
+export function emptyBadgeContext(userId = ""): BadgeContext {
+	return {
+		userId,
+		memberSince: null,
+		presences: [],
+		team: [],
+		monthlyAssignments: [],
+		meetings: [],
+	};
+}
+
+const PODIUM_SIZE = 3;
+
+export const PODIUM_STREAK_MONTHS = 12;
+
+export function podiumMonths(now: Date): RankingWindow[] {
+	const months: RankingWindow[] = [];
+	let cursor = previousWindow("month", windowOf("month", now));
+
+	for (let index = 0; index < PODIUM_STREAK_MONTHS; index += 1) {
+		months.unshift(cursor);
+		cursor = previousWindow("month", cursor);
+	}
+
+	return months;
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7 * DAY_MS;
 
 const SP_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
-	timeZone: BADGE_TIMEZONE,
+	timeZone: TIMEZONE,
 	year: "numeric",
 	month: "numeric",
 	day: "numeric",
@@ -187,9 +230,7 @@ function mondayOfIsoWeek(date: Date): number {
 		parts.month === undefined ||
 		parts.day === undefined
 	) {
-		throw new Error(
-			`Data inválida em ${BADGE_TIMEZONE}: ${date.toISOString()}`,
-		);
+		throw new Error(`Data inválida em ${TIMEZONE}: ${date.toISOString()}`);
 	}
 
 	const civil = Date.UTC(parts.year, parts.month - 1, parts.day);
@@ -360,16 +401,164 @@ function weekStreak(
 	};
 }
 
-function unavailableBadge(
-	code: BadgeCode,
-	target: number | null,
+function tenMeetings(presences: Date[]): RawBadgeEvaluation {
+	const total = presences.length;
+
+	return {
+		code: "TEN_MEETINGS",
+		earned: total >= 10,
+		current: total,
+		target: 10,
+		earnedAt: total >= 10 ? (presences[9] ?? null) : null,
+	};
+}
+
+function topThree(
+	assignments: BadgeAssignment[],
+	context: BadgeContext,
 ): RawBadgeEvaluation {
-	return { code, earned: false, current: 0, target, earnedAt: null };
+	const me = rank(context.team).find((row) => row.userId === context.userId);
+	const last = assignments[assignments.length - 1];
+	const earned =
+		me !== undefined && me.position <= PODIUM_SIZE && me.points > 0 && !!last;
+
+	return {
+		code: "TOP_THREE",
+		earned,
+		current: earned ? 1 : 0,
+		target: null,
+		earnedAt: earned ? (last?.assignedAt ?? null) : null,
+	};
+}
+
+// meeting.date é dia de calendário gravado como meia-noite UTC.
+function meetingMonth(date: Date): string {
+	return date.toISOString().slice(0, 7);
+}
+
+function perfectMonth(context: BadgeContext, now: Date): RawBadgeEvaluation {
+	const currentMonth = dayOf(now).slice(0, 7);
+	const byMonth = new Map<string, { present: boolean; closedAt: Date }[]>();
+
+	for (const meeting of context.meetings) {
+		const month = meetingMonth(meeting.date);
+
+		if (
+			meeting.closedAt === null ||
+			month >= currentMonth ||
+			context.memberSince === null ||
+			meeting.date.getTime() <= context.memberSince.getTime()
+		) {
+			continue;
+		}
+
+		const bucket = byMonth.get(month) ?? [];
+		bucket.push({ present: meeting.present, closedAt: meeting.closedAt });
+		byMonth.set(month, bucket);
+	}
+
+	const perfect = [...byMonth.keys()]
+		.sort()
+		.map((month) => byMonth.get(month) ?? [])
+		.find(
+			(meetings) =>
+				meetings.length > 0 && meetings.every((meeting) => meeting.present),
+		);
+
+	const earnedAt = perfect
+		? new Date(
+				Math.max(...perfect.map((meeting) => meeting.closedAt.getTime())),
+			)
+		: null;
+
+	return {
+		code: "PERFECT_MONTH",
+		earned: perfect !== undefined,
+		current: perfect ? 1 : 0,
+		target: null,
+		earnedAt,
+	};
+}
+
+type PodiumMonth = {
+	onPodium: boolean;
+	lastAssignedAt: Date | null;
+};
+
+function podiumHistory(context: BadgeContext, now: Date): PodiumMonth[] {
+	return podiumMonths(now).map((window) => {
+		const inWindow = context.monthlyAssignments.filter(
+			(assignment) =>
+				assignment.assignedAt >= window.start &&
+				assignment.assignedAt < window.end,
+		);
+
+		const rows = context.team.map((member) => {
+			const own = inWindow.filter(
+				(assignment) => assignment.userId === member.userId,
+			);
+
+			return {
+				userId: member.userId,
+				name: member.name,
+				points: own.reduce((sum, assignment) => sum + assignment.points, 0),
+				kpiCount: own.length,
+			};
+		});
+
+		const me = rank(rows).find((row) => row.userId === context.userId);
+		const mine = inWindow.filter(
+			(assignment) => assignment.userId === context.userId,
+		);
+		const lastAssignedAt = mine.reduce<Date | null>(
+			(latest, assignment) =>
+				latest === null || assignment.assignedAt > latest
+					? assignment.assignedAt
+					: latest,
+			null,
+		);
+
+		return {
+			onPodium:
+				inWindow.length > 0 &&
+				me !== undefined &&
+				me.position <= PODIUM_SIZE &&
+				me.points > 0,
+			lastAssignedAt,
+		};
+	});
+}
+
+function podiumStreak(context: BadgeContext, now: Date): RawBadgeEvaluation {
+	const months = podiumHistory(context, now);
+	const target = 3;
+
+	let best = 0;
+	let run = 0;
+	let earnedAt: Date | null = null;
+
+	for (const month of months) {
+		run = month.onPodium ? run + 1 : 0;
+		best = Math.max(best, run);
+
+		if (run === target && earnedAt === null) {
+			earnedAt = month.lastAssignedAt;
+		}
+	}
+
+	return {
+		code: "PODIUM_STREAK",
+		earned: best >= target,
+		current: best,
+		target,
+		earnedAt: best >= target ? earnedAt : null,
+	};
 }
 
 export function evaluateBadges(
 	assignments: BadgeAssignment[],
 	now: Date,
+	context: BadgeContext = emptyBadgeContext(),
 ): RawBadgeEvaluation[] {
 	return BADGE_CATALOG.map((entry) => {
 		switch (entry.code) {
@@ -384,8 +573,18 @@ export function evaluateBadges(
 			case "FOUR_WEEK_STREAK":
 			case "TWELVE_WEEK_STREAK":
 				return weekStreak(assignments, now, entry.target, entry.code);
-			default:
-				return unavailableBadge(entry.code, entry.target);
+			case "TEN_MEETINGS":
+				return tenMeetings(context.presences);
+			case "TOP_THREE":
+				return topThree(assignments, context);
+			case "PERFECT_MONTH":
+				return perfectMonth(context, now);
+			case "PODIUM_STREAK":
+				return podiumStreak(context, now);
+			default: {
+				const unknown: never = entry;
+				throw new Error(`Badge sem avaliador: ${JSON.stringify(unknown)}`);
+			}
 		}
 	});
 }
@@ -407,8 +606,8 @@ export function buildBadgeResponse(
 		}
 
 		// Uma linha legada ou inserida fora deste fluxo nao pode desbloquear uma
-		// badge que a Fase 3 ainda nao implementou. Quando a badge ficar
-		// disponivel, o carimbo volta a participar normalmente da regra grudenta.
+		// badge indisponivel. Hoje as dez estao disponiveis; a guarda fica para
+		// a proxima badge declarada antes de ter regra.
 		const persistedAt = entry.available
 			? earnedAtByCode.get(entry.code)
 			: undefined;

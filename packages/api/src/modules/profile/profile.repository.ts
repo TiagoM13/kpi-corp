@@ -2,6 +2,7 @@ import prisma from "@kpi-corp/db";
 
 import type { KpiCategory } from "@kpi-corp/db/prisma/generated/enums";
 
+import type { RankableRow } from "../../shared/ranking";
 import type { BadgeAssignment } from "./profile.badges";
 
 export type ScoredAssignmentRow = {
@@ -12,6 +13,8 @@ export type ScoredAssignmentRow = {
 export type MyAssignmentsFilter = {
 	revoked?: boolean;
 };
+
+const BADGE_ASSIGNMENT_WHERE = { revokedAt: null, points: { gt: 0 } } as const;
 
 const KPI_SELECT = { select: { name: true, category: true } } as const;
 
@@ -69,7 +72,7 @@ export const profileRepository = {
 
 	listValidAssignments(userId: string): Promise<BadgeAssignment[]> {
 		return prisma.kpiAssignment.findMany({
-			where: { userId, revokedAt: null, points: { gt: 0 } },
+			where: { userId, ...BADGE_ASSIGNMENT_WHERE },
 			orderBy: { assignedAt: "asc" },
 			select: {
 				points: true,
@@ -77,6 +80,79 @@ export const profileRepository = {
 				kpi: { select: { category: true } },
 			},
 		});
+	},
+
+	async listPresences(userId: string): Promise<Date[]> {
+		const rows = await prisma.meetingAttendee.findMany({
+			where: { userId, presentAt: { not: null } },
+			orderBy: { presentAt: "asc" },
+			select: { presentAt: true },
+		});
+
+		return rows.flatMap((row) => (row.presentAt ? [row.presentAt] : []));
+	},
+
+	async listTeamScores(): Promise<RankableRow[]> {
+		const users = await prisma.user.findMany({
+			where: { active: true },
+			select: {
+				id: true,
+				name: true,
+				assignedKpis: {
+					where: BADGE_ASSIGNMENT_WHERE,
+					select: { points: true },
+				},
+			},
+		});
+
+		return users.map((user) => ({
+			userId: user.id,
+			name: user.name,
+			points: user.assignedKpis.reduce((sum, item) => sum + item.points, 0),
+			kpiCount: user.assignedKpis.length,
+		}));
+	},
+
+	listTeamScoresByMonth(window: { start: Date; end: Date }) {
+		return prisma.kpiAssignment.findMany({
+			where: {
+				...BADGE_ASSIGNMENT_WHERE,
+				assignedAt: { gte: window.start, lt: window.end },
+				user: { active: true },
+			},
+			select: { userId: true, points: true, assignedAt: true },
+		});
+	},
+
+	async listMonthlyMeetingCoverage(userId: string) {
+		const [user, meetings] = await Promise.all([
+			prisma.user.findUnique({
+				where: { id: userId },
+				select: { createdAt: true },
+			}),
+			prisma.meeting.findMany({
+				where: { closedAt: { not: null } },
+				select: {
+					date: true,
+					closedAt: true,
+					attendees: {
+						where: { userId },
+						select: { presentAt: true },
+					},
+				},
+			}),
+		]);
+
+		return {
+			memberSince: user?.createdAt ?? null,
+			meetings: meetings.map((meeting) => ({
+				date: meeting.date,
+				closedAt: meeting.closedAt,
+				present: meeting.attendees.some(
+					(attendee) => attendee.presentAt !== null,
+				),
+			})),
+		};
 	},
 
 	listEarnedBadges(userId: string) {

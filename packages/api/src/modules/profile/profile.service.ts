@@ -1,10 +1,11 @@
+import { levelFor } from "../../shared/gamification";
 import {
 	type BadgeContractEntry,
 	buildBadgeResponse,
 	evaluateBadges,
+	podiumMonths,
 } from "./profile.badges";
 import { MemberNotFoundError } from "./profile.errors";
-import { levelFor } from "./profile.levels";
 import { mapMemberBase, mapMyKpi } from "./profile.mapper";
 import {
 	type MyAssignmentsFilter,
@@ -95,12 +96,41 @@ export const profileService = {
 		userId: string,
 		now = new Date(),
 	): Promise<BadgeContractEntry[]> {
-		const [assignments, earnedRows] = await Promise.all([
+		const months = podiumMonths(now);
+		const first = months[0];
+		const last = months[months.length - 1];
+
+		if (!first || !last) {
+			throw new Error("PODIUM_STREAK needs at least one month to scan");
+		}
+
+		const [
+			assignments,
+			earnedRows,
+			presences,
+			team,
+			monthlyAssignments,
+			coverage,
+		] = await Promise.all([
 			profileRepository.listValidAssignments(userId),
 			profileRepository.listEarnedBadges(userId),
+			profileRepository.listPresences(userId),
+			profileRepository.listTeamScores(),
+			profileRepository.listTeamScoresByMonth({
+				start: first.start,
+				end: last.end,
+			}),
+			profileRepository.listMonthlyMeetingCoverage(userId),
 		]);
 
-		const evaluations = evaluateBadges(assignments, now);
+		const evaluations = evaluateBadges(assignments, now, {
+			userId,
+			memberSince: coverage.memberSince,
+			presences,
+			team,
+			monthlyAssignments,
+			meetings: coverage.meetings,
+		});
 		const newlyEarned = evaluations
 			.filter(
 				(evaluation) =>
