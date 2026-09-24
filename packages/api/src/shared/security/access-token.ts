@@ -1,4 +1,5 @@
 import { env } from "@kpi-corp/env/server";
+import z from "zod";
 
 import { signToken, verifyToken } from "./tokens";
 
@@ -16,11 +17,25 @@ export type AccessTokenSubject = {
 	role: Role;
 };
 
+const ACCESS_TOKEN_TYPE = "access";
+
+const accessTokenPayloadSchema = z.object({
+	sub: z.string().min(1),
+	email: z.string().min(1),
+	role: z.enum(["ADMIN", "MEMBER"]),
+	typ: z.literal(ACCESS_TOKEN_TYPE),
+});
+
 export async function signAccessToken(
 	subject: AccessTokenSubject,
 ): Promise<string> {
 	return signToken(
-		{ sub: subject.id, email: subject.email, role: subject.role },
+		{
+			sub: subject.id,
+			email: subject.email,
+			role: subject.role,
+			typ: ACCESS_TOKEN_TYPE,
+		},
 		env.JWT_SECRET,
 		env.JWT_ACCESS_EXPIRES_IN,
 	);
@@ -29,5 +44,9 @@ export async function signAccessToken(
 export async function verifyAccessToken(
 	token: string,
 ): Promise<AccessTokenPayload> {
-	return verifyToken(token, env.JWT_SECRET);
+	const payload = accessTokenPayloadSchema.parse(
+		await verifyToken(token, env.JWT_SECRET),
+	);
+
+	return { sub: payload.sub, email: payload.email, role: payload.role };
 }
