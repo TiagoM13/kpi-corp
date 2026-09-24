@@ -200,7 +200,7 @@ O **KPICorp** é uma plataforma web corporativa onde o Admin cadastra KPIs (indi
 - KPIs **removidos** de um membro perdem os pontos retroativamente (o histórico é mantido como log, mas não conta na pontuação)
 - Um KPI pode ser atribuído **múltiplas vezes** ao mesmo membro (ex: presença em reunião toda semana)
 - A pontuação de um membro é a **soma de todos os KPIs ativos** atribuídos a ele
-- O ranking usa **pontuação total** como critério principal; em caso de empate, desempata por **quantidade de KPIs**
+- O ranking usa **pontuação total** como critério principal; em caso de empate, desempata por **quantidade de KPIs** e, persistindo o empate, por **nome** em ordem alfabética (pt-BR) — a ordem nunca muda entre duas consultas iguais
 - Categorias são **fixas no MVP** (Presença, Desempenho, Comportamento); Admin pode criar novas na Fase 2
 - Todo Admin é também um User — pode ter KPIs atribuídos a ele por outro Admin (futuro: multi-admin)
 
@@ -246,20 +246,20 @@ meses e nível 20 em pouco mais de um ano.
 
 Badges medem eixos que o nível não vê: **categoria**, **volume em contagem** e
 **consistência no tempo** — e, na Fase 3, **posição** e **presença**. O catálogo
-tem **dez badges**, seis da Fase 2 e quatro declaradas de Fase 3:
+tem **dez badges**, seis da Fase 2 e quatro de Fase 3, todas disponíveis:
 
 | Badge | Regra | Alvo | Raridade | Fase |
 | --- | --- | --- | --- | --- |
-| 🌱 Primeira pontuação | primeira atribuição válida | 1 | Comum | 2 |
-| ⚡ Alta performance | atribuições de `PERFORMANCE` | 5 | Rara | 2 |
-| 🧭 Completista | categorias distintas com ≥ 1 KPI | todas | Rara | 2 |
-| 📚 Colecionador | atribuições válidas | 25 | Rara | 2 |
-| 🔥 Constante | semanas ISO consecutivas com ≥ 1 KPI | 4 | Épica | 2 |
-| 💎 Inabalável | semanas ISO consecutivas com ≥ 1 KPI | 12 | Épica | 2 |
-| 🤝 Presente | reuniões com presença registrada | 10 | Rara | 3 |
-| 🏅 Pódio | top 3 do ranking geral | — | Épica | 3 |
-| ⏱️ Pontual | todas as reuniões do mês | — | Comum | 3 |
-| 👑 Lendário | meses consecutivos no top 3 | 3 | Lendária | 3 |
+| 🌱 Primeira pontuação (`FIRST_POINT`) | primeira atribuição válida | 1 | Comum | 2 |
+| ⚡ Alta performance (`FIVE_PERFORMANCE`) | atribuições de `PERFORMANCE` | 5 | Rara | 2 |
+| 🧭 Completista (`ALL_CATEGORIES`) | categorias distintas com ≥ 1 KPI | todas | Rara | 2 |
+| 📚 Colecionador (`TWENTY_FIVE_KPIS`) | atribuições válidas | 25 | Rara | 2 |
+| 🔥 Constante (`FOUR_WEEK_STREAK`) | semanas ISO consecutivas com ≥ 1 KPI | 4 | Épica | 2 |
+| 💎 Inabalável (`TWELVE_WEEK_STREAK`) | semanas ISO consecutivas com ≥ 1 KPI | 12 | Épica | 2 |
+| 🤝 Presente (`TEN_MEETINGS`) | reuniões com presença confirmada | 10 | Rara | 3 |
+| 🏅 Pódio (`TOP_THREE`) | top 3 do ranking geral, com pontuação positiva | — | Épica | 3 |
+| ⏱️ Pontual (`PERFECT_MONTH`) | todas as reuniões encerradas de um mês já fechado | — | Comum | 3 |
+| 👑 Lendário (`PODIUM_STREAK`) | meses de calendário consecutivos no top 3 | 3 | Lendária | 3 |
 
 Badge é **fato gravado e consequência calculada ao mesmo tempo**: a regra pura
 decide, a partir do histórico, se o membro ganhou; a tabela `user_badge`
@@ -274,13 +274,30 @@ sequência atual.
 
 O catálogo é **código, não dado**: sem tabela de badges, sem CRUD, sem seed.
 Cada badge é uma entrada em `profile.badges.ts` com o avaliador ao lado — badge
-nova é commit, revisão e teste. As quatro de Fase 3 entram declaradas com
-`available: false`, para que a tela mostre o slot sem fingir progresso.
+nova é commit, revisão e teste. As quatro de Fase 3 nasceram declaradas com
+`available: false` na Fase 2 e foram destravadas quando reunião e ranking passaram a
+existir — o contrato não mudou.
+
+As quatro de Fase 3 seguem as mesmas invariantes e têm regras próprias:
+
+- **Presente** conta presença confirmada, não escala; presença em reunião ainda aberta
+  já conta. A data é a da décima presença.
+- **Pódio** usa o mesmo desempate do ranking (pontos, quantidade de KPIs, nome). Equipe
+  inteira em zero não tem pódio. Como posição não tem um evento que a fecha, a data é a
+  da atribuição válida mais recente do membro.
+- **Pontual** só avalia mês já fechado, com ao menos uma reunião encerrada; reunião
+  aberta e reunião anterior à entrada do membro na equipe não contam. A data é o
+  encerramento da última reunião daquele mês.
+- **Lendário** varre os últimos 12 meses fechados; mês sem nenhuma atribuição na equipe
+  quebra a sequência. O progresso mostra a melhor sequência histórica.
+
+Pódio e Lendário descartam KPI de pontuação negativa, como toda badge — o ranking não
+descarta. Um membro pode estar em 3º no ranking e não ter o Pódio; é intencional.
 
 As badges entram nas duas respostas de perfil (`/me/profile` e
 `/members/:id/profile`), sempre as dez, na ordem do catálogo — o front nunca
-reconstrói o catálogo do lado dele. Detalhes e calibração em
-[spec da Fase 2D](../specs/fase-2d-badges.md).
+reconstrói o catálogo do lado dele. Detalhes e calibração nas specs da
+[Fase 2D](../specs/fase-2d-badges.md) e da [Fase 3E](../specs/fase-3e-badges-de-fase-3.md).
 
 ---
 

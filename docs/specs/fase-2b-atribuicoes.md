@@ -1,6 +1,6 @@
 # Spec — Fase 2B: Atribuições de KPI
 
-**Fase:** 2 · **Status:** proposta, aguardando validação · **Data:** 2026-09-03
+**Fase:** 2 · **Status:** entregue · **Data:** 2026-09-03
 
 Referência: [MVP_API_ROADMAP.md § 2.2 e § 2.3](../MVP_API_ROADMAP.md) ·
 Depende de: Fase 2A — Catálogo de KPIs (entregue)
@@ -300,17 +300,17 @@ Service com repository mockado, router com service mockado. Nenhum precisa de ba
 
 ## Critérios de aceite
 
-- [ ] Admin atribui KPI a um membro, com nota opcional
-- [ ] Admin atribui um KPI a vários membros numa chamada
-- [ ] Falha parcial na atribuição em massa não deixa nada criado
-- [ ] Admin revoga atribuição
-- [ ] Atribuição revogada permanece no histórico
-- [ ] `points` da atribuição não muda quando o KPI é editado
-- [ ] KPI inativo não recebe atribuição nova
-- [ ] Membro inativo não recebe atribuição nova
-- [ ] O mesmo KPI pode ser atribuído várias vezes ao mesmo membro
-- [ ] MEMBER recebe 403 nas quatro rotas
-- [ ] Módulo `assignments` não importa de `kpis` nem de `members`
+- [x] Admin atribui KPI a um membro, com nota opcional
+- [x] Admin atribui um KPI a vários membros numa chamada
+- [x] Falha parcial na atribuição em massa não deixa nada criado
+- [x] Admin revoga atribuição
+- [x] Atribuição revogada permanece no histórico
+- [x] `points` da atribuição não muda quando o KPI é editado
+- [x] KPI inativo não recebe atribuição nova
+- [x] Membro inativo não recebe atribuição nova
+- [x] O mesmo KPI pode ser atribuído várias vezes ao mesmo membro
+- [x] MEMBER recebe 403 nas quatro rotas
+- [x] Módulo `assignments` não importa de `kpis` nem de `members`
 
 ---
 

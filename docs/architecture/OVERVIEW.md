@@ -131,7 +131,7 @@ sequenceDiagram
 | Área | Situação |
 | --- | --- |
 | Auth (login, register, refresh, logout, me) | Implementado e testado ponta a ponta |
-| Demais módulos da API (users, kpis, meetings) | Não existem — roadmap em `docs/MVP_API_ROADMAP.md` |
+| Demais módulos da API | `members`, `kpis`, `assignments`, `profile`, `meetings`, `ranking` e `dashboard` implementados — roadmap do MVP fechado (Fases 1 a 3) |
 | Front | Login e convite reais pendentes; telas ainda usam mock em `apps/web/src/mocks/` |
 | Deploy | Não existe. Só ambiente de desenvolvimento local |
 
@@ -140,3 +140,6 @@ sequenceDiagram
 - [Componentes internos (C4 nível 3)](COMPONENTS.md)
 - [Decisões de arquitetura (ADR)](decisions/README.md)
 - [Módulo de autenticação](../modules/auth.md)
+- Demais módulos: [assignments](../modules/assignments.md), [profile](../modules/profile.md),
+  [meetings](../modules/meetings.md), [ranking](../modules/ranking.md),
+  [dashboard](../modules/dashboard.md)

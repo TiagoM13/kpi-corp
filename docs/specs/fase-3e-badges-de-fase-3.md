@@ -1,6 +1,6 @@
 # Spec — Fase 3E: Badges de Fase 3
 
-**Fase:** 3 · **Status:** proposta, aguardando validação · **Data:** 2026-09-08
+**Fase:** 3 · **Status:** entregue · **Data:** 2026-09-08 · **Entregue em:** 2026-09-23
 
 Referência: [MVP_API_ROADMAP.md § 2.8](../MVP_API_ROADMAP.md) ·
 Depende de: Fase 2D — Badges · Fase 3A — Reuniões · Fase 3B — Ranking
@@ -316,18 +316,18 @@ Reintroduza o defeito e confirme a quebra — vale em especial para o mês corre
 
 ## Critérios de aceite
 
-- [ ] `TEN_MEETINGS` conta presenças confirmadas e concede na décima
-- [ ] `TOP_THREE` concede ao top 3 do ranking geral, com o desempate da 3B
-- [ ] `PERFECT_MONTH` concede só em mês fechado, com pelo menos uma reunião encerrada
-- [ ] `PODIUM_STREAK` concede em três meses de calendário consecutivos no top 3
-- [ ] As quatro vêm com `available: true`
-- [ ] Nenhum `earnedAt` é `now()`
-- [ ] Badge conquistada sobrevive à revogação e à queda de posição
-- [ ] Atribuição revogada e KPI de pontuação não positiva não alimentam as quatro
-- [ ] As dez badges continuam vindo nos dois perfis, na ordem do catálogo
-- [ ] `badgeSchema` não mudou
-- [ ] Módulo `profile` continua sem importar `ranking`, `meetings`, `members`, `kpis` nem `assignments`
-- [ ] Badges são calculados corretamente · § 2.10
+- [x] `TEN_MEETINGS` conta presenças confirmadas e concede na décima
+- [x] `TOP_THREE` concede ao top 3 do ranking geral, com o desempate da 3B
+- [x] `PERFECT_MONTH` concede só em mês fechado, com pelo menos uma reunião encerrada
+- [x] `PODIUM_STREAK` concede em três meses de calendário consecutivos no top 3
+- [x] As quatro vêm com `available: true`
+- [x] Nenhum `earnedAt` é `now()`
+- [x] Badge conquistada sobrevive à revogação e à queda de posição
+- [x] Atribuição revogada e KPI de pontuação não positiva não alimentam as quatro
+- [x] As dez badges continuam vindo nos dois perfis, na ordem do catálogo
+- [x] `badgeSchema` não mudou
+- [x] Módulo `profile` continua sem importar `ranking`, `meetings`, `members`, `kpis` nem `assignments`
+- [x] Badges são calculados corretamente · § 2.10
 
 Com estes, **todos** os critérios da Fase 2 (§ 2.10) e da Fase 3 (§ 3.12) ficam atendidos.
 A API do MVP fecha aqui.
@@ -364,3 +364,22 @@ acendem em produção.
 `components/member-detail/achievement-grid.tsx` seguem no formato antigo, como a 2D
 registrou. Nenhuma das quatro badges desta spec aparece na tela até a story de web
 acontecer.
+
+---
+
+## Notas da entrega
+
+- As consultas do repository ficaram `listPresences`, `listTeamScores`,
+  `listTeamScoresByMonth(window)` e `listMonthlyMeetingCoverage` (a spec dizia
+  `countPresences` — a regra precisa das datas, não da contagem).
+- `evaluateBadges(assignments, now, context: BadgeContext)` ganhou o terceiro parâmetro,
+  com default vazio: as chamadas e testes da 2D continuam valendo sem mudança.
+- `podiumMonths(now)` é exportado de `profile.badges.ts` e usado pelo service para montar o
+  intervalo da consulta única de `PODIUM_STREAK` — a janela varrida e a janela consultada
+  saem da mesma função.
+- `BADGE_TIMEZONE` foi removido; `profile.badges.ts` usa `TIMEZONE` de `shared/time`.
+- Em `PODIUM_STREAK` o membro só ocupa o pódio de um mês se pontuou (`> 0`) naquele mês —
+  a mesma leitura de `TOP_THREE`: pódio de quem não pontuou não é pódio.
+- **Consequência registrada:** `TEN_MEETINGS` conta `presentAt` mesmo que o assignment de
+  presença tenha sido revogado depois. Revogar o KPI tira os pontos, não desmarca a
+  presença — a 3A não tem rota de desmarcar, e a badge lê a presença, não o KPI.

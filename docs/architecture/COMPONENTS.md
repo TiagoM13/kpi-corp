@@ -28,6 +28,14 @@ packages/api/src/
 │       ├── meetings.mapper.ts       # closedAt → status OPEN/CLOSED
 │       ├── meetings.errors.ts
 │       └── index.ts
+│   └── ranking/                 # GET /ranking — janelas, snapshot e change
+│       ├── ranking.service.ts       # materialização preguiçosa de ranking_snapshot
+│       ├── ranking.repository.ts    # agregação por janela + snapshot
+│       └── ...                      # router, schema, mapper, errors, index
+│   └── dashboard/               # GET /dashboard/member e /dashboard/admin
+│       ├── dashboard.service.ts     # monta os agregados com rank() e levelFor()
+│       ├── dashboard.repository.ts  # contagens, somas e listagens próprias
+│       └── ...                      # router, schema, mapper, errors, index
 ├── shared/
 │   ├── context.ts           # createContext — Bearer → context.auth
 │   ├── errors/
@@ -35,17 +43,39 @@ packages/api/src/
 │   │   ├── error-mapper.ts  # DomainError → ORPCError
 │   │   ├── handle.ts        # wrapper usado por qualquer router
 │   │   └── index.ts
-│   └── security/
-│       ├── password.ts      # bcrypt + DUMMY_PASSWORD_HASH
-│       └── tokens.ts        # JWT genérico, sha256, timingSafeEqual, durações
+│   ├── security/
+│   │   ├── password.ts      # bcrypt + DUMMY_PASSWORD_HASH
+│   │   └── tokens.ts        # JWT genérico, sha256, timingSafeEqual, durações
+│   ├── time/
+│   │   └── timezone.ts      # TIMEZONE America/Sao_Paulo, dayStart/dayEnd/dayOf
+│   ├── ranking/
+│   │   ├── rank.ts          # ordenação, desempate em três níveis, posição sequencial
+│   │   └── periods.ts       # windowOf / previousWindow — semana ISO, mês, trimestre
+│   └── gamification/
+│       └── levels.ts        # 21 limiares, faixas, levelFor — saiu de profile na 3D
 └── tests/
     ├── modules/auth/        # router, service e tokens
     ├── modules/meetings/    # router e service
-    └── shared/              # error-mapper, password
+    ├── modules/ranking/     # router e service
+    ├── modules/dashboard/   # router e service
+    └── shared/              # error-mapper, password, ranking, gamification
 ```
 
 Os demais módulos (`members`, `kpis`, `assignments`, `profile`) seguem o mesmo formato de
 sete arquivos — ver `docs/modules/<nome>.md` para as regras de cada um.
+
+### Regras puras em `shared/`
+
+Quatro regras saíram de módulo para `shared/` na Fase 3, todas pelo mesmo motivo: dois
+módulos precisam da mesma regra e módulo não importa módulo. Nenhuma fala com Prisma —
+quem carrega a linha é o repository de cada módulo.
+
+| Regra | Arquivo | Consumidores |
+| --- | --- | --- |
+| Fuso e dia de calendário | `shared/time/timezone.ts` | ranking, assignments, profile |
+| Janelas de calendário | `shared/ranking/periods.ts` | ranking, dashboard, profile |
+| Ordenação do ranking | `shared/ranking/rank.ts` | ranking, dashboard, profile |
+| Níveis | `shared/gamification/levels.ts` | profile, dashboard |
 
 ## Camadas
 
@@ -166,7 +196,13 @@ a dependência está invertida.
 | `tests/modules/auth/tokens.test.ts` | JWT, sha256, comparação | nada |
 | `tests/modules/meetings/service.test.ts` | regras e transações do Modo Reunião | `meetingsRepository` inteiro |
 | `tests/modules/meetings/router.test.ts` | contrato e autorização das sete rotas | `meetingsService` inteiro |
+| `tests/modules/ranking/*.test.ts` | janelas, snapshot, `change`, `quarter` só Admin | repository / service |
+| `tests/modules/dashboard/*.test.ts` | blocos, janelas, 30 dias, autorização | repository / service |
+| `tests/modules/assignments/*.test.ts` | revogação, histórico paginado, filtros e datas | repository / service |
+| `tests/modules/profile/badges.test.ts` | as dez badges, puras | nada |
+| `tests/shared/ranking/*.test.ts` | `rank` e `periods` | nada |
+| `tests/shared/gamification/levels.test.ts` | limiares e faixas | nada |
 | `tests/shared/errors/error-mapper.test.ts` | status por erro, vazamento | nada |
 | `tests/shared/security/password.test.ts` | bcrypt e o hash dummy | nada |
 
-378 testes, nenhum precisa de banco. `npm run test` da raiz.
+509 testes em 25 arquivos, nenhum precisa de banco. `npm run test` da raiz.

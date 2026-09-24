@@ -8,6 +8,67 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-23 — API Fase 3E: Badges de Fase 3
+
+#### Adicionado
+- `TEN_MEETINGS`, `TOP_THREE`, `PERFECT_MONTH` e `PODIUM_STREAK` passam a ser avaliadas
+  de verdade e vêm com `available: true` em `/me/profile` e `/members/{id}/profile`. O
+  contrato das badges não mudou: mesmos dez códigos, mesma ordem, mesmo `badgeSchema`.
+- `TEN_MEETINGS` conta presenças confirmadas (`presentAt`); `TOP_THREE` usa o ranking
+  geral com o desempate da 3B; `PERFECT_MONTH` exige presença em todas as reuniões
+  encerradas de um mês já fechado; `PODIUM_STREAK` procura três meses consecutivos no top
+  3 dentro dos últimos 12 meses fechados. Nenhum `earnedAt` é `now()`.
+
+#### Alterado
+- O fuso das badges passa a vir de `shared/time/` — a constante duplicada em
+  `profile.badges.ts` saiu, sem mudar o streak semanal.
+- Exemplos de resposta de perfil na collection do Postman mostram as dez badges com
+  `available: true`.
+
+### 2026-09-23 — API Fase 3D: Dashboards
+
+#### Adicionado
+- Módulo `dashboard` com `GET /dashboard/member` (qualquer autenticado) e
+  `GET /dashboard/admin` (só Admin), cada um uma resposta só, sem cache.
+- Dashboard do membro: pontos, contagem, posição no ranking geral com `teamSize`, nível
+  completo (o mesmo de `/me/score`) e as cinco últimas atribuições válidas. Membro
+  desativado recebe 403 `MEMBER_INACTIVE`.
+- Dashboard do Admin: contadores de KPIs, pontos e reuniões na semana ISO e no mês
+  correntes, reuniões abertas, top 5 do mês, as 10 últimas atribuições e os membros ativos
+  há 30 dias ou mais sem KPI válido.
+- Pasta "Dashboards (3D)" na collection do Postman.
+
+#### Alterado
+- A regra de níveis saiu de `modules/profile/profile.levels.ts` para
+  `shared/gamification/levels.ts`, sem alteração de comportamento — o teste mudou de
+  pasta com os mesmos casos.
+
+### 2026-09-23 — API Fase 3C: Histórico de atribuições
+
+#### Adicionado
+- `GET /kpi-assignments` (só Admin): todas as atribuições da equipe, paginadas no shape
+  de `GET /members`, com o membro embutido em cada linha.
+- Filtros combináveis `userId`, `kpiId`, `category`, `revoked` e `from`/`to` — dias
+  inclusivos nas duas pontas em `America/Sao_Paulo`. Ordenação por `assignedAt`
+  decrescente com desempate por `id`.
+- Request "Histórico de atribuições (3C)" na pasta de atribuições do Postman.
+
+### 2026-09-23 — API Fase 3B: Ranking
+
+#### Adicionado
+- Módulo `ranking` com `GET /ranking?period=week|month|quarter|all`: todo usuário ativo
+  entra, desempate por pontos, quantidade de KPIs e nome em pt-BR, posições sequenciais.
+  `quarter` é só do Admin — MEMBER recebe 403 `PERIOD_NOT_ALLOWED`.
+- `change` contra o período anterior, `isMe` e o bloco `me` na resposta.
+- Modelo `RankingSnapshot` e migration `20260919200339_ranking_snapshot`: a janela
+  anterior é congelada na leitura, só se já fechou e teve atribuição, com teto de 12
+  janelas.
+- Regras puras em `shared/`: `time/timezone.ts`, `ranking/rank.ts` e
+  `ranking/periods.ts`.
+- Pasta "Ranking (3B)" na collection do Postman.
+- Suíte da API sobe para 509 testes em 25 arquivos (3B a 3E) e os módulos ficam
+  documentados em `docs/modules/` (`ranking`, `dashboard`, `assignments`, `profile`).
+
 ### 2026-09-19 — API Fase 3A: Reuniões
 
 #### Adicionado

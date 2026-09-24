@@ -445,3 +445,13 @@ a tela possa dizer isso em vez de fingir progresso.
 4 / 12 semanas saíram do catálogo semeado mais a expectativa de ritmo semanal; a tabela
 `kpi_assignment` tem só dado de seed. Vale recalibrar com seis meses de atribuição real —
 os eixos sobrevivem à recalibração, só os números mudam.
+
+---
+
+## Nota posterior — Fase 3E
+
+Os quatro stubs desta seção — `TEN_MEETINGS`, `TOP_THREE`, `PERFECT_MONTH` e
+`PODIUM_STREAK` — foram **destravados pela 3E** em 2026-09-23: avaliadores reais e
+`available: true`, sem mudança de catálogo nem de `badgeSchema`. O critério "Badge de Fase 3
+vem com `available: false`" descreve o estado entregue pela 2D e deixou de valer com a 3E.
+Ver [`fase-3e-badges-de-fase-3.md`](fase-3e-badges-de-fase-3.md).

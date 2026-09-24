@@ -43,10 +43,10 @@ FASE 2                          FASE 3
 | 3 | **2C** — Pontuação, níveis e perfil | [`fase-2c-pontuacao-e-niveis.md`](fase-2c-pontuacao-e-niveis.md) | § 2.4 a § 2.7, § 2.9 | entregue |
 | 4 | **2D** — Badges | [`fase-2d-badges.md`](fase-2d-badges.md) | § 2.8 | entregue |
 | 5 | **3A** — Reuniões | [`fase-3a-reunioes.md`](fase-3a-reunioes.md) | § 3.1 a § 3.6, § 3.11 | entregue |
-| 6 | **3B** — Ranking | [`fase-3b-ranking.md`](fase-3b-ranking.md) | § 3.7 | spec escrita |
-| 7 | **3C** — Histórico de atribuições | [`fase-3c-historico-de-atribuicoes.md`](fase-3c-historico-de-atribuicoes.md) | § 3.10 | spec escrita |
-| 8 | **3D** — Dashboards | [`fase-3d-dashboards.md`](fase-3d-dashboards.md) | § 3.8, § 3.9 | spec escrita |
-| 9 | **3E** — Badges de Fase 3 | [`fase-3e-badges-de-fase-3.md`](fase-3e-badges-de-fase-3.md) | § 2.8 pendente | spec escrita |
+| 6 | **3B** — Ranking | [`fase-3b-ranking.md`](fase-3b-ranking.md) | § 3.7 | entregue |
+| 7 | **3C** — Histórico de atribuições | [`fase-3c-historico-de-atribuicoes.md`](fase-3c-historico-de-atribuicoes.md) | § 3.10 | entregue |
+| 8 | **3D** — Dashboards | [`fase-3d-dashboards.md`](fase-3d-dashboards.md) | § 3.8, § 3.9 | entregue |
+| 9 | **3E** — Badges de Fase 3 | [`fase-3e-badges-de-fase-3.md`](fase-3e-badges-de-fase-3.md) | § 2.8 pendente | entregue |
 
 A 2A não tem spec: ela foi implementada antes de o formato existir. As decisões dela
 sobrevivem citadas na 2B — o congelamento de `points` e a regra de KPI inativo.

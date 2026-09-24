@@ -216,6 +216,6 @@ Documentação de engenharia navegável em `http://localhost:4000` (`npm run dev
 
 ## Estado atual
 
-Projeto em desenvolvimento, **sem deploy e sem release**. A API de autenticação está
-implementada e testada; os demais módulos ainda não existem, e boa parte das telas do
-front consome mock em `apps/web/src/mocks/`.
+Projeto em desenvolvimento, **sem deploy e sem release**. A API do MVP está completa —
+auth, membros, KPIs, atribuições, perfil e badges, reuniões, ranking e dashboards —
+e testada; boa parte das telas do front ainda consome mock em `apps/web/src/mocks/`.

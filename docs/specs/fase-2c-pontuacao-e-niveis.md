@@ -1,6 +1,6 @@
 # Spec — Fase 2C: Pontuação, Níveis e Perfil
 
-**Fase:** 2 · **Status:** proposta, aguardando validação · **Data:** 2026-09-03
+**Fase:** 2 · **Status:** entregue · **Data:** 2026-09-03
 
 Referência: [MVP_API_ROADMAP.md § 2.4 a § 2.7 e § 2.9](../MVP_API_ROADMAP.md) ·
 Depende de: Fase 2B — Atribuições
@@ -341,18 +341,18 @@ mecânico.
 
 ## Critérios de aceite
 
-- [ ] Member vê seus pontos
-- [ ] Member vê seus KPIs
-- [ ] Pontuação por categoria funciona, com as quatro categorias
-- [ ] Pontuação considera somente atribuições válidas
-- [ ] Nível é calculado corretamente, incluindo os limiares exatos e o teto
-- [ ] Faixa (Iniciante a Lenda) acompanha o nível
-- [ ] Revogar KPI derruba pontos e nível
-- [ ] Perfil próprio traz e-mail e status
-- [ ] Perfil público não traz e-mail nem status
-- [ ] Perfil público de membro desativado devolve 404
-- [ ] MEMBER acessa perfil público de outro membro
-- [ ] Módulo `profile` não importa de `members`, `kpis` nem `assignments`
+- [x] Member vê seus pontos
+- [x] Member vê seus KPIs
+- [x] Pontuação por categoria funciona, com as quatro categorias
+- [x] Pontuação considera somente atribuições válidas
+- [x] Nível é calculado corretamente, incluindo os limiares exatos e o teto
+- [x] Faixa (Iniciante a Lenda) acompanha o nível
+- [x] Revogar KPI derruba pontos e nível
+- [x] Perfil próprio traz e-mail e status
+- [x] Perfil público não traz e-mail nem status
+- [x] Perfil público de membro desativado devolve 404
+- [x] MEMBER acessa perfil público de outro membro
+- [x] Módulo `profile` não importa de `members`, `kpis` nem `assignments`
 
 Com estes, os critérios de aceite da Fase 2 (§ 2.10) ficam todos atendidos **menos
 badges**, que é 2D.
@@ -379,3 +379,11 @@ sobrevive a uma recalibração, só os números mudam.
 
 **Ranking ainda não existe.** `GET /members/:id/profile` não traz posição no ranking; o
 ranking é § 3.7. O front tem `lib/ranking.ts` sobre mock e continua assim.
+
+---
+
+## Nota posterior — Fase 3D
+
+`profile.levels.ts` mudou de casa na 3D: a regra dos níveis continua morando num lugar só,
+agora em `packages/api/src/shared/gamification/levels.ts`, porque o dashboard do membro
+também devolve `level` e módulo não importa módulo. Conteúdo e casos de teste não mudaram.

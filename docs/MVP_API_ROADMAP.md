@@ -442,20 +442,20 @@ Seu histórico permanece no banco.
 
 # 1.7 — Critérios de aceite da Fase 1
 
-* [ ] Admin consegue fazer login.
-* [ ] Member consegue fazer login.
-* [ ] Access token funciona.
-* [ ] Refresh token funciona.
-* [ ] Logout invalida a sessão.
-* [ ] `/auth/me` retorna o usuário autenticado.
-* [ ] Rotas protegidas exigem autenticação.
-* [ ] Rotas administrativas exigem ADMIN.
-* [ ] Admin consegue listar membros.
-* [ ] Admin consegue visualizar um membro.
-* [ ] Admin consegue convidar membro.
-* [ ] Membro consegue completar cadastro via convite.
-* [ ] Admin consegue desativar membro.
-* [ ] Histórico do membro permanece após desativação.
+* [x] Admin consegue fazer login.
+* [x] Member consegue fazer login.
+* [x] Access token funciona.
+* [x] Refresh token funciona.
+* [x] Logout invalida a sessão.
+* [x] `/auth/me` retorna o usuário autenticado.
+* [x] Rotas protegidas exigem autenticação.
+* [x] Rotas administrativas exigem ADMIN.
+* [x] Admin consegue listar membros.
+* [x] Admin consegue visualizar um membro.
+* [x] Admin consegue convidar membro.
+* [x] Membro consegue completar cadastro via convite.
+* [x] Admin consegue desativar membro.
+* [x] Histórico do membro permanece após desativação.
 
 ---
 
@@ -749,7 +749,8 @@ Faixa por banda de nível — troca em 5, 10, 15 e 20:
 20     LENDA
 ```
 
-Criar uma regra centralizada para calcular:
+A regra é centralizada em `packages/api/src/shared/gamification/levels.ts` — saiu de
+`modules/profile/` na 3D para que o dashboard a use sem importar módulo. Calcula:
 
 ```text
 level          nivel atual, 0 a 20
@@ -768,7 +769,7 @@ Exemplo, para 850 pontos:
 {
   "level": 6,
   "tier": "COMPROMETIDO",
-  "points": 850,
+  "currentPoints": 850,
   "levelFloor": 700,
   "nextLevel": 7,
   "nextLevelPoints": 900,
@@ -797,7 +798,10 @@ badges.
 | `TWENTY_FIVE_KPIS` | 25 atribuições válidas | 2 |
 | `FOUR_WEEK_STREAK` | 4 semanas ISO consecutivas | 2 |
 | `TWELVE_WEEK_STREAK` | 12 semanas ISO consecutivas | 2 |
-| `TEN_MEETINGS`, `TOP_THREE`, `PERFECT_MONTH`, `PODIUM_STREAK` | presença e ranking | 3 |
+| `TEN_MEETINGS` | 10 presenças confirmadas (`presentAt` preenchido) | 3 |
+| `TOP_THREE` | top 3 do ranking `all`, com pontuação positiva | 3 |
+| `PERFECT_MONTH` | presente em todas as reuniões encerradas de um mês já fechado | 3 |
+| `PODIUM_STREAK` | 3 meses de calendário consecutivos no top 3 | 3 |
 
 Toda regra recebe apenas atribuições não revogadas e de pontuação positiva. O streak usa
 semanas ISO em `America/Sao_Paulo`, com a melhor sequência histórica para decidir a
@@ -807,10 +811,27 @@ Badge é **fato gravado e consequência calculada**: a regra pura deriva a conqu
 histórico, e `user_badge` persiste o `earnedAt` derivado da atribuição que a fechou. O
 carimbo ocorre na leitura, com `createMany({ skipDuplicates })` sob
 `@@unique([userId, code])`; assim, uma conquista permanece depois de revogar o KPI que a
-gerou. As quatro badges de Fase 3 ficam no contrato com `available: false` e nunca são
-conquistadas até seus avaliadores existirem.
+gerou.
 
-Detalhes, contrato e calibração estão na [spec da Fase 2D](specs/fase-2d-badges.md).
+**As quatro de Fase 3 foram destravadas na 3E** — as dez vêm com `available: true`, sem
+mudança no `badgeSchema` nem na ordem do catálogo. Calculam ao vivo, sem depender de
+`ranking_snapshot`:
+
+| Código | `target` | `current` | `earnedAt` |
+| --- | --- | --- | --- |
+| `TEN_MEETINGS` | 10 | presenças confirmadas | `presentAt` da 10ª presença |
+| `TOP_THREE` | `null` | 0 ou 1 | `assignedAt` da atribuição válida mais recente do membro |
+| `PERFECT_MONTH` | `null` | 0 ou 1 | `closedAt` da última reunião daquele mês |
+| `PODIUM_STREAK` | 3 | melhor sequência histórica | última atribuição do membro no 3º mês |
+
+`PERFECT_MONTH` exige mês fechado (o corrente nunca concede), ao menos uma reunião
+encerrada, ignora reunião aberta e reunião anterior ao `createdAt` do membro.
+`PODIUM_STREAK` varre os últimos 12 meses fechados; mês sem nenhuma atribuição da equipe
+quebra a sequência. `TOP_THREE` e `PODIUM_STREAK` usam o `rank()` da 3B, mas com o filtro
+`points > 0` das badges — divergência intencional com o ranking, que soma negativos.
+
+Detalhes nas specs da [Fase 2D](specs/fase-2d-badges.md) e da
+[Fase 3E](specs/fase-3e-badges-de-fase-3.md).
 
 ---
 
@@ -864,24 +885,24 @@ não existe, nem se calcula pontuação sem atribuição.
 | Entrega | Cobre | Estado |
 | --- | --- | --- |
 | **2A — Catálogo de KPIs** | 2.1 | entregue |
-| **2B — Atribuições** | 2.2, 2.3 | spec em `docs/specs/fase-2b-atribuicoes.md` |
-| **2C — Pontuação, níveis e perfil** | 2.4 a 2.7, 2.9 | spec em `docs/specs/fase-2c-pontuacao-e-niveis.md` |
-| **2D — Badges** | 2.8 | entregue — `docs/specs/fase-2d-badges.md` |
+| **2B — Atribuições** | 2.2, 2.3 | entregue — `docs/specs/fase-2b-atribuicoes.md` |
+| **2C — Pontuação, níveis e perfil** | 2.4 a 2.7, 2.9 | entregue — `docs/specs/fase-2c-pontuacao-e-niveis.md` |
+| **2D — Badges** | 2.8 | entregue — `docs/specs/fase-2d-badges.md`; as quatro de Fase 3 destravadas na 3E (`docs/specs/fase-3e-badges-de-fase-3.md`) |
 
 * [x] Admin consegue criar KPI. · 2A
 * [x] Admin consegue editar KPI. · 2A
 * [x] Admin consegue desativar KPI. · 2A
 * [x] Admin consegue listar KPIs. · 2A
-* [ ] Admin consegue atribuir KPI. · 2B
-* [ ] Admin consegue atribuir KPI para múltiplos membros. · 2B
-* [ ] Admin consegue revogar atribuição. · 2B
-* [ ] Histórico permanece após revogação. · 2B
-* [ ] Pontuação considera somente atribuições válidas. · 2C
-* [ ] Member consegue visualizar seus KPIs. · 2C
-* [ ] Member consegue visualizar seus pontos. · 2C
-* [ ] Pontuação por categoria funciona. · 2C
-* [ ] Nível é calculado corretamente. · 2C
-* [x] Badges são calculados corretamente. · 2D
+* [x] Admin consegue atribuir KPI. · 2B
+* [x] Admin consegue atribuir KPI para múltiplos membros. · 2B
+* [x] Admin consegue revogar atribuição. · 2B
+* [x] Histórico permanece após revogação. · 2B
+* [x] Pontuação considera somente atribuições válidas. · 2C
+* [x] Member consegue visualizar seus KPIs. · 2C
+* [x] Member consegue visualizar seus pontos. · 2C
+* [x] Pontuação por categoria funciona. · 2C
+* [x] Nível é calculado corretamente. · 2C
+* [x] Badges são calculados corretamente. · 2D e 3E
 * [x] Member não consegue executar ações administrativas. · 2A
 
 ---
@@ -1034,17 +1055,17 @@ O histórico deve permanecer disponível.
 
 # 3.7 — Ranking
 
-Criar serviço centralizado para cálculo do ranking.
+**Entregue na Fase 3B.** Detalhes em [`specs/fase-3b-ranking.md`](specs/fase-3b-ranking.md)
+e [`modules/ranking.md`](modules/ranking.md).
 
-```text
-RankingService
-```
-
-Critérios:
+A ordenação é função pura em `shared/ranking/rank.ts`, reusada por dashboard (3D) e
+badges (3E). Desempate em três níveis, com posições sempre sequenciais (1, 2, 3 — nunca
+compartilhadas):
 
 ```text
 1. Pontuação total DESC
 2. Quantidade de KPIs DESC
+3. Nome ASC (pt-BR, Intl.Collator)
 ```
 
 ---
@@ -1052,25 +1073,21 @@ Critérios:
 ## Ranking
 
 ```http
-GET /ranking
+GET /ranking?period=month
 ```
 
-Períodos:
+`protectedProcedure`. `period` aceita `week`, `month`, `quarter`, `all`; padrão `all`.
 
-```text
-week
-month
-quarter
-all
-```
+| Período | Janela | Quem pode |
+| --- | --- | --- |
+| `week` | semana ISO, segunda 00:00 a domingo | ADMIN e MEMBER |
+| `month` | mês de calendário | ADMIN e MEMBER |
+| `quarter` | trimestre de calendário | só ADMIN — MEMBER recebe `403 PERIOD_NOT_ALLOWED` |
+| `all` | sem janela | ADMIN e MEMBER |
 
-Para Member:
-
-```text
-week
-month
-all
-```
+As janelas são de calendário no fuso `America/Sao_Paulo`. Todo usuário ativo entra,
+ADMIN incluído, mesmo com 0 pontos; usuário desativado sai inclusive dos períodos
+passados. Pontuação soma atribuições com `revokedAt IS NULL` — negativa subtrai.
 
 ---
 
@@ -1079,59 +1096,76 @@ all
 ```json
 {
   "period": "month",
-  "ranking": [
+  "periodStart": "2026-08-01",
+  "periodEnd": "2026-08-31",
+  "items": [
     {
       "position": 1,
-      "userId": "...",
-      "name": "Maria",
+      "member": { "id": "...", "name": "Maria", "position": "Designer", "role": "MEMBER" },
       "points": 1200,
-      "kpiCount": 25
+      "kpiCount": 25,
+      "change": 2,
+      "isMe": false
     },
     {
       "position": 2,
-      "userId": "...",
-      "name": "João",
+      "member": { "id": "...", "name": "João", "position": null, "role": "MEMBER" },
       "points": 1100,
-      "kpiCount": 22
+      "kpiCount": 22,
+      "change": null,
+      "isMe": true
     }
-  ]
+  ],
+  "me": { "position": 2, "points": 1100, "kpiCount": 22, "change": null }
 }
 ```
 
-O membro autenticado deve poder ser identificado/destacado pelo frontend.
+`position` é a colocação; o cargo fica em `member.position`. `periodStart` e `periodEnd`
+vêm `null` em `all`. `isMe` e o bloco `me` identificam o membro autenticado — `me` é
+`null` se ele não está no ranking. Sem paginação: a equipe inteira vem numa resposta.
+
+`change` é a variação de posição contra o período anterior (positivo = subiu). Vem de
+`ranking_snapshot`, materializada **na leitura**: a primeira leitura depois da virada
+congela a janela anterior já fechada (nunca a corrente), andando para trás até achar
+snapshot, com teto de 12 janelas. Janela sem nenhuma atribuição não vira snapshot.
+Usuário ausente do snapshot anterior recebe `change: null`; `all` sempre `null`.
 
 ---
 
 # 3.8 — Dashboard do Member
 
-Criar endpoint agregador:
+**Entregue na Fase 3D.** Detalhes em [`specs/fase-3d-dashboards.md`](specs/fase-3d-dashboards.md).
 
 ```http
 GET /dashboard/member
 ```
 
-Deve retornar os dados necessários para montar o dashboard existente.
-
-Exemplo:
+`protectedProcedure` — ADMIN também tem o próprio dashboard de membro.
 
 ```json
 {
-  "user": {
-    "name": "João"
-  },
+  "user": { "id": "...", "name": "João", "position": "Dev", "role": "MEMBER" },
   "points": 850,
-  "rankingPosition": 4,
   "kpiCount": 18,
+  "rankingPosition": 4,
+  "teamSize": 12,
   "level": {
-    "level": 6,
-    "tier": "COMPROMETIDO",
-    "progress": 75
+    "level": 6, "tier": "COMPROMETIDO", "currentPoints": 850, "levelFloor": 700,
+    "nextLevel": 7, "nextLevelPoints": 900, "progress": 75, "nextTier": "DESTAQUE"
   },
-  "recentKpis": []
+  "recentKpis": [
+    { "id": "...", "kpiId": "...", "name": "Resolveu bug crítico", "category": "PERFORMANCE",
+      "points": 25, "note": null, "assignedAt": "2026-09-05T14:12:00.000Z" }
+  ]
 }
 ```
 
-O endpoint deve evitar que o frontend precise executar várias requisições para obter informações que pertencem ao mesmo contexto do dashboard.
+* `level` é o objeto completo de § 2.7, idêntico ao de `/me/score`.
+* `rankingPosition` é a posição no ranking `all`; `teamSize` é o total de ativos.
+* `recentKpis` traz as cinco últimas atribuições **válidas**, decrescente.
+* Usuário desativado com token ainda válido recebe `403 MEMBER_INACTIVE`.
+
+Uma requisição, uma resposta, sem cache nem agregado gravado.
 
 ---
 
@@ -1141,57 +1175,76 @@ O endpoint deve evitar que o frontend precise executar várias requisições par
 GET /dashboard/admin
 ```
 
-Retornar:
-
-* total de membros ativos;
-* KPIs atribuídos na semana;
-* KPIs atribuídos no mês;
-* ranking;
-* últimas atribuições;
-* membros sem KPIs nos últimos 30 dias.
-
-Exemplo:
+`adminProcedure`.
 
 ```json
 {
-  "members": {
-    "active": 25
-  },
-  "kpis": {
-    "week": 32,
-    "month": 142
-  },
-  "ranking": [],
+  "members": { "active": 25, "total": 27 },
+  "kpis": { "week": 32, "month": 142 },
+  "meetings": { "week": 2, "month": 8, "open": 1 },
+  "points": { "week": 410, "month": 1820 },
+  "ranking": [
+    { "position": 1, "member": { "id": "...", "name": "Maria", "position": "Designer", "role": "MEMBER" },
+      "points": 1200, "kpiCount": 25 }
+  ],
   "recentAssignments": [],
-  "membersWithoutKpis": []
+  "membersWithoutKpis": [
+    { "id": "...", "name": "Bia", "position": null, "lastAssignmentAt": "2026-07-20T...", "daysWithout": 50 }
+  ]
 }
 ```
+
+| Bloco | O que é | Janela |
+| --- | --- | --- |
+| `members.active` / `.total` | usuários ativos / todos | — |
+| `kpis.week` / `.month` | atribuições válidas criadas | semana ISO / mês corrente |
+| `points.week` / `.month` | soma de `points` das válidas | semana ISO / mês corrente |
+| `meetings.week` / `.month` | reuniões pela `date` | semana ISO / mês corrente |
+| `meetings.open` | reuniões com `closedAt IS NULL` | — |
+| `ranking` | top 5, sem `change` e sem `isMe` — não grava snapshot | mês corrente |
+| `recentAssignments` | últimas 10, válidas e revogadas, com `user` | — |
+| `membersWithoutKpis` | ativos sem atribuição válida; quem nunca recebeu conta desde o `createdAt` | 30 dias corridos |
+
+As janelas de semana e mês são de calendário (`America/Sao_Paulo`), as mesmas do
+ranking. `membersWithoutKpis` é a exceção deliberada: janela deslizante, ordenada do
+maior `daysWithout` para o menor.
 
 ---
 
 # 3.10 — Histórico de atribuições
 
+**Entregue na Fase 3C.** Detalhes em
+[`specs/fase-3c-historico-de-atribuicoes.md`](specs/fase-3c-historico-de-atribuicoes.md).
+
 ```http
 GET /kpi-assignments
 ```
 
-Apenas Admin.
+Apenas Admin — MEMBER recebe 403.
 
-Filtros:
-
-```text
-userId
-kpiId
-category
-from
-to
-```
+| Filtro | Tipo | Padrão |
+| --- | --- | --- |
+| `userId` | uuid | todos |
+| `kpiId` | uuid | todos |
+| `category` | categoria de KPI | todas |
+| `from` | `YYYY-MM-DD` | sem limite |
+| `to` | `YYYY-MM-DD` | sem limite |
+| `revoked` | boolean | ambos |
+| `page` | int ≥ 1 | 1 |
+| `limit` | int 1–100 | 20 |
 
 Exemplo:
 
 ```http
-GET /kpi-assignments?userId=...&from=2026-08-01&to=2026-08-30
+GET /kpi-assignments?userId=...&from=2026-08-01&to=2026-08-31
 ```
+
+Paginado no mesmo shape de `GET /members`: `items`, `page`, `limit`, `total`,
+`totalPages`. `from` e `to` são dias **inclusivos** nas duas pontas, em
+`America/Sao_Paulo` — `to=2026-08-31` inclui o que aconteceu às 23h59 do dia 31; `to`
+anterior a `from` é 400. Cada linha traz o KPI e o `user` (`id`, `name`, `position`).
+Ordenado por `assignedAt` decrescente, desempate por `id`. `userId` inexistente devolve
+lista vazia, não 404. `GET /members/:id/kpi-assignments` da 2B continua como estava.
 
 ---
 
@@ -1232,13 +1285,13 @@ O histórico deverá permitir ao Admin visualizar:
 * [x] Admin consegue encerrar reunião.
 * [x] Reunião encerrada não aceita novas atribuições.
 * [x] Histórico da reunião permanece disponível.
-* [ ] Ranking semanal funciona.
-* [ ] Ranking mensal funciona.
-* [ ] Ranking total funciona.
-* [ ] Critério de desempate funciona.
-* [ ] Dashboard Member funciona.
-* [ ] Dashboard Admin funciona.
-* [ ] Histórico de atribuições funciona.
+* [x] Ranking semanal funciona. · 3B
+* [x] Ranking mensal funciona. · 3B
+* [x] Ranking total funciona. · 3B
+* [x] Critério de desempate funciona. · 3B
+* [x] Dashboard Member funciona. · 3D
+* [x] Dashboard Admin funciona. · 3D
+* [x] Histórico de atribuições funciona. · 3C
 
 ---
 
@@ -1437,7 +1490,8 @@ Ranking utiliza pontuação como critério principal.
 
 ### RB11 — Desempate
 
-Quantidade de KPIs é o segundo critério.
+Quantidade de KPIs é o segundo critério; nome em ordem alfabética pt-BR é o terceiro.
+Posições são sequenciais, nunca compartilhadas.
 
 ---
 
@@ -1540,68 +1594,68 @@ A API será considerada concluída quando:
 
 ### Auth
 
-* [ ] Login funcionando.
-* [ ] Refresh funcionando.
-* [ ] Logout funcionando.
-* [ ] JWT funcionando.
-* [ ] Authorization funcionando.
+* [x] Login funcionando.
+* [x] Refresh funcionando.
+* [x] Logout funcionando.
+* [x] JWT funcionando.
+* [x] Authorization funcionando.
 
 ### Members
 
-* [ ] Listagem.
-* [ ] Detalhes.
-* [ ] Convites.
-* [ ] Cadastro via convite.
-* [ ] Desativação.
+* [x] Listagem.
+* [x] Detalhes.
+* [x] Convites.
+* [x] Cadastro via convite.
+* [x] Desativação.
 
 ### KPIs
 
-* [ ] CRUD.
-* [ ] Categorias.
-* [ ] Ativação/desativação.
+* [x] CRUD.
+* [x] Categorias.
+* [x] Ativação/desativação.
 
 ### Assignments
 
-* [ ] Individual.
-* [ ] Em massa.
-* [ ] Revogação.
-* [ ] Histórico.
+* [x] Individual.
+* [x] Em massa.
+* [x] Revogação.
+* [x] Histórico.
 
 ### Gamificação
 
-* [ ] Pontuação.
-* [ ] Níveis.
-* [ ] Progresso.
-* [ ] Badges.
+* [x] Pontuação.
+* [x] Níveis.
+* [x] Progresso.
+* [x] Badges.
 
 ### Meetings
 
-* [ ] Criação.
-* [ ] Participantes.
-* [ ] Presença.
-* [ ] Atribuições.
-* [ ] Encerramento.
-* [ ] Histórico.
+* [x] Criação.
+* [x] Participantes.
+* [x] Presença.
+* [x] Atribuições.
+* [x] Encerramento.
+* [x] Histórico.
 
 ### Ranking
 
-* [ ] Semana.
-* [ ] Mês.
-* [ ] Total.
-* [ ] Desempate.
+* [x] Semana.
+* [x] Mês.
+* [x] Total.
+* [x] Desempate.
 
 ### Dashboards
 
-* [ ] Dashboard Admin.
-* [ ] Dashboard Member.
-* [ ] Perfil Member.
+* [x] Dashboard Admin.
+* [x] Dashboard Member.
+* [x] Perfil Member.
 
 ### Qualidade
 
-* [ ] Schemas de entrada/saída.
-* [ ] Tratamento de erros.
-* [ ] Testes das regras críticas.
-* [ ] API integrada ao frontend existente.
+* [x] Schemas de entrada/saída.
+* [x] Tratamento de erros.
+* [x] Testes das regras críticas.
+* [ ] API integrada ao frontend existente. — telas ainda consomem `apps/web/src/mocks/`; migração é story de web.
 
 ---
 
@@ -1707,3 +1761,14 @@ DASHBOARDS
 ```
 
 O objetivo final não é apenas disponibilizar endpoints isolados, mas garantir que **todo o fluxo de reconhecimento do KPICorp funcione de ponta a ponta através da API**.
+
+## Estado
+
+**Lado da API: completo**, em desenvolvimento local — as entregas 2A a 3E estão
+implementadas e cobertas por teste, e § 1.7, § 2.10 e § 3.12 estão atendidos. Não há
+deploy, CI nem release.
+
+O marco acima **ainda não foi atingido**: ele exige o frontend rodando sem mocks, e as
+telas de `apps/web/` continuam consumindo `apps/web/src/mocks/`. O que falta é trabalho de
+web, registrado nas **Consequências registradas** de cada spec em `docs/specs/`. Rate
+limiting em `login`, `register` e `refresh` segue inexistente.

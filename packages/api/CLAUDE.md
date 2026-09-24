@@ -154,7 +154,7 @@ npm run test          # da raiz
 npx vitest            # watch, de dentro do pacote
 ```
 
-378 testes, **nenhum precisa de banco**.
+509 testes em 25 arquivos, **nenhum precisa de banco**.
 
 | Arquivo | Mocka |
 | --- | --- |
@@ -163,7 +163,12 @@ npx vitest            # watch, de dentro do pacote
 | `tests/modules/auth/tokens.test.ts` | nada |
 | `tests/modules/meetings/service.test.ts` | `meetingsRepository` inteiro |
 | `tests/modules/meetings/router.test.ts` | `meetingsService` inteiro |
-| `tests/shared/**` | nada |
+| `tests/modules/ranking/service.test.ts` | `rankingRepository` inteiro |
+| `tests/modules/ranking/router.test.ts` | `rankingService` inteiro |
+| `tests/modules/dashboard/service.test.ts` | `dashboardRepository` inteiro |
+| `tests/modules/dashboard/router.test.ts` | `dashboardService` inteiro |
+| `tests/modules/assignments/router.test.ts` | `assignmentsService` inteiro |
+| `tests/shared/**` | nada — `errors`, `security`, `ranking`, `gamification` |
 
 ```ts
 vi.mock("../../../modules/auth/auth.repository", () => ({
@@ -190,4 +195,5 @@ quebra. Foi por isso que o seed hasheia senha com `bcryptjs` direto.
 
 - Rate limiting em `login`, `register` e `refresh` — não existe.
 - Limpeza de `refresh_token` revogado/expirado — a tabela só cresce.
-- Próximos módulos da API — `ranking` (3B), `assignments history` (3C), `dashboards` (3D) e badges de Fase 3 (3E), ver `docs/MVP_API_ROADMAP.md`.
+- A API do MVP está completa (3A a 3E entregues). O que falta do produto é a migração do
+  front para fora do mock — story de web, não deste pacote.

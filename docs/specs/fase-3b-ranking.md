@@ -1,6 +1,6 @@
 # Spec — Fase 3B: Ranking
 
-**Fase:** 3 · **Status:** proposta, aguardando validação · **Data:** 2026-09-08
+**Fase:** 3 · **Status:** entregue · **Data:** 2026-09-08 · **Entregue em:** 2026-09-23
 
 Referência: [MVP_API_ROADMAP.md § 3.7](../MVP_API_ROADMAP.md) ·
 Depende de: Fase 2B — Atribuições
@@ -449,19 +449,19 @@ mecânico.
 
 ## Critérios de aceite
 
-- [ ] Ranking semanal funciona
-- [ ] Ranking mensal funciona
-- [ ] Ranking trimestral funciona, só para ADMIN
-- [ ] Ranking total funciona
-- [ ] Critério de desempate funciona, nos três níveis
-- [ ] Ordem é estável entre duas requisições idênticas
-- [ ] Membro autenticado é identificável na resposta
-- [ ] Variação de posição contra o período anterior funciona
-- [ ] Snapshot só é gravado para período já fechado
-- [ ] Duas leituras simultâneas não duplicam snapshot
-- [ ] MEMBER recebe 403 ao pedir `quarter`
-- [ ] Usuário desativado não aparece no ranking
-- [ ] `shared/ranking/` não importa nada de `modules/`
+- [x] Ranking semanal funciona
+- [x] Ranking mensal funciona
+- [x] Ranking trimestral funciona, só para ADMIN
+- [x] Ranking total funciona
+- [x] Critério de desempate funciona, nos três níveis
+- [x] Ordem é estável entre duas requisições idênticas
+- [x] Membro autenticado é identificável na resposta
+- [x] Variação de posição contra o período anterior funciona
+- [x] Snapshot só é gravado para período já fechado
+- [x] Duas leituras simultâneas não duplicam snapshot
+- [x] MEMBER recebe 403 ao pedir `quarter`
+- [x] Usuário desativado não aparece no ranking
+- [x] `shared/ranking/` não importa nada de `modules/`
 
 ---
 
@@ -490,3 +490,16 @@ mock. A reescrita é story de web e o front continua no mock até ela acontecer.
 
 **Não há ranking por categoria.** O roadmap não pede e nenhuma tela mostra. É `groupBy`
 com mais uma coluna quando virar requisito, sem migration.
+
+---
+
+## Notas da entrega
+
+**Sem desvio de contrato.** Endpoint, shape, erros, migration e regras saíram como escritos.
+
+- `windowOf` teve o ternário aninhado trocado pela função `startDayOf`, pela regra do
+  repositório de não aninhar ternário. Comportamento idêntico, testes inalterados.
+- Testes puros em `src/tests/shared/ranking/` (`periods`, `rank`); service e router em
+  `src/tests/modules/ranking/`. "Usuário desativado não aparece" é garantido pelo `where
+  active: true` do repository — a suíte não tem banco, e o caso foi validado contra o
+  Postgres local.

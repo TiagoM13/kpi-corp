@@ -1,6 +1,6 @@
 # Spec — Fase 3D: Dashboards
 
-**Fase:** 3 · **Status:** proposta, aguardando validação · **Data:** 2026-09-08
+**Fase:** 3 · **Status:** entregue · **Data:** 2026-09-08 · **Entregue em:** 2026-09-23
 
 Referência: [MVP_API_ROADMAP.md § 3.8 e § 3.9](../MVP_API_ROADMAP.md) ·
 Depende de: Fase 3A — Reuniões · Fase 3B — Ranking · Fase 3C — Histórico de atribuições
@@ -279,6 +279,7 @@ tela de ranking, e `change` obrigaria o dashboard a mexer em snapshot.
 | Erro | `code` | HTTP |
 | --- | --- | --- |
 | `MemberInactiveError` | `MEMBER_INACTIVE` | 403 |
+| `MemberNotFoundError` | `MEMBER_NOT_FOUND` | 404 |
 
 Redeclarado em `dashboard.errors.ts` com o mesmo `code` de `assignments` e `meetings`. O
 status muda: em `assignments` é `409` — "não pode receber atribuição" —, aqui é `403` —
@@ -347,17 +348,17 @@ misturado com feature nova esconde qual dos dois quebrou o teste.
 
 ## Critérios de aceite
 
-- [ ] Dashboard Member funciona
-- [ ] Dashboard Admin funciona
-- [ ] Dashboard do membro traz pontos, contagem, posição, nível e KPIs recentes
-- [ ] `level` do dashboard é idêntico ao de `/me/score`
-- [ ] Contadores de semana e de mês usam janela de calendário
-- [ ] `membersWithoutKpis` usa 30 dias corridos e inclui quem nunca recebeu nada
-- [ ] Ranking embutido no dashboard do Admin é do mês corrente, top 5
-- [ ] Nenhuma das duas rotas grava snapshot de ranking
-- [ ] Regra de níveis existe em um lugar só, em `shared/gamification/`
-- [ ] MEMBER recebe 403 em `/dashboard/admin`
-- [ ] Módulo `dashboard` não importa de `profile`, `ranking`, `assignments`, `meetings` nem `members`
+- [x] Dashboard Member funciona
+- [x] Dashboard Admin funciona
+- [x] Dashboard do membro traz pontos, contagem, posição, nível e KPIs recentes
+- [x] `level` do dashboard é idêntico ao de `/me/score`
+- [x] Contadores de semana e de mês usam janela de calendário
+- [x] `membersWithoutKpis` usa 30 dias corridos e inclui quem nunca recebeu nada
+- [x] Ranking embutido no dashboard do Admin é do mês corrente, top 5
+- [x] Nenhuma das duas rotas grava snapshot de ranking
+- [x] Regra de níveis existe em um lugar só, em `shared/gamification/`
+- [x] MEMBER recebe 403 em `/dashboard/admin`
+- [x] Módulo `dashboard` não importa de `profile`, `ranking`, `assignments`, `meetings` nem `members`
 
 Com estes, o § 3.12 fica todo atendido. Falta só a 3E, que fecha o § 2.10 da Fase 2.
 
@@ -388,3 +389,21 @@ de badge. Se a tela inicial quiser exibir conquistas recentes, a fonte é `/me/p
 por período com 7d / 30d / 90d / all. Nenhuma rota desta spec devolve série. O § 3.9 não
 pede, é `groupBy` por dia sobre `assignedAt` quando virar requisito, e o gráfico continua
 no mock até lá.
+
+---
+
+## Notas da entrega
+
+- Rotas `dashboard.getMember` (`GET /dashboard/member`) e `dashboard.getAdmin`
+  (`GET /dashboard/admin`).
+- Erro extra `MemberNotFoundError` — 404 `MEMBER_NOT_FOUND` — quando o usuário do token
+  não existe mais. Mesmo tratamento de `/me/profile`.
+- **`meetings.week` e `.month` recortam por dia de calendário, não por instante.**
+  `meeting.date` é dia gravado como meia-noite UTC pelo `calendarDateSchema` da 3A;
+  recortá-lo com os instantes de São Paulo jogaria a reunião de segunda-feira para a
+  semana anterior. `kpis` e `points` seguem com os instantes de `periods.ts`.
+- `membersWithoutKpis` inclui quem tem a referência — última atribuição válida, ou
+  `createdAt` para quem nunca recebeu — há **30 dias ou mais**, ordenado por
+  `daysWithout` decrescente.
+- `level` vem de `shared/gamification`; o teste de níveis mudou para
+  `src/tests/shared/gamification/levels.test.ts` sem alteração de casos.

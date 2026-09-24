@@ -1,6 +1,6 @@
 # Spec — Fase 3C: Histórico de atribuições
 
-**Fase:** 3 · **Status:** proposta, aguardando validação · **Data:** 2026-09-08
+**Fase:** 3 · **Status:** entregue · **Data:** 2026-09-08 · **Entregue em:** 2026-09-23
 
 Referência: [MVP_API_ROADMAP.md § 3.10](../MVP_API_ROADMAP.md) ·
 Depende de: Fase 2B — Atribuições
@@ -245,7 +245,7 @@ Nenhum erro de domínio novo. Toda validação é de schema:
 - ordenada por `assignedAt` decrescente, desempate por `id`
 - traz `user` com nome e cargo, e o KPI embutido
 - traz revogadas e não revogadas por padrão
-- lista vazia devolve `items: []`, `total: 0`, `totalPages: 0`
+- lista vazia devolve `items: []`, `total: 0`, `totalPages: 1` (ver Notas da entrega)
 
 **Filtros**
 - `userId` restringe a um membro
@@ -276,17 +276,17 @@ Nenhum erro de domínio novo. Toda validação é de schema:
 
 ## Critérios de aceite
 
-- [ ] Admin lista todas as atribuições
-- [ ] Filtro por membro funciona
-- [ ] Filtro por KPI funciona
-- [ ] Filtro por categoria funciona
-- [ ] Filtro por intervalo de datas funciona, inclusivo nas duas pontas
-- [ ] Filtro por revogação funciona
-- [ ] Filtros combinados funcionam juntos
-- [ ] Paginação funciona no mesmo shape de `GET /members`
-- [ ] Cada linha traz o nome do membro
-- [ ] `GET /members/{id}/kpi-assignments` da 2B continua funcionando como antes
-- [ ] MEMBER recebe 403
+- [x] Admin lista todas as atribuições
+- [x] Filtro por membro funciona
+- [x] Filtro por KPI funciona
+- [x] Filtro por categoria funciona
+- [x] Filtro por intervalo de datas funciona, inclusivo nas duas pontas
+- [x] Filtro por revogação funciona
+- [x] Filtros combinados funcionam juntos
+- [x] Paginação funciona no mesmo shape de `GET /members`
+- [x] Cada linha traz o nome do membro
+- [x] `GET /members/{id}/kpi-assignments` da 2B continua funcionando como antes
+- [x] MEMBER recebe 403
 
 ---
 
@@ -305,3 +305,19 @@ volume real.
 atribuições — `apps/web/src/lib/activity-feed.ts` monta um feed sobre `mocks/activity.ts`.
 Esta rota é a fonte real daquele feed, e a 3D a reusa em `recentAssignments`. A migração
 do front é story de web.
+
+---
+
+## Notas da entrega
+
+**`totalPages` de lista vazia é 1, não 0.** A spec pedia o mesmo shape de paginação de
+`GET /members`, e `GET /members` e `GET /meetings` calculam `Math.max(1, ceil(total /
+limit))`. Seguir a fórmula da casa é o que evita dois comportamentos para o mesmo campo; o
+caso de teste acima foi ajustado.
+
+- `from` e `to` continuam `string` `YYYY-MM-DD` no schema — validados por regex e
+  round-trip — e o service converte com `dayStart`/`dayEnd` de `shared/time`.
+- A rota é `assignments.list` (`GET /kpi-assignments`). Router test novo em
+  `src/tests/modules/assignments/router.test.ts`, que também trava
+  `GET /members/{id}/kpi-assignments` sem paginação.
+- A ordenação `assignedAt desc, id desc` é do repository; validada contra o Postgres local.
