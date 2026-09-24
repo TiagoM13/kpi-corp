@@ -74,4 +74,17 @@ describe("levelFor", () => {
 	it("resolves a score between thresholds", () => {
 		expect(levelFor(600)).toMatchObject({ level: 5, levelFloor: 500 });
 	});
+
+	it("treats a negative score as level 0 with no progress", () => {
+		expect(levelFor(-50)).toEqual({
+			level: 0,
+			tier: "INICIANTE",
+			currentPoints: -50,
+			levelFloor: 0,
+			nextLevel: 1,
+			nextLevelPoints: 100,
+			progress: 0,
+			nextTier: "INICIANTE",
+		});
+	});
 });
