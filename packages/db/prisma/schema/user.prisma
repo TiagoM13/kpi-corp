@@ -13,6 +13,7 @@ model User {
   meetings      MeetingAttendee[]
   refreshTokens RefreshToken[]
   badges        UserBadge[]
+  rankingSnapshots RankingSnapshot[]
 
   @@map("user")
 }

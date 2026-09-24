@@ -1,0 +1,24 @@
+model RankingSnapshot {
+  id          String        @id @default(uuid()) @db.Uuid
+  period      RankingPeriod
+  periodStart DateTime      @db.Date
+  userId      String        @db.Uuid
+  position    Int
+  points      Int
+  kpiCount    Int
+  createdAt   DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([period, periodStart, userId])
+  @@index([period, periodStart])
+  @@map("ranking_snapshot")
+}
+
+enum RankingPeriod {
+  WEEK
+  MONTH
+  QUARTER
+
+  @@map("ranking_period")
+}
