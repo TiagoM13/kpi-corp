@@ -12,6 +12,7 @@ export type ScoredAssignmentRow = {
 
 export type MyAssignmentsFilter = {
 	revoked?: boolean;
+	positiveOnly?: boolean;
 };
 
 const BADGE_ASSIGNMENT_WHERE = { revokedAt: null, points: { gt: 0 } } as const;
@@ -56,7 +57,11 @@ export const profileRepository = {
 
 	listAssignments(userId: string, filter: MyAssignmentsFilter) {
 		return prisma.kpiAssignment.findMany({
-			where: { userId, ...revokedWhere(filter) },
+			where: {
+				userId,
+				...revokedWhere(filter),
+				...(filter.positiveOnly ? { points: { gt: 0 } } : {}),
+			},
 			orderBy: { assignedAt: "desc" },
 			select: {
 				id: true,

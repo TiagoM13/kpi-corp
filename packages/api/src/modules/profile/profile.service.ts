@@ -188,7 +188,10 @@ export const profileService = {
 		const [{ total, categories, level }, { items: kpis }, badges] =
 			await Promise.all([
 				profileService.getMyScore(userId),
-				profileService.getMyKpis(userId, { revoked: false }),
+				profileService.getMyKpis(userId, {
+					revoked: false,
+					positiveOnly: true,
+				}),
 				profileService.getMyBadges(userId),
 			]);
 
