@@ -4,6 +4,16 @@
 **Método:** leitura estática de código. Nenhum teste executado, API não subiu.
 **Branch:** `api/fase-3b-ranking`.
 
+## Status
+
+| Item | Situação |
+| --- | --- |
+| 1 — presença paga em dobro | ✅ Corrigido — lock da linha de `meeting` |
+| 2 — RB09 na reunião | ✅ Corrigido — `assignKpi` confere membro ativo |
+| 3 — refresh como access token | ✅ Corrigido — `typ` + validação de payload + env |
+| 4 — duplicação | ✅ Corrigido — `shared/schemas`, `shared/mappers`, `shared/errors` |
+| 5 a 13 | Em aberto |
+
 ## Resumo
 
 Nenhuma falha crítica de segurança. Há um risco sério: presença pode ser paga em dobro se
