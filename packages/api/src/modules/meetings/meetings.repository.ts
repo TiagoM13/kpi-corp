@@ -70,6 +70,10 @@ export const meetingsRepository = {
 		return db.meeting.findUnique({ where: { id } });
 	},
 
+	lockForUpdate(id: string, db: DbClient) {
+		return db.$queryRaw`SELECT id FROM "meeting" WHERE id = ${id}::uuid FOR UPDATE`;
+	},
+
 	findCreator(id: string, db: DbClient = prisma) {
 		return db.user.findUnique({
 			where: { id },

@@ -79,6 +79,8 @@ async function getDetail(
 }
 
 async function findOpenMeetingOrThrow(id: string, db: MeetingsDbClient) {
+	await meetingsRepository.lockForUpdate(id, db);
+
 	const meeting = await meetingsRepository.findById(id, db);
 
 	if (!meeting) {
@@ -242,6 +244,8 @@ export const meetingsService = {
 
 	async end(id: string): Promise<MeetingDetail> {
 		return meetingsRepository.transaction(async (tx) => {
+			await meetingsRepository.lockForUpdate(id, tx);
+
 			const meeting = await meetingsRepository.findById(id, tx);
 
 			if (!meeting) {
