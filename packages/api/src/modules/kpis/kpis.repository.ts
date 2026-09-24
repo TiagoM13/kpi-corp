@@ -1,5 +1,6 @@
 import prisma from "@kpi-corp/db";
-
+import type { Kpi } from "@kpi-corp/db/prisma/generated/client";
+import { Prisma } from "@kpi-corp/db/prisma/generated/client";
 import type { KpiCategory } from "@kpi-corp/db/prisma/generated/enums";
 
 export type KpiWritableData = {
@@ -35,9 +36,34 @@ function whereFrom(filter: ListKpisFilter) {
 	};
 }
 
+const UNIQUE_CONSTRAINT_VIOLATION = "P2002";
+const RECORD_NOT_FOUND = "P2025";
+
+function isPrismaError(error: unknown, code: string) {
+	return (
+		error instanceof Prisma.PrismaClientKnownRequestError && error.code === code
+	);
+}
+
+async function write(run: () => Promise<Kpi>) {
+	try {
+		return { outcome: "OK" as const, kpi: await run() };
+	} catch (error) {
+		if (isPrismaError(error, UNIQUE_CONSTRAINT_VIOLATION)) {
+			return { outcome: "NAME_TAKEN" as const };
+		}
+
+		if (isPrismaError(error, RECORD_NOT_FOUND)) {
+			return { outcome: "NOT_FOUND" as const };
+		}
+
+		throw error;
+	}
+}
+
 export const kpisRepository = {
 	create(data: KpiWritableData) {
-		return prisma.kpi.create({ data });
+		return write(() => prisma.kpi.create({ data }));
 	},
 
 	list(filter: ListKpisFilter) {
@@ -61,11 +87,11 @@ export const kpisRepository = {
 	},
 
 	update(id: string, data: KpiWritableData) {
-		return prisma.kpi.update({ where: { id }, data });
+		return write(() => prisma.kpi.update({ where: { id }, data }));
 	},
 
 	setStatus(id: string, active: boolean) {
-		return prisma.kpi.update({ where: { id }, data: { active } });
+		return write(() => prisma.kpi.update({ where: { id }, data: { active } }));
 	},
 };
 

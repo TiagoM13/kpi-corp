@@ -1,4 +1,3 @@
-import { Prisma } from "@kpi-corp/db/prisma/generated/client";
 import { env } from "@kpi-corp/env/server";
 import {
 	EmailAlreadyRegisteredError,
@@ -33,8 +32,6 @@ import {
 	verifyRefreshToken,
 	verifyTokenHash,
 } from "./auth.tokens";
-
-const UNIQUE_CONSTRAINT_VIOLATION = "P2002";
 
 export type Session = {
 	accessToken: string;
@@ -195,26 +192,22 @@ export const authService = {
 
 		const passwordHash = await hashPassword(input.password);
 
-		const result = await authRepository
-			.executeRegisterTransaction(invitation.id, {
+		const result = await authRepository.executeRegisterTransaction(
+			invitation.id,
+			{
 				name: input.name,
 				email: invitation.email,
 				position: input.position ?? null,
 				passwordHash,
 				role: "MEMBER",
-			})
-			.catch((error: unknown) => {
-				if (
-					error instanceof Prisma.PrismaClientKnownRequestError &&
-					error.code === UNIQUE_CONSTRAINT_VIOLATION
-				) {
-					throw new EmailAlreadyRegisteredError();
-				}
+			},
+		);
 
-				throw error;
-			});
+		if (result.outcome === "EMAIL_TAKEN") {
+			throw new EmailAlreadyRegisteredError();
+		}
 
-		if (!result.success) {
+		if (result.outcome === "ALREADY_USED") {
 			throw new InvitationAlreadyUsedError();
 		}
 

@@ -1,5 +1,3 @@
-import { Prisma } from "@kpi-corp/db/prisma/generated/client";
-
 import { KpiNotFoundError } from "../../shared/errors/common.errors";
 import { KpiNameTakenError } from "./kpis.errors";
 import { type Kpi, mapKpi } from "./kpis.mapper";
@@ -8,15 +6,6 @@ import {
 	kpisRepository,
 	type ListKpisFilter,
 } from "./kpis.repository";
-
-const UNIQUE_CONSTRAINT_VIOLATION = "P2002";
-const RECORD_NOT_FOUND = "P2025";
-
-function isPrismaError(error: unknown, code: string) {
-	return (
-		error instanceof Prisma.PrismaClientKnownRequestError && error.code === code
-	);
-}
 
 export type CreateKpiInput = {
 	name: string;
@@ -36,17 +25,23 @@ function writableFrom(input: CreateKpiInput): KpiWritableData {
 	};
 }
 
+function kpiOrThrow(
+	result: Awaited<ReturnType<typeof kpisRepository.update>>,
+): Kpi {
+	if (result.outcome === "NAME_TAKEN") {
+		throw new KpiNameTakenError();
+	}
+
+	if (result.outcome === "NOT_FOUND") {
+		throw new KpiNotFoundError();
+	}
+
+	return mapKpi(result.kpi);
+}
+
 export const kpisService = {
 	async create(input: CreateKpiInput): Promise<Kpi> {
-		try {
-			return mapKpi(await kpisRepository.create(writableFrom(input)));
-		} catch (error) {
-			if (isPrismaError(error, UNIQUE_CONSTRAINT_VIOLATION)) {
-				throw new KpiNameTakenError();
-			}
-
-			throw error;
-		}
+		return kpiOrThrow(await kpisRepository.create(writableFrom(input)));
 	},
 
 	async list(filter: ListKpisFilter) {
@@ -66,31 +61,13 @@ export const kpisService = {
 	},
 
 	async update(input: UpdateKpiInput): Promise<Kpi> {
-		try {
-			return mapKpi(await kpisRepository.update(input.id, writableFrom(input)));
-		} catch (error) {
-			if (isPrismaError(error, UNIQUE_CONSTRAINT_VIOLATION)) {
-				throw new KpiNameTakenError();
-			}
-
-			if (isPrismaError(error, RECORD_NOT_FOUND)) {
-				throw new KpiNotFoundError();
-			}
-
-			throw error;
-		}
+		return kpiOrThrow(
+			await kpisRepository.update(input.id, writableFrom(input)),
+		);
 	},
 
 	async setStatus(id: string, active: boolean): Promise<Kpi> {
-		try {
-			return mapKpi(await kpisRepository.setStatus(id, active));
-		} catch (error) {
-			if (isPrismaError(error, RECORD_NOT_FOUND)) {
-				throw new KpiNotFoundError();
-			}
-
-			throw error;
-		}
+		return kpiOrThrow(await kpisRepository.setStatus(id, active));
 	},
 };
 
