@@ -5,7 +5,7 @@ import type {
 } from "@kpi-corp/db/prisma/generated/client";
 import type { KpiCategory } from "@kpi-corp/db/prisma/generated/enums";
 
-import type { LevelInfo } from "./profile.levels";
+import type { LevelInfo } from "../../shared/gamification";
 
 export type MyKpi = {
 	id: string;
