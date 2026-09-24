@@ -3210,7 +3210,7 @@
         "member"
        ]
       },
-      "description": "Requer `accessToken` (Admin ou Member). Todo autenticado tem o proprio dashboard de membro — Admin tambem acumula KPI.\n\nTraz `user`, `points` e `kpiCount` validos, `rankingPosition` no ranking geral (period=all) com `teamSize`, `level` completo (o mesmo de `/me/score`) e as cinco ultimas atribuicoes validas em `recentKpis`.\n\nUsuario desativado com token ainda valido recebe 403 `MEMBER_INACTIVE`."
+      "description": "Requer `accessToken` (Admin ou Member). Todo autenticado tem o proprio dashboard de membro — Admin tambem acumula KPI.\n\nTraz `user`, `points` e `kpiCount` validos, `rankingPosition` no ranking geral (period=all) com `teamSize`, `level` completo (o mesmo de `/me/score`) e as cinco ultimas atribuicoes validas em `recentKpis`.\n\nUsuario desativado perde a sessao (401 no contexto); se ainda chegar aqui, 403 `ACCOUNT_DEACTIVATED`."
      },
      "event": [
       {
