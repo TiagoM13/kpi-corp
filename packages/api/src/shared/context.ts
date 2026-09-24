@@ -1,6 +1,7 @@
 import type { IncomingHttpHeaders } from "node:http";
 
 import { verifyAccessToken } from "./security/access-token";
+import { sessionRepository } from "./security/session.repository";
 
 export async function createContext(headers: IncomingHttpHeaders) {
 	const authHeader = headers.authorization ?? "";
@@ -12,11 +13,15 @@ export async function createContext(headers: IncomingHttpHeaders) {
 	if (token) {
 		try {
 			const payload = await verifyAccessToken(token);
-			auth = {
-				userId: payload.sub,
-				email: payload.email,
-				role: payload.role,
-			};
+			const user = await sessionRepository.findUserStatus(payload.sub);
+
+			if (user?.active) {
+				auth = {
+					userId: payload.sub,
+					email: payload.email,
+					role: user.role,
+				};
+			}
 		} catch {
 			auth = null;
 		}
