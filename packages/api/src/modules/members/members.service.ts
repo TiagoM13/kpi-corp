@@ -1,4 +1,5 @@
 import { env } from "@kpi-corp/env/server";
+import { normalizeEmail } from "../../shared/email";
 import {
 	EmailAlreadyRegisteredError,
 	MemberNotFoundError,
@@ -36,10 +37,6 @@ export type InviteResult = {
 
 function inviteUrlFor(token: string) {
 	return new URL(`/invite/${token}`, env.WEB_APP_URL).toString();
-}
-
-function normalizeEmail(email: string) {
-	return email.trim().toLowerCase();
 }
 
 export const membersService = {

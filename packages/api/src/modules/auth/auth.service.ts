@@ -1,4 +1,5 @@
 import { env } from "@kpi-corp/env/server";
+import { normalizeEmail } from "../../shared/email";
 import {
 	EmailAlreadyRegisteredError,
 	AccountDeactivatedError,
@@ -76,7 +77,9 @@ async function issueSession(user: UserForAuthMapping): Promise<Session> {
 
 export const authService = {
 	async login(input: LoginInput): Promise<Session> {
-		const user = await authRepository.findUserByEmail(input.email);
+		const user = await authRepository.findUserByEmail(
+			normalizeEmail(input.email),
+		);
 
 		const passwordMatches = await verifyPassword(
 			input.password,
