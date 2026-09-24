@@ -6,7 +6,7 @@ import {
 	MAX_LEVEL,
 	MAX_POINTS,
 	tierFor,
-} from "../../../modules/profile/profile.levels";
+} from "../../../shared/gamification";
 
 describe("levelFor", () => {
 	it("returns level 0 with no points", () => {
