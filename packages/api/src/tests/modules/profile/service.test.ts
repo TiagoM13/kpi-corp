@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MemberNotFoundError } from "../../../modules/profile/profile.errors";
 import { profileService } from "../../../modules/profile/profile.service";
+import { MemberNotFoundError } from "../../../shared/errors/common.errors";
 
 const { repositoryMock } = vi.hoisted(() => ({
 	repositoryMock: {

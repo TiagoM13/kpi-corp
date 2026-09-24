@@ -1,11 +1,9 @@
 import { Prisma } from "@kpi-corp/db/prisma/generated/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-	KpiNameTakenError,
-	KpiNotFoundError,
-} from "../../../modules/kpis/kpis.errors";
+import { KpiNameTakenError } from "../../../modules/kpis/kpis.errors";
 import { kpisService } from "../../../modules/kpis/kpis.service";
+import { KpiNotFoundError } from "../../../shared/errors/common.errors";
 
 const { repositoryMock } = vi.hoisted(() => ({
 	repositoryMock: {

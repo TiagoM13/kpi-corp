@@ -2,16 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
 	AttendeeNotPresentError,
-	KpiInactiveError,
-	KpiNotFoundError,
 	KpiNotPresenceError,
 	MeetingAlreadyClosedError,
 	MeetingClosedError,
 	MeetingNotFoundError,
-	MemberInactiveError,
-	MemberNotFoundError,
 } from "../../../modules/meetings/meetings.errors";
 import { meetingsService } from "../../../modules/meetings/meetings.service";
+import {
+	KpiInactiveError,
+	KpiNotFoundError,
+	MemberInactiveError,
+	MemberNotFoundError,
+} from "../../../shared/errors/common.errors";
 
 const { repositoryMock } = vi.hoisted(() => ({
 	repositoryMock: {

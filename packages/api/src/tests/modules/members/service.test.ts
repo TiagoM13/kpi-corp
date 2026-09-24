@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	CannotDeactivateSelfError,
 	LastAdminCannotBeDeactivatedError,
-	MemberNotFoundError,
 } from "../../../modules/members/members.errors";
 import { membersService } from "../../../modules/members/members.service";
+import { MemberNotFoundError } from "../../../shared/errors/common.errors";
 
 const WEB_APP_URL = "https://app.kpicorp.test";
 const CORS_ORIGIN = "https://cors.kpicorp.test";

@@ -1,10 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-	MemberInactiveError,
-	MemberNotFoundError,
-} from "../../../modules/dashboard/dashboard.errors";
+import { MemberInactiveError } from "../../../modules/dashboard/dashboard.errors";
 import { dashboardService } from "../../../modules/dashboard/dashboard.service";
+import { MemberNotFoundError } from "../../../shared/errors/common.errors";
 import { levelFor } from "../../../shared/gamification";
 
 const { repositoryMock } = vi.hoisted(() => ({
