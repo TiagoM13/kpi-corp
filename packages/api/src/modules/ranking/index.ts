@@ -1,8 +1,5 @@
 export { PeriodNotAllowedError } from "./ranking.errors";
-export {
-	type AggregatedMember,
-	toRankableRow,
-} from "./ranking.mapper";
+export type { AggregatedMember } from "./ranking.mapper";
 export {
 	type RankingPeriodKey,
 	type RankingRepository,

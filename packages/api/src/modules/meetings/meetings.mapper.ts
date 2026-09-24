@@ -1,11 +1,14 @@
 import type {
-	Kpi as PrismaKpi,
-	KpiAssignment as PrismaKpiAssignment,
 	Meeting as PrismaMeeting,
 	MeetingAttendee as PrismaMeetingAttendee,
 	User as PrismaUser,
 } from "@kpi-corp/db/prisma/generated/client";
-import type { KpiCategory } from "@kpi-corp/db/prisma/generated/enums";
+
+import {
+	type KpiAssignment,
+	type KpiAssignmentForMapping,
+	mapKpiAssignment,
+} from "../../shared/mappers";
 
 export type MeetingStatus = "OPEN" | "CLOSED";
 
@@ -27,60 +30,6 @@ export type MeetingAttendee = {
 	presentAt: Date | null;
 };
 
-// Mesmo shape que a 2B devolve.
-export type MeetingAssignment = {
-	id: string;
-	kpiId: string;
-	userId: string;
-	assignedBy: string;
-	meetingId: string | null;
-	note: string | null;
-	points: number;
-	revokedAt: Date | null;
-	assignedAt: Date;
-	kpi: {
-		id: string;
-		name: string;
-		category: KpiCategory;
-	};
-};
-
-export type MeetingAssignmentForMapping = Pick<
-	PrismaKpiAssignment,
-	| "id"
-	| "kpiId"
-	| "userId"
-	| "assignedBy"
-	| "meetingId"
-	| "note"
-	| "points"
-	| "revokedAt"
-	| "assignedAt"
-> & {
-	kpi: Pick<PrismaKpi, "id" | "name" | "category">;
-};
-
-export function mapMeetingAssignment(
-	assignment: MeetingAssignmentForMapping,
-): MeetingAssignment {
-	return {
-		id: assignment.id,
-		kpiId: assignment.kpiId,
-		userId: assignment.userId,
-		assignedBy: assignment.assignedBy,
-		meetingId: assignment.meetingId,
-		note: assignment.note,
-		points: assignment.points,
-		revokedAt: assignment.revokedAt,
-		assignedAt: assignment.assignedAt,
-		kpi: {
-			id: assignment.kpi.id,
-			name: assignment.kpi.name,
-			category: assignment.kpi.category,
-		},
-	};
-}
-
 export type MeetingDetail = {
 	id: string;
 	title: string;
@@ -90,7 +39,7 @@ export type MeetingDetail = {
 	createdAt: Date;
 	createdBy: MeetingCreator;
 	attendees: MeetingAttendee[];
-	assignments: MeetingAssignment[];
+	assignments: KpiAssignment[];
 };
 
 export type MeetingDetailForMapping = Pick<
@@ -100,7 +49,7 @@ export type MeetingDetailForMapping = Pick<
 	attendees: (Pick<PrismaMeetingAttendee, "userId" | "presentAt"> & {
 		user: Pick<PrismaUser, "name" | "position">;
 	})[];
-	assignments: MeetingAssignmentForMapping[];
+	assignments: KpiAssignmentForMapping[];
 };
 
 export function mapMeetingDetail(
@@ -121,7 +70,7 @@ export function mapMeetingDetail(
 			position: attendee.user.position,
 			presentAt: attendee.presentAt,
 		})),
-		assignments: meeting.assignments.map(mapMeetingAssignment),
+		assignments: meeting.assignments.map(mapKpiAssignment),
 	};
 }
 

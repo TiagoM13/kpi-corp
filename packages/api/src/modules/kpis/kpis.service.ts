@@ -1,6 +1,7 @@
 import { Prisma } from "@kpi-corp/db/prisma/generated/client";
 
-import { KpiNameTakenError, KpiNotFoundError } from "./kpis.errors";
+import { KpiNotFoundError } from "../../shared/errors/common.errors";
+import { KpiNameTakenError } from "./kpis.errors";
 import { type Kpi, mapKpi } from "./kpis.mapper";
 import {
 	type KpiWritableData,

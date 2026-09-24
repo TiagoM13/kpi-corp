@@ -1,6 +1,4 @@
 export {
-	type MeetingAssignment,
-	type MeetingAssignmentForMapping,
 	type MeetingAttendee,
 	type MeetingCreator,
 	type MeetingDetail,
@@ -8,7 +6,6 @@ export {
 	type MeetingListItem,
 	type MeetingListItemForMapping,
 	type MeetingStatus,
-	mapMeetingAssignment,
 	mapMeetingDetail,
 	mapMeetingListItem,
 	mapMeetingStatus,

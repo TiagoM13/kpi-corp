@@ -1,5 +1,7 @@
 import z from "zod";
 
+import { emptyAsUndefined } from "../../shared/schemas";
+
 export const MAX_INVITES_PER_REQUEST = 50;
 
 const memberSchema = z.object({
@@ -11,9 +13,6 @@ const memberSchema = z.object({
 	active: z.boolean(),
 	createdAt: z.date(),
 });
-
-const emptyAsUndefined = (value: unknown) =>
-	typeof value === "string" && value.trim() === "" ? undefined : value;
 
 export const listMembersInputSchema = z.object({
 	page: z.preprocess(

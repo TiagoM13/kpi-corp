@@ -1,18 +1,19 @@
 import {
-	AttendeeNotPresentError,
 	KpiInactiveError,
 	KpiNotFoundError,
+	MemberInactiveError,
+	MemberNotFoundError,
+} from "../../shared/errors/common.errors";
+import { type KpiAssignment, mapKpiAssignment } from "../../shared/mappers";
+import {
+	AttendeeNotPresentError,
 	KpiNotPresenceError,
 	MeetingAlreadyClosedError,
 	MeetingClosedError,
 	MeetingNotFoundError,
-	MemberInactiveError,
-	MemberNotFoundError,
 } from "./meetings.errors";
 import {
-	type MeetingAssignment,
 	type MeetingDetail,
-	mapMeetingAssignment,
 	mapMeetingDetail,
 	mapMeetingListItem,
 } from "./meetings.mapper";
@@ -202,7 +203,7 @@ export const meetingsService = {
 		id: string,
 		input: AssignMeetingKpiInput,
 		assignedBy: string,
-	): Promise<MeetingAssignment> {
+	): Promise<KpiAssignment> {
 		return meetingsRepository.transaction(async (tx) => {
 			await findOpenMeetingOrThrow(id, tx);
 
@@ -241,7 +242,7 @@ export const meetingsService = {
 				tx,
 			);
 
-			return mapMeetingAssignment(assignment);
+			return mapKpiAssignment(assignment);
 		});
 	},
 

@@ -1,43 +1,17 @@
 import z from "zod";
 
-export const kpiCategorySchema = z.enum([
-	"PRESENCE",
-	"PERFORMANCE",
-	"BEHAVIOR",
-	"INITIATIVE",
-]);
-
-const assignmentKpiSchema = z.object({
-	id: z.string(),
-	name: z.string(),
-	category: kpiCategorySchema,
-});
-
-export const kpiAssignmentSchema = z.object({
-	id: z.string(),
-	kpiId: z.string(),
-	userId: z.string(),
-	assignedBy: z.string(),
-	meetingId: z.string().nullable(),
-	note: z.string().nullable(),
-	points: z.number(),
-	revokedAt: z.date().nullable(),
-	assignedAt: z.date(),
-	kpi: assignmentKpiSchema,
-});
+import {
+	assignmentHistoryItemSchema,
+	booleanFromQuery,
+	emptyAsUndefined,
+	kpiAssignmentSchema,
+	kpiCategorySchema,
+} from "../../shared/schemas";
 
 export const kpiAssignmentResponseSchema = kpiAssignmentSchema;
 
 export const listKpiAssignmentsResponseSchema = z.object({
 	items: z.array(kpiAssignmentSchema),
-});
-
-export const assignmentHistoryItemSchema = kpiAssignmentSchema.extend({
-	user: z.object({
-		id: z.string(),
-		name: z.string(),
-		position: z.string().nullable(),
-	}),
 });
 
 export const assignmentHistoryResponseSchema = z.object({
@@ -66,36 +40,11 @@ export const bulkAssignKpisInputSchema = assignKpiWritableSchema.extend({
 		}),
 });
 
-const booleanFromQuery = (value: unknown) => {
-	if (typeof value !== "string") {
-		return value;
-	}
-
-	const normalized = value.trim().toLowerCase();
-
-	if (normalized === "") {
-		return undefined;
-	}
-
-	if (normalized === "true") {
-		return true;
-	}
-
-	if (normalized === "false") {
-		return false;
-	}
-
-	return normalized;
-};
-
 export const listMemberKpiAssignmentsInputSchema = z.object({
 	id: z.uuid(),
 	category: kpiCategorySchema.optional(),
 	revoked: z.preprocess(booleanFromQuery, z.boolean().optional()),
 });
-
-const emptyAsUndefined = (value: unknown) =>
-	typeof value === "string" && value.trim() === "" ? undefined : value;
 
 const calendarDaySchema = z
 	.string()

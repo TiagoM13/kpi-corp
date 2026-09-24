@@ -1,13 +1,9 @@
-export { MemberInactiveError, MemberNotFoundError } from "./dashboard.errors";
+export { MemberInactiveError } from "./dashboard.errors";
 export {
-	type AggregatedMember,
 	type DashboardMember,
 	mapDashboardMember,
-	mapRecentAssignment,
 	mapRecentKpi,
-	type RecentAssignment,
 	type RecentKpi,
-	toRankableRow,
 } from "./dashboard.mapper";
 export {
 	type DashboardRepository,

@@ -27,3 +27,20 @@ export function rank(rows: RankableRow[]): RankedRow[] {
 
 	return sorted.map((row, index) => ({ ...row, position: index + 1 }));
 }
+
+export type RankableMember = {
+	id: string;
+	name: string;
+	assignedKpis: { points: number }[];
+};
+
+// Soma e contagem acontecem aqui, fora do Prisma: pontuação negativa subtrai
+// e ainda assim conta em kpiCount — é contagem de eventos, não de elogios.
+export function toRankableRow(member: RankableMember): RankableRow {
+	return {
+		userId: member.id,
+		name: member.name,
+		points: member.assignedKpis.reduce((sum, item) => sum + item.points, 0),
+		kpiCount: member.assignedKpis.length,
+	};
+}

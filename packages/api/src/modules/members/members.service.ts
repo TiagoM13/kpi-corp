@@ -1,10 +1,12 @@
 import { env } from "@kpi-corp/env/server";
-import { EmailAlreadyRegisteredError } from "../../shared/errors/common.errors";
+import {
+	EmailAlreadyRegisteredError,
+	MemberNotFoundError,
+} from "../../shared/errors/common.errors";
 import { generateOpaqueToken } from "../../shared/security/tokens";
 import {
 	CannotDeactivateSelfError,
 	LastAdminCannotBeDeactivatedError,
-	MemberNotFoundError,
 } from "./members.errors";
 import { type Member, mapUserToMember } from "./members.mapper";
 import {

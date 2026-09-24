@@ -27,48 +27,12 @@ export class MeetingAlreadyClosedError extends DomainError {
 	}
 }
 
-export class KpiNotFoundError extends DomainError {
-	readonly code = "KPI_NOT_FOUND";
-	readonly status = "NOT_FOUND" as const;
-
-	constructor() {
-		super("KPI not found");
-	}
-}
-
-export class KpiInactiveError extends DomainError {
-	readonly code = "KPI_INACTIVE";
-	readonly status = "CONFLICT" as const;
-
-	constructor() {
-		super("Inactive KPIs cannot receive new assignments");
-	}
-}
-
 export class KpiNotPresenceError extends DomainError {
 	readonly code = "KPI_NOT_PRESENCE";
 	readonly status = "UNPROCESSABLE_CONTENT" as const;
 
 	constructor() {
 		super("Attendance requires a KPI of category PRESENCE");
-	}
-}
-
-export class MemberNotFoundError extends DomainError {
-	readonly code = "MEMBER_NOT_FOUND";
-	readonly status = "NOT_FOUND" as const;
-
-	constructor() {
-		super("Member not found");
-	}
-}
-
-export class MemberInactiveError extends DomainError {
-	readonly code = "MEMBER_INACTIVE";
-	readonly status = "CONFLICT" as const;
-
-	constructor() {
-		super("Inactive members cannot receive new assignments");
 	}
 }
 

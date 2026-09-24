@@ -1,12 +1,9 @@
+import { MemberNotFoundError } from "../../shared/errors/common.errors";
 import { levelFor } from "../../shared/gamification";
-import { rank, windowOf } from "../../shared/ranking";
-import { MemberInactiveError, MemberNotFoundError } from "./dashboard.errors";
-import {
-	mapDashboardMember,
-	mapRecentAssignment,
-	mapRecentKpi,
-	toRankableRow,
-} from "./dashboard.mapper";
+import { mapAssignmentHistoryItem } from "../../shared/mappers";
+import { rank, toRankableRow, windowOf } from "../../shared/ranking";
+import { MemberInactiveError } from "./dashboard.errors";
+import { mapDashboardMember, mapRecentKpi } from "./dashboard.mapper";
 import { dashboardRepository } from "./dashboard.repository";
 
 const RECENT_KPIS = 5;
@@ -129,7 +126,7 @@ export const dashboardService = {
 			},
 			points: { week: weekTotals.points, month: monthTotals.points },
 			ranking,
-			recentAssignments: recentAssignments.map(mapRecentAssignment),
+			recentAssignments: recentAssignments.map(mapAssignmentHistoryItem),
 			membersWithoutKpis,
 		};
 	},

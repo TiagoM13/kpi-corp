@@ -1,11 +1,6 @@
 import z from "zod";
 
-export const kpiCategorySchema = z.enum([
-	"PRESENCE",
-	"PERFORMANCE",
-	"BEHAVIOR",
-	"INITIATIVE",
-]);
+import { emptyAsUndefined, kpiAssignmentSchema } from "../../shared/schemas";
 
 export const meetingStatusSchema = z.enum(["OPEN", "CLOSED"]);
 
@@ -21,27 +16,7 @@ const meetingAttendeeSchema = z.object({
 	presentAt: z.date().nullable(),
 });
 
-// Mesmo shape que a 2B devolve: o mesmo dado nao pode ter duas formas por
-// ter entrado por outra porta. Redeclarado aqui porque modulo nao importa
-// de modulo.
-const meetingAssignmentKpiSchema = z.object({
-	id: z.string(),
-	name: z.string(),
-	category: kpiCategorySchema,
-});
-
-export const meetingAssignmentSchema = z.object({
-	id: z.string(),
-	kpiId: z.string(),
-	userId: z.string(),
-	assignedBy: z.string(),
-	meetingId: z.string().nullable(),
-	note: z.string().nullable(),
-	points: z.number(),
-	revokedAt: z.date().nullable(),
-	assignedAt: z.date(),
-	kpi: meetingAssignmentKpiSchema,
-});
+export const meetingAssignmentSchema = kpiAssignmentSchema;
 
 export const meetingDetailSchema = z.object({
 	id: z.string(),
@@ -131,9 +106,6 @@ export const assignMeetingKpiInputSchema = z.object({
 	userId: z.uuid(),
 	note: z.string().trim().max(500).nullish(),
 });
-
-const emptyAsUndefined = (value: unknown) =>
-	typeof value === "string" && value.trim() === "" ? undefined : value;
 
 export const listMeetingsInputSchema = z.object({
 	status: z.preprocess(

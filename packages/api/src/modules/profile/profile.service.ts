@@ -1,3 +1,4 @@
+import { MemberNotFoundError } from "../../shared/errors/common.errors";
 import { levelFor } from "../../shared/gamification";
 import {
 	type BadgeContractEntry,
@@ -5,7 +6,6 @@ import {
 	evaluateBadges,
 	podiumMonths,
 } from "./profile.badges";
-import { MemberNotFoundError } from "./profile.errors";
 import { mapMemberBase, mapMyKpi } from "./profile.mapper";
 import {
 	type MyAssignmentsFilter,

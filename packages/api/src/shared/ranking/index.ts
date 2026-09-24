@@ -4,4 +4,10 @@ export {
 	type RankingWindow,
 	windowOf,
 } from "./periods";
-export { type RankableRow, type RankedRow, rank } from "./rank";
+export {
+	type RankableMember,
+	type RankableRow,
+	type RankedRow,
+	rank,
+	toRankableRow,
+} from "./rank";

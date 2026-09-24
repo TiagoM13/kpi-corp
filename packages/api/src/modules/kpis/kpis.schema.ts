@@ -1,39 +1,13 @@
 import z from "zod";
 
+import {
+	booleanFromQuery,
+	emptyAsUndefined,
+	kpiCategorySchema,
+} from "../../shared/schemas";
+
 export const MIN_KPI_POINTS = 1;
 export const MAX_KPI_POINTS = 100;
-
-export const kpiCategorySchema = z.enum([
-	"PRESENCE",
-	"PERFORMANCE",
-	"BEHAVIOR",
-	"INITIATIVE",
-]);
-
-const emptyAsUndefined = (value: unknown) =>
-	typeof value === "string" && value.trim() === "" ? undefined : value;
-
-const booleanFromQuery = (value: unknown) => {
-	if (typeof value !== "string") {
-		return value;
-	}
-
-	const normalized = value.trim().toLowerCase();
-
-	if (normalized === "") {
-		return undefined;
-	}
-
-	if (normalized === "true") {
-		return true;
-	}
-
-	if (normalized === "false") {
-		return false;
-	}
-
-	return normalized;
-};
 
 const kpiSchema = z.object({
 	id: z.string(),

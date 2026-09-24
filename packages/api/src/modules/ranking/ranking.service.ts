@@ -2,10 +2,11 @@ import {
 	previousWindow,
 	type RankingWindow,
 	rank,
+	toRankableRow,
 	windowOf,
 } from "../../shared/ranking";
 import { PeriodNotAllowedError } from "./ranking.errors";
-import { type AggregatedMember, toRankableRow } from "./ranking.mapper";
+import type { AggregatedMember } from "./ranking.mapper";
 import { type RankingPeriodKey, rankingRepository } from "./ranking.repository";
 
 export type RankingPeriodParam = "week" | "month" | "quarter" | "all";

@@ -1,30 +1,10 @@
 import z from "zod";
 
-const kpiCategorySchema = z.enum([
-	"PRESENCE",
-	"PERFORMANCE",
-	"BEHAVIOR",
-	"INITIATIVE",
-]);
-
-const levelTierSchema = z.enum([
-	"INICIANTE",
-	"COMPROMETIDO",
-	"DESTAQUE",
-	"ELITE",
-	"LENDA",
-]);
-
-const levelSchema = z.object({
-	level: z.number(),
-	tier: levelTierSchema,
-	currentPoints: z.number(),
-	levelFloor: z.number(),
-	nextLevel: z.number().nullable(),
-	nextLevelPoints: z.number().nullable(),
-	progress: z.number(),
-	nextTier: levelTierSchema.nullable(),
-});
+import {
+	assignmentHistoryItemSchema,
+	kpiCategorySchema,
+	levelSchema,
+} from "../../shared/schemas";
 
 const dashboardMemberSchema = z.object({
 	id: z.string(),
@@ -60,28 +40,6 @@ const dashboardRankingEntrySchema = z.object({
 	kpiCount: z.number(),
 });
 
-const recentAssignmentSchema = z.object({
-	id: z.string(),
-	kpiId: z.string(),
-	userId: z.string(),
-	assignedBy: z.string(),
-	meetingId: z.string().nullable(),
-	note: z.string().nullable(),
-	points: z.number(),
-	revokedAt: z.date().nullable(),
-	assignedAt: z.date(),
-	kpi: z.object({
-		id: z.string(),
-		name: z.string(),
-		category: kpiCategorySchema,
-	}),
-	user: z.object({
-		id: z.string(),
-		name: z.string(),
-		position: z.string().nullable(),
-	}),
-});
-
 const memberWithoutKpisSchema = z.object({
 	id: z.string(),
 	name: z.string(),
@@ -104,6 +62,6 @@ export const adminDashboardResponseSchema = z.object({
 	meetings: weekMonthSchema.extend({ open: z.number().int() }),
 	points: weekMonthSchema,
 	ranking: z.array(dashboardRankingEntrySchema),
-	recentAssignments: z.array(recentAssignmentSchema),
+	recentAssignments: z.array(assignmentHistoryItemSchema),
 	membersWithoutKpis: z.array(memberWithoutKpisSchema),
 });

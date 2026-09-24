@@ -1,36 +1,16 @@
 import z from "zod";
 
-export const levelTierSchema = z.enum([
-	"INICIANTE",
-	"COMPROMETIDO",
-	"DESTAQUE",
-	"ELITE",
-	"LENDA",
-]);
-
-export const kpiCategorySchema = z.enum([
-	"PRESENCE",
-	"PERFORMANCE",
-	"BEHAVIOR",
-	"INITIATIVE",
-]);
+import {
+	booleanFromQuery,
+	kpiCategorySchema,
+	levelSchema,
+} from "../../shared/schemas";
 
 export const scoreCategoriesSchema = z.object({
 	presence: z.number(),
 	performance: z.number(),
 	behavior: z.number(),
 	initiative: z.number(),
-});
-
-export const levelSchema = z.object({
-	level: z.number(),
-	tier: levelTierSchema,
-	currentPoints: z.number(),
-	levelFloor: z.number(),
-	nextLevel: z.number().nullable(),
-	nextLevelPoints: z.number().nullable(),
-	progress: z.number(),
-	nextTier: levelTierSchema.nullable(),
 });
 
 export const badgeCodeSchema = z.enum([
@@ -118,28 +98,6 @@ export const publicProfileResponseSchema = z.object({
 	kpis: z.array(myKpiSchema),
 	badges: z.array(badgeSchema).length(10),
 });
-
-const booleanFromQuery = (value: unknown) => {
-	if (typeof value !== "string") {
-		return value;
-	}
-
-	const normalized = value.trim().toLowerCase();
-
-	if (normalized === "") {
-		return undefined;
-	}
-
-	if (normalized === "true") {
-		return true;
-	}
-
-	if (normalized === "false") {
-		return false;
-	}
-
-	return normalized;
-};
 
 export const myKpisInputSchema = z.object({
 	revoked: z.preprocess(booleanFromQuery, z.boolean().optional()),

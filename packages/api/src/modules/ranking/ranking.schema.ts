@@ -1,9 +1,8 @@
 import z from "zod";
 
-export const rankingPeriodSchema = z.enum(["week", "month", "quarter", "all"]);
+import { emptyAsUndefined } from "../../shared/schemas";
 
-const emptyAsUndefined = (value: unknown) =>
-	typeof value === "string" && value.trim() === "" ? undefined : value;
+export const rankingPeriodSchema = z.enum(["week", "month", "quarter", "all"]);
 
 export const rankingInputSchema = z.object({
 	period: z.preprocess(emptyAsUndefined, rankingPeriodSchema.default("all")),
