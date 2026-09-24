@@ -12,7 +12,15 @@
 | 2 — RB09 na reunião | ✅ Corrigido — `assignKpi` confere membro ativo |
 | 3 — refresh como access token | ✅ Corrigido — `typ` + validação de payload + env |
 | 4 — duplicação | ✅ Corrigido — `shared/schemas`, `shared/mappers`, `shared/errors` |
-| 5 a 13 | Em aberto |
+| 5 — service importa Prisma | ✅ Corrigido — repository devolve `outcome` |
+| 6 — `MEMBER_INACTIVE` 403 × 409 | ✅ Corrigido — dashboard usa `ACCOUNT_DEACTIVATED` |
+| 7 — atribuição em massa | ✅ Corrigido — validação na transação, `findMany`, teto 200 |
+| 8 — revogação sem trava | ✅ Corrigido — `updateMany` com `revokedAt: null` |
+| 9 — sessão de desativado | ✅ Corrigido — contexto confere `active` e `role` no banco |
+| 10 — login com maiúsculas | ✅ Corrigido — `normalizeEmail` compartilhado |
+| 11 — convite em texto puro | ✅ Corrigido — `tokenHash` SHA-256 + migration |
+| 12 — `levelFor` negativo | ✅ Corrigido — pontuação negativa vira nível 0 |
+| 13 — roadmap × código | ✅ Corrigido — filtro positivo no perfil público; roadmap com `emails[]` e § 9 marcado |
 
 ## Resumo
 
