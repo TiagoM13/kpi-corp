@@ -1,3 +1,4 @@
+import { dayEnd, dayStart } from "../../shared/time";
 import {
 	AssignmentAlreadyRevokedError,
 	AssignmentNotFoundError,
@@ -6,7 +7,12 @@ import {
 	MemberInactiveError,
 	MemberNotFoundError,
 } from "./assignments.errors";
-import { type KpiAssignment, mapKpiAssignment } from "./assignments.mapper";
+import {
+	type AssignmentHistoryItem,
+	type KpiAssignment,
+	mapAssignmentHistoryItem,
+	mapKpiAssignment,
+} from "./assignments.mapper";
 import {
 	type AssignmentWritableData,
 	assignmentsRepository,
@@ -17,6 +23,23 @@ export type AssignKpiInput = {
 	kpiId: string;
 	userId: string;
 	note?: string | null;
+};
+
+export type ListAssignmentsInput = ListMemberAssignmentsFilter & {
+	userId?: string;
+	kpiId?: string;
+	from?: string;
+	to?: string;
+	page: number;
+	limit: number;
+};
+
+export type AssignmentHistoryPage = {
+	items: AssignmentHistoryItem[];
+	page: number;
+	limit: number;
+	total: number;
+	totalPages: number;
 };
 
 export type BulkAssignKpisInput = {
@@ -103,6 +126,27 @@ export const assignmentsService = {
 		const assignments = await assignmentsRepository.listByUser(userId, filter);
 
 		return { items: assignments.map(mapKpiAssignment) };
+	},
+
+	async list(input: ListAssignmentsInput): Promise<AssignmentHistoryPage> {
+		const { items, total } = await assignmentsRepository.list({
+			userId: input.userId,
+			kpiId: input.kpiId,
+			category: input.category,
+			revoked: input.revoked,
+			from: input.from ? dayStart(input.from) : undefined,
+			to: input.to ? dayEnd(input.to) : undefined,
+			page: input.page,
+			limit: input.limit,
+		});
+
+		return {
+			items: items.map(mapAssignmentHistoryItem),
+			page: input.page,
+			limit: input.limit,
+			total,
+			totalPages: Math.max(1, Math.ceil(total / input.limit)),
+		};
 	},
 
 	async revoke(id: string): Promise<KpiAssignment> {

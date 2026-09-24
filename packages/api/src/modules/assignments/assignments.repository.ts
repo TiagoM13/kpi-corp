@@ -15,6 +15,15 @@ export type ListMemberAssignmentsFilter = {
 	revoked?: boolean;
 };
 
+export type ListAssignmentsFilter = ListMemberAssignmentsFilter & {
+	userId?: string;
+	kpiId?: string;
+	from?: Date;
+	to?: Date;
+	page: number;
+	limit: number;
+};
+
 const KPI_INCLUDE = {
 	select: { id: true, name: true, category: true },
 } as const;
@@ -25,6 +34,23 @@ function whereFrom(filter: ListMemberAssignmentsFilter) {
 		...(filter.revoked === undefined
 			? {}
 			: { revokedAt: filter.revoked ? { not: null } : null }),
+	};
+}
+
+function historyWhereFrom(filter: ListAssignmentsFilter) {
+	const assignedAt =
+		filter.from || filter.to
+			? {
+					...(filter.from ? { gte: filter.from } : {}),
+					...(filter.to ? { lt: filter.to } : {}),
+				}
+			: undefined;
+
+	return {
+		...whereFrom(filter),
+		...(filter.userId ? { userId: filter.userId } : {}),
+		...(filter.kpiId ? { kpiId: filter.kpiId } : {}),
+		...(assignedAt ? { assignedAt } : {}),
 	};
 }
 
@@ -59,6 +85,28 @@ export const assignmentsRepository = {
 			where: { userId, ...whereFrom(filter) },
 			orderBy: { assignedAt: "desc" },
 			include: { kpi: KPI_INCLUDE },
+		});
+	},
+
+	list(filter: ListAssignmentsFilter) {
+		const where = historyWhereFrom(filter);
+
+		return prisma.$transaction(async (tx) => {
+			const [items, total] = await Promise.all([
+				tx.kpiAssignment.findMany({
+					where,
+					orderBy: [{ assignedAt: "desc" }, { id: "desc" }],
+					skip: (filter.page - 1) * filter.limit,
+					take: filter.limit,
+					include: {
+						kpi: KPI_INCLUDE,
+						user: { select: { id: true, name: true, position: true } },
+					},
+				}),
+				tx.kpiAssignment.count({ where }),
+			]);
+
+			return { items, total };
 		});
 	},
 

@@ -1,6 +1,7 @@
 import type {
 	Kpi as PrismaKpi,
 	KpiAssignment as PrismaKpiAssignment,
+	User as PrismaUser,
 } from "@kpi-corp/db/prisma/generated/client";
 import type { KpiCategory } from "@kpi-corp/db/prisma/generated/enums";
 
@@ -55,6 +56,27 @@ export function mapKpiAssignment(
 			id: assignment.kpi.id,
 			name: assignment.kpi.name,
 			category: assignment.kpi.category,
+		},
+	};
+}
+
+export type AssignmentHistoryItem = KpiAssignment & {
+	user: { id: string; name: string; position: string | null };
+};
+
+export type AssignmentHistoryItemForMapping = KpiAssignmentForMapping & {
+	user: Pick<PrismaUser, "id" | "name" | "position">;
+};
+
+export function mapAssignmentHistoryItem(
+	assignment: AssignmentHistoryItemForMapping,
+): AssignmentHistoryItem {
+	return {
+		...mapKpiAssignment(assignment),
+		user: {
+			id: assignment.user.id,
+			name: assignment.user.name,
+			position: assignment.user.position,
 		},
 	};
 }

@@ -1,7 +1,10 @@
 export {
+	type AssignmentHistoryItem,
+	type AssignmentHistoryItemForMapping,
 	type AssignmentKpi,
 	type KpiAssignment,
 	type KpiAssignmentForMapping,
+	mapAssignmentHistoryItem,
 	mapKpiAssignment,
 } from "./assignments.mapper";
 export {
@@ -11,7 +14,9 @@ export {
 export { assignmentsRouter } from "./assignments.router";
 export {
 	type AssignKpiInput,
+	type AssignmentHistoryPage,
 	type AssignmentsService,
 	assignmentsService,
 	type BulkAssignKpisInput,
+	type ListAssignmentsInput,
 } from "./assignments.service";

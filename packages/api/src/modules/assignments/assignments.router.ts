@@ -2,9 +2,11 @@ import { adminProcedure } from "../../index";
 import { handle } from "../../shared/errors/handle";
 import {
 	assignKpiInputSchema,
+	assignmentHistoryResponseSchema,
 	assignmentIdInputSchema,
 	bulkAssignKpisInputSchema,
 	kpiAssignmentResponseSchema,
+	listKpiAssignmentsInputSchema,
 	listKpiAssignmentsResponseSchema,
 	listMemberKpiAssignmentsInputSchema,
 } from "./assignments.schema";
@@ -33,6 +35,12 @@ export const assignmentsRouter = {
 				return { items };
 			}),
 		),
+
+	list: adminProcedure
+		.route({ method: "GET", path: "/kpi-assignments" })
+		.input(listKpiAssignmentsInputSchema)
+		.output(assignmentHistoryResponseSchema)
+		.handler(({ input }) => handle(() => assignmentsService.list(input))),
 
 	listByMember: adminProcedure
 		.route({ method: "GET", path: "/members/{id}/kpi-assignments" })
