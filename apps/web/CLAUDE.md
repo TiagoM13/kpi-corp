@@ -34,7 +34,7 @@ apps/web/src/
 ├── routes/          # SÓ rotas — TanStack Router file-based, gera routeTree.gen.ts
 ├── pages/           # As telas de verdade (componentes de página)
 ├── components/      # Componentes compartilhados deste app
-├── lib/             # Lógica de domínio do cliente (auth e convite mock)
+├── lib/             # Lógica de domínio do cliente (sessão, auth, convite)
 ├── mocks/           # Dados fake enquanto a API não existe
 ├── utils/orpc.ts    # Client oRPC tipado + QueryClient
 ├── test/            # setup do Vitest + testes
@@ -74,75 +74,61 @@ Motivo: a tela fica testável e reaproveitável sem depender do router, e o `rou
 - `_authed.tsx` também envolve tudo no `AppShell` (sidebar + nav por perfil + botão sair).
 - Guard de perfil fica no `beforeLoad` da rota, nunca no componente. Perfil vem sempre da sessão, nunca de escolha do usuário na tela.
 
-## A API de auth já existe
+## Autenticação
 
-`packages/api` tem `auth.login`, `auth.register`, `auth.refresh`, `auth.logout` e
-`auth.me` implementados, testados e validados contra o banco. **O front ainda não os
-consome** — continua no mock descrito abaixo.
+Sessão real contra `packages/api`. Decisão e trade-offs na
+[ADR 0014](http://localhost:4000/docs/adr/0014-sessao-no-cliente).
 
-Ao migrar:
-
-| Hoje (mock) | Vira |
+| Arquivo | Papel |
 | --- | --- |
-| `signIn` em `lib/auth.ts` | `orpc.auth.login` |
-| `acceptInvite` em `lib/invite.ts` | `orpc.auth.register` |
-| sessão em `localStorage` | `accessToken` + `refreshToken` da resposta |
-| `getSession()` síncrono | precisa repensar os guards — hoje eles dependem de leitura síncrona |
+| `lib/session-store.ts` | **Único** dono da chave `kpicorp.session` (`accessToken`, `refreshToken`, snapshot do user) |
+| `lib/refresh.ts` | `createRefresher` (rotação com promise compartilhada) e `createSessionInterceptor` (retry 1×) |
+| `lib/auth.ts` | `signIn`, `signOut`, `getSession`, `startSession`, `syncSessionUser`, `homeRouteFor` |
+| `lib/use-revalidated-session.ts` | `auth.me` em segundo plano nos layouts `_authed` e `_focus` |
+| `utils/orpc.ts` | `headers` põe o Bearer; `interceptors` registra o interceptor de sessão |
 
-O ponto de atrito é o último: `beforeLoad` roda antes do render e hoje lê `localStorage`
-sem `await`. Com token real é preciso decidir onde o access token fica e como o refresh
-acontece antes de a rota resolver. Não é substituição linha a linha.
+Regras que os testes (`test/auth.test.ts`, `test/refresh.test.ts`) travam:
 
-Os erros vêm com `data.code` estável (`INVALID_CREDENTIALS`, `INVITATION_EXPIRED`, ...) —
-ramifique por ele, nunca pela mensagem. Contrato completo em `docs/modules/auth.md`.
+- `getSession()` é **síncrono** e devolve `null` com storage ausente, corrompido ou no
+  formato da sessão mock antiga — os guards rodam antes de qualquer render;
+- e-mail inexistente e senha errada dão **a mesma** mensagem; `ACCOUNT_DEACTIVATED` tem
+  mensagem própria;
+- login que falha não deixa sessão para trás;
+- `UNAUTHORIZED` **sem** `data.code` é token vencido: renova e repete **uma** vez. Com
+  `data.code` é erro de domínio e sobe direto. Ramifique por `data.code`
+  (`domainCodeOf`), nunca pela mensagem;
+- refreshes simultâneos viram **um** só — o servidor revoga tudo quando um refresh
+  reaparece (RN09);
+- refresh recusado (4xx) limpa a sessão; erro de rede não.
+
+**Fim de sessão tem um caminho só.** `clearStoredSession()` avisa os ouvintes; `main.tsx`
+roda `queryClient.clear()` e `router.invalidate()`, e os guards redirecionam. Não navegue
+para `/login` na mão depois de `signOut()`.
+
+`startSession(response)` é o único gravador do snapshot a partir de resposta da API.
+`signIn` e `acceptInvite` passam por ele.
 
 Credenciais do seed: `admin@kpicorp.com` / `admin123`, e três membros com `member123`
 (`npm run db:seed`).
 
-## Autenticação (mock — temporário)
+Esqueci a senha: **não existe** — nem tela nem endpoint. O link "esqueci" no login ainda
+aponta para `/login`.
 
-`src/lib/auth.ts` + `src/mocks/users.ts`. Sessão fake em `localStorage` (chave `kpicorp.mock-session`), senha única em texto puro (`kpicorp123`), sem token, sem expiração, sem API.
+## Convite
 
-Existe só para o protótipo navegar. `auth.login` **já existe** em `packages/api` — este mock é dívida ativa, não espera.
+`lib/invite.ts` consome `auth.validateInvite` (no `loader` de `/invite/$token`) e
+`auth.register` (no submit). Gere um link real com `members.invite` como admin — a
+resposta traz `inviteUrl`.
 
-Invariantes que os testes (`src/test/auth.test.ts`) travam e que devem continuar valendo:
+- só `VALID` devolve e-mail — recusa não diz para quem o link foi emitido;
+- perfil e e-mail nunca vão no corpo do cadastro; o servidor fixa `MEMBER` e usa o
+  e-mail do convite;
+- erro do `register` vira `InvalidInviteError(status)` pelo `data.code`
+  (`EMAIL_ALREADY_REGISTERED` cai em `USED`).
 
-- e-mail inexistente e senha errada retornam **a mesma** mensagem (não revela quais e-mails existem);
-- login que falha não deixa sessão para trás;
-- `getSession()` é síncrono (os guards rodam antes de qualquer render) e devolve `null` em vez de explodir quando o `localStorage` está indisponível ou corrompido.
-
-Ao trocar pelo backend real: mexer em `lib/auth.ts` e nas rotas, e apagar `mocks/users.ts`.
-
-`startSession(session)` é o único gravador da sessão. `signIn` e `acceptInvite` passam
-por ele — nada mais escreve a chave do `localStorage` direto.
-
-## Convite (mock — temporário)
-
-`src/lib/invite.ts` + `src/mocks/invites.ts`. Três tokens fixos, um por estado, e um TTL
-de 48h relativo ao carregamento do módulo (data fixa apodreceria e o convite válido
-viraria expirado sozinho).
-
-```
-/invite/convite-valido      formulário de cadastro
-/invite/convite-expirado    link expirado
-/invite/convite-usado       link já usado
-/invite/<qualquer-coisa>    link inválido
-```
-
-Regras que devem continuar valendo:
-
-- só o token válido devolve e-mail — recusa não diz para quem o link foi emitido;
-- `role: "MEMBER"` é fixado em `acceptInvite`, nunca vem do formulário;
-- o aceite queima o token em `kpicorp.mock-invites-used`; limpar o `localStorage` reseta.
-
-A conta criada **não** entra em `MOCK_USERS`: dá para navegar depois do cadastro, mas não
-dá para sair e entrar de novo por login. Some quando o front passar a chamar
-`orpc.auth.register`, que já grava no banco.
-
-Nota: o convite real vive na tabela `invitation`. A emissão **já existe**
-(`members.invite`, `POST /members/invitations`, devolve `inviteUrl`), mas **não há
-endpoint que valide um token antes do cadastro** — `auth.register` só consome. É essa
-lacuna que mantém `validateInvite` no mock. Ver pendências em `docs/modules/auth.md`.
+`mocks/users.ts` continua vivo só como elenco de `mocks/members.ts` (telas de ranking,
+membros e dashboards). Não participa do login. Como o `userId` real é UUID, o dashboard
+do membro cai no estado vazio até consumir a API.
 
 ## Dados / API
 
@@ -206,7 +192,7 @@ Variável nova **precisa** ser declarada em `packages/env/src/web.ts` (prefixo `
 A maior parte das telas ainda é `PagePlaceholder` (`src/components/page-placeholder.tsx`). Navegação, layout e guards funcionam; o conteúdo entra story a story.
 
 Implementado de verdade: login (`src/pages/login/`), cadastro por convite
-(`src/pages/invite/`), `AppShell`, sessão e convite mock.
+(`src/pages/invite/`), `AppShell`, sessão real com refresh.
 Placeholder: dashboards, KPIs, membros, ranking, modo reunião.
 
 Referência visual dos mockups: `docs/Mockup-KPICorp/` (screenshots + JSX de protótipo). Stories: `docs/stories/`.
