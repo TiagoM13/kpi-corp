@@ -8,6 +8,17 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-25 — Tela de KPIs integrada à API
+
+#### Adicionado
+- `GET /kpis` devolve `uses` por KPI: quantas atribuições válidas o usam.
+- Tela de KPIs do admin lista, cria, edita, inativa e reativa KPIs na API real. Nome
+  repetido aparece como erro no próprio campo (`KPI_NAME_TAKEN`).
+
+#### Alterado
+- A tela de KPIs deixa de usar o `kpi-store` em `localStorage`. O modo reunião continua
+  nele até ser integrado.
+
 ### 2026-09-25 — Tela de membros integrada à API
 
 #### Adicionado

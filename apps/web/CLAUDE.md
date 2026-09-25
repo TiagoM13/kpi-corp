@@ -193,12 +193,18 @@ A maior parte das telas ainda é `PagePlaceholder` (`src/components/page-placeho
 
 Implementado de verdade: login (`src/pages/login/`), cadastro por convite
 (`src/pages/invite/`), `AppShell`, sessão real com refresh e a tela de membros do admin
-(`src/pages/admin/members/`: lista, busca, paginação, convite e perfil).
-Ainda em mock: dashboards, KPIs, ranking, modo reunião.
+(`src/pages/admin/members/`: lista, busca, paginação, convite e perfil) e a tela de
+KPIs (`src/pages/admin/kpis/`: lista, cadastro, edição, ativar e inativar).
+Ainda em mock: dashboards, ranking, modo reunião.
 
 A tela de membros tem drawer próprio (`member-profile-drawer.tsx`) com dados da API.
 `components/member-detail/` continua em mock e segue servindo ranking e dashboard do
 membro — não troque um pelo outro até essas telas serem integradas. Tipos e adaptadores
 da API de membros ficam em `lib/members.ts`.
+
+A tela de KPIs busca o banco inteiro uma vez (`kpis.list` não pagina) e filtra no
+cliente. `lib/kpis.ts` converte o KPI da API para o tipo `Kpi` que `KpiTile` e a tabela
+já usam. Categoria da API (`PRESENCE`...) ↔ id da tela (`presenca`...) passa sempre por
+`lib/categories.ts`. `lib/kpi-store.ts` continua vivo só para o modo reunião.
 
 Referência visual dos mockups: `docs/Mockup-KPICorp/` (screenshots + JSX de protótipo). Stories: `docs/stories/`.
