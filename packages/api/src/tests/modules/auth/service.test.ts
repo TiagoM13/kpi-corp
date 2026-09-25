@@ -324,6 +324,73 @@ describe("auth service", () => {
 		});
 	});
 
+	describe("validateInvitation", () => {
+		it("should return the invitation email when the token is valid", async () => {
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce(
+				mockInvitation,
+			);
+
+			const result = await authService.validateInvitation("invite-token");
+
+			expect(result).toEqual({ status: "VALID", email: mockInvitation.email });
+			expect(repositoryMock.findInvitationByTokenHash).toHaveBeenCalledWith(
+				hashOpaqueToken("invite-token"),
+			);
+		});
+
+		it("should return INVALID when the token does not exist", async () => {
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce(null);
+
+			expect(await authService.validateInvitation("unknown")).toEqual({
+				status: "INVALID",
+			});
+		});
+
+		it("should return USED when the invitation was already consumed", async () => {
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce({
+				...mockInvitation,
+				usedAt: new Date(),
+			});
+
+			expect(await authService.validateInvitation("invite-token")).toEqual({
+				status: "USED",
+			});
+		});
+
+		it("should return EXPIRED when the invitation is past its deadline", async () => {
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce({
+				...mockInvitation,
+				expiresAt: new Date(Date.now() - 1000),
+			});
+
+			expect(await authService.validateInvitation("invite-token")).toEqual({
+				status: "EXPIRED",
+			});
+		});
+
+		it("should report USED before EXPIRED, like register does", async () => {
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce({
+				...mockInvitation,
+				usedAt: new Date(),
+				expiresAt: new Date(Date.now() - 1000),
+			});
+
+			expect(await authService.validateInvitation("invite-token")).toEqual({
+				status: "USED",
+			});
+		});
+
+		it("should not consume the invitation", async () => {
+			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce(
+				mockInvitation,
+			);
+
+			await authService.validateInvitation("invite-token");
+
+			expect(repositoryMock.executeRegisterTransaction).not.toHaveBeenCalled();
+		});
+	});
+
 	describe("register", () => {
 		it("should create a member from a valid invitation", async () => {
 			repositoryMock.findInvitationByTokenHash.mockResolvedValueOnce(

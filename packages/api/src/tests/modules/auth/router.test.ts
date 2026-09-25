@@ -13,6 +13,7 @@ const { serviceMock } = vi.hoisted(() => {
 			refreshSession: vi.fn(),
 			logout: vi.fn(),
 			register: vi.fn(),
+			validateInvitation: vi.fn(),
 		},
 	};
 });
@@ -42,6 +43,9 @@ function createCaller() {
 		refresh: createProcedureClient(authRouter.refresh, { context }),
 		logout: createProcedureClient(authRouter.logout, { context }),
 		register: createProcedureClient(authRouter.register, { context }),
+		validateInvite: createProcedureClient(authRouter.validateInvite, {
+			context,
+		}),
 	};
 }
 
@@ -146,6 +150,41 @@ describe("auth router", () => {
 				name: "Ana Souza",
 				password: "member123",
 			});
+		});
+	});
+
+	describe("validateInvite", () => {
+		it("should return the validation from service", async () => {
+			serviceMock.validateInvitation.mockResolvedValueOnce({
+				status: "VALID",
+				email: "new@kpicorp.com",
+			});
+
+			const caller = createCaller();
+			const result = await caller.validateInvite({ token: "invite-token" });
+
+			expect(result).toEqual({ status: "VALID", email: "new@kpicorp.com" });
+			expect(serviceMock.validateInvitation).toHaveBeenCalledWith(
+				"invite-token",
+			);
+		});
+
+		it("should not leak an email on a refused invitation", async () => {
+			serviceMock.validateInvitation.mockResolvedValueOnce({
+				status: "EXPIRED",
+			});
+
+			const caller = createCaller();
+			const result = await caller.validateInvite({ token: "invite-token" });
+
+			expect(result).toEqual({ status: "EXPIRED" });
+		});
+
+		it("should reject an empty token", async () => {
+			const caller = createCaller();
+
+			await expect(caller.validateInvite({ token: "" })).rejects.toThrow();
+			expect(serviceMock.validateInvitation).not.toHaveBeenCalled();
 		});
 	});
 
