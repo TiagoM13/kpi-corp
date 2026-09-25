@@ -1,6 +1,10 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { PERIOD_SLUGS, periodFromSlug } from "@/lib/ranking";
+import {
+	MEMBER_RANKING_PERIODS,
+	PERIOD_SLUGS,
+	periodFromSlug,
+} from "@/lib/ranking";
 import { MemberRankingPage } from "@/pages/member/ranking";
 
 export const Route = createFileRoute("/_authed/ranking")({
@@ -13,20 +17,19 @@ export const Route = createFileRoute("/_authed/ranking")({
 		}
 	},
 	validateSearch: (search: Record<string, unknown>) => ({
-		periodo: PERIOD_SLUGS[periodFromSlug(search.periodo)],
+		periodo:
+			PERIOD_SLUGS[periodFromSlug(search.periodo, MEMBER_RANKING_PERIODS)],
 	}),
 	component: MemberRankingRoute,
 });
 
 function MemberRankingRoute() {
-	const { session } = Route.useRouteContext();
 	const { periodo } = Route.useSearch();
 	const navigate = Route.useNavigate();
 
 	return (
 		<MemberRankingPage
-			memberId={session.userId}
-			period={periodFromSlug(periodo)}
+			period={periodFromSlug(periodo, MEMBER_RANKING_PERIODS)}
 			onPeriodChange={(period) =>
 				navigate({ search: { periodo: PERIOD_SLUGS[period] }, replace: true })
 			}

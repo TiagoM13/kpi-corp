@@ -11,13 +11,11 @@ export const Route = createFileRoute("/_authed/admin/ranking")({
 });
 
 function AdminRankingRoute() {
-	const { session } = Route.useRouteContext();
 	const { periodo } = Route.useSearch();
 	const navigate = Route.useNavigate();
 
 	return (
 		<AdminRankingPage
-			memberId={session.userId}
 			period={periodFromSlug(periodo)}
 			onPeriodChange={(period) =>
 				navigate({ search: { periodo: PERIOD_SLUGS[period] }, replace: true })

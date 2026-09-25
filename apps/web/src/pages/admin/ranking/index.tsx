@@ -1,30 +1,37 @@
 import { lazy, Suspense, useCallback, useState } from "react";
 import { RankingBoard } from "@/components/ranking";
-import type { RankingPeriod } from "@/lib/ranking";
-import type { Member } from "@/mocks/members";
+import {
+	RANKING_PERIODS,
+	type RankingPeriod,
+	type TeamRankingEntry,
+} from "@/lib/ranking";
 
-const MemberDetailDrawer = lazy(() =>
-	import("@/components/member-detail").then((module) => ({
-		default: module.MemberDetailDrawer,
+const ProfileSheet = lazy(() =>
+	import("@/components/member-profile/profile-sheet").then((module) => ({
+		default: module.ProfileSheet,
+	})),
+);
+
+const PublicMemberProfile = lazy(() =>
+	import("@/components/member-profile/public-profile").then((module) => ({
+		default: module.PublicMemberProfile,
 	})),
 );
 
 type AdminRankingPageProps = {
-	memberId: string;
 	period: RankingPeriod;
 	onPeriodChange: (period: RankingPeriod) => void;
 };
 
 export function AdminRankingPage({
-	memberId,
 	period,
 	onPeriodChange,
 }: AdminRankingPageProps) {
-	const [selected, setSelected] = useState<Member | null>(null);
+	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [detailOpen, setDetailOpen] = useState(false);
 
-	const openMember = useCallback((member: Member) => {
-		setSelected(member);
+	const openMember = useCallback((member: TeamRankingEntry["member"]) => {
+		setSelectedId(member.id);
 		setDetailOpen(true);
 	}, []);
 
@@ -32,18 +39,16 @@ export function AdminRankingPage({
 		<>
 			<RankingBoard
 				period={period}
+				periods={RANKING_PERIODS}
 				onPeriodChange={onPeriodChange}
-				highlightMemberId={memberId}
 				onOpenMember={openMember}
 			/>
 
-			{selected && (
+			{selectedId && (
 				<Suspense fallback={null}>
-					<MemberDetailDrawer
-						member={selected}
-						open={detailOpen}
-						onOpenChange={setDetailOpen}
-					/>
+					<ProfileSheet open={detailOpen} onOpenChange={setDetailOpen}>
+						<PublicMemberProfile memberId={selectedId} />
+					</ProfileSheet>
 				</Suspense>
 			)}
 		</>

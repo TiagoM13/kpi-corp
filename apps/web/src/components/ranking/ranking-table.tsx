@@ -10,18 +10,35 @@ import {
 import { cn } from "@kpi-corp/ui/lib/utils";
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
-import { levelOf } from "@/lib/member-stats";
-import type { RankingEntry } from "@/lib/ranking";
-import type { Member } from "@/mocks/members";
+import type { TeamRankingEntry } from "@/lib/ranking";
+
+type RankedMember = TeamRankingEntry["member"];
 
 const pointsFormat = new Intl.NumberFormat("pt-BR");
 
-function RankChange({ change }: { change: number }) {
-	if (change === 0) {
+const HEAD =
+	"h-9 px-4 font-medium text-2xs text-fg-3 uppercase tracking-widest";
+const CELL = "px-4 py-3";
+
+const COLUMNS = {
+	place: "w-16 tabular-nums",
+	member: "min-w-48",
+	position: "hidden min-w-32 md:table-cell",
+	kpis: "hidden w-20 pr-8 text-right tabular-nums sm:table-cell",
+	points: "w-28 text-right tabular-nums",
+	change: "hidden w-28 text-right sm:table-cell",
+} as const;
+
+function RankChange({ change }: { change: number | null }) {
+	if (change === null || change === 0) {
 		return (
 			<span className="text-fg-3">
 				<span aria-hidden>—</span>
-				<span className="sr-only">Sem mudança de posição</span>
+				<span className="sr-only">
+					{change === null
+						? "Sem comparação com o período anterior"
+						: "Sem mudança de posição"}
+				</span>
 			</span>
 		);
 	}
@@ -49,86 +66,69 @@ function RankChange({ change }: { change: number }) {
 }
 
 type RankingTableProps = {
-	entries: RankingEntry[];
-	highlightMemberId?: string;
-	onOpenMember?: (member: Member) => void;
+	entries: TeamRankingEntry[];
+	onOpenMember?: (member: RankedMember) => void;
 };
 
-export function RankingTable({
-	entries,
-	highlightMemberId,
-	onOpenMember,
-}: RankingTableProps) {
+export function RankingTable({ entries, onOpenMember }: RankingTableProps) {
 	return (
 		<Table className="text-sm">
-			<TableHeader className="[&_th]:h-9 [&_th]:px-3 [&_th]:font-medium [&_th]:text-2xs [&_th]:text-fg-3 [&_th]:uppercase [&_th]:tracking-widest">
+			<TableHeader>
 				<TableRow className="hover:bg-transparent">
-					<TableHead className="w-14">#</TableHead>
-					<TableHead>Membro</TableHead>
-					<TableHead className="hidden md:table-cell">Cargo</TableHead>
-					<TableHead className="hidden sm:table-cell">Nível</TableHead>
-					<TableHead className="text-right">Pontos</TableHead>
-					<TableHead className="hidden text-right sm:table-cell">
-						Mudança
-					</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.place)}>#</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.member)}>Membro</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.position)}>Cargo</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.kpis)}>KPIs</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.points)}>Pontos</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.change)}>Mudança</TableHead>
 				</TableRow>
 			</TableHeader>
 
-			<TableBody className="[&_td]:px-3 [&_td]:py-3">
-				{entries.map((entry) => {
-					const isSelf = entry.member.id === highlightMemberId;
+			<TableBody>
+				{entries.map((entry) => (
+					<TableRow
+						key={entry.member.id}
+						onClick={
+							onOpenMember ? () => onOpenMember(entry.member) : undefined
+						}
+						className={cn(
+							onOpenMember && "cursor-pointer",
+							entry.isMe && "bg-primary-soft hover:bg-primary-soft",
+						)}
+					>
+						<TableCell className={cn(CELL, COLUMNS.place, "text-fg-3")}>
+							{String(entry.position).padStart(2, "0")}
+						</TableCell>
 
-					return (
-						<TableRow
-							key={entry.member.id}
-							onClick={
-								onOpenMember ? () => onOpenMember(entry.member) : undefined
-							}
-							className={cn(
-								onOpenMember && "cursor-pointer",
-								isSelf && "bg-primary-soft hover:bg-primary-soft",
-							)}
-						>
-							<TableCell className="text-fg-3 tabular-nums">
-								{String(entry.place).padStart(2, "0")}
-							</TableCell>
+						<TableCell className={cn(CELL, COLUMNS.member)}>
+							<div className="flex min-w-0 items-center gap-3">
+								<UserAvatar name={entry.member.name} />
+								<RankingName entry={entry} onOpenMember={onOpenMember} />
+								{entry.isMe && (
+									<Badge variant="outline" className="bg-bg-2 text-fg-1">
+										você
+									</Badge>
+								)}
+							</div>
+						</TableCell>
 
-							<TableCell>
-								<div className="flex min-w-0 items-center gap-3">
-									<UserAvatar name={entry.member.name} hue={entry.member.hue} />
-									<RankingName entry={entry} onOpenMember={onOpenMember} />
-									{isSelf && (
-										<Badge variant="outline" className="bg-bg-2 text-fg-1">
-											você
-										</Badge>
-									)}
-								</div>
-							</TableCell>
+						<TableCell className={cn(CELL, COLUMNS.position, "text-fg-2")}>
+							{entry.member.position ?? "—"}
+						</TableCell>
 
-							<TableCell className="hidden text-fg-2 md:table-cell">
-								{entry.member.position}
-							</TableCell>
+						<TableCell className={cn(CELL, COLUMNS.kpis, "text-fg-2")}>
+							{entry.kpiCount}
+						</TableCell>
 
-							<TableCell className="hidden sm:table-cell">
-								<Badge variant="outline" className="bg-bg-2 text-fg-1">
-									<span
-										aria-hidden
-										className="size-1.5 rounded-full bg-primary"
-									/>
-									nv {levelOf(entry.member.points)}
-								</Badge>
-							</TableCell>
+						<TableCell className={cn(CELL, COLUMNS.points, "font-semibold")}>
+							{pointsFormat.format(entry.points)}
+						</TableCell>
 
-							<TableCell className="text-right font-semibold tabular-nums">
-								{pointsFormat.format(entry.points)}
-							</TableCell>
-
-							<TableCell className="hidden text-right sm:table-cell">
-								<RankChange change={entry.change} />
-							</TableCell>
-						</TableRow>
-					);
-				})}
+						<TableCell className={cn(CELL, COLUMNS.change)}>
+							<RankChange change={entry.change} />
+						</TableCell>
+					</TableRow>
+				))}
 			</TableBody>
 		</Table>
 	);
@@ -138,8 +138,8 @@ function RankingName({
 	entry,
 	onOpenMember,
 }: {
-	entry: RankingEntry;
-	onOpenMember?: (member: Member) => void;
+	entry: TeamRankingEntry;
+	onOpenMember?: (member: RankedMember) => void;
 }) {
 	if (!onOpenMember) {
 		return <span className="truncate font-medium">{entry.member.name}</span>;
