@@ -1,3 +1,4 @@
+import { ORPCError } from "@orpc/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
 	fireEvent,
@@ -12,12 +13,15 @@ import { levelOf } from "@/lib/member-stats";
 import type { MemberListItem } from "@/lib/members";
 import { AdminMembersPage } from "@/pages/admin/members";
 
-const { clientMock } = vi.hoisted(() => ({
+const { clientMock, toastMock } = vi.hoisted(() => ({
 	clientMock: {
-		members: { list: vi.fn(), invite: vi.fn() },
+		members: { list: vi.fn(), invite: vi.fn(), setStatus: vi.fn() },
 		profile: { getPublicProfile: vi.fn() },
 	},
+	toastMock: { success: vi.fn(), warning: vi.fn(), error: vi.fn() },
 }));
+
+vi.mock("sonner", () => ({ toast: toastMock }));
 
 vi.mock("@/utils/orpc", async () => {
 	const { createTanstackQueryUtils } = await import("@orpc/tanstack-query");
@@ -108,14 +112,14 @@ const PROFILE = {
 	badges: [],
 };
 
-function renderPage() {
+function renderPage(currentUserId?: string) {
 	const queryClient = new QueryClient({
 		defaultOptions: { queries: { retry: false } },
 	});
 
 	return render(
 		<QueryClientProvider client={queryClient}>
-			<AdminMembersPage />
+			<AdminMembersPage currentUserId={currentUserId} />
 		</QueryClientProvider>,
 	);
 }
@@ -269,6 +273,138 @@ describe("AdminMembersPage", () => {
 
 		expect(await screen.findByText("Convidar membros")).toBeInTheDocument();
 		expect(screen.getByText("Convite expira em 48h")).toBeInTheDocument();
+	});
+});
+
+describe("AdminMembersPage — acesso", () => {
+	function switchOf(name: string) {
+		return within(screen.getByRole("table")).getByRole("switch", { name });
+	}
+
+	beforeEach(() => {
+		clientMock.members.setStatus.mockImplementation(
+			async ({ id, active }: { id: string; active: boolean }) => ({
+				...[ANA, BRUNO, CARLA].find((member) => member.id === id),
+				active,
+			}),
+		);
+	});
+
+	it("o switch reflete o acesso atual de cada membro", async () => {
+		renderPage();
+		await memberRows();
+
+		expect(switchOf("Desativar Ana Souza")).toBeChecked();
+		expect(switchOf("Reativar Carla Dias")).not.toBeChecked();
+	});
+
+	it("desativar pede confirmacao antes de chamar a API", async () => {
+		renderPage();
+		await memberRows();
+
+		fireEvent.click(switchOf("Desativar Ana Souza"));
+
+		expect(
+			await screen.findByRole("alertdialog", { name: "Desativar Ana Souza?" }),
+		).toBeInTheDocument();
+		expect(clientMock.members.setStatus).not.toHaveBeenCalled();
+		expect(screen.queryByText("Perfil do membro")).not.toBeInTheDocument();
+	});
+
+	it("confirmar desativa, avisa e recarrega a lista", async () => {
+		renderPage();
+		await memberRows();
+		const listCalls = clientMock.members.list.mock.calls.length;
+
+		fireEvent.click(switchOf("Desativar Ana Souza"));
+		const dialog = await screen.findByRole("alertdialog");
+		fireEvent.click(within(dialog).getByRole("button", { name: "Desativar" }));
+
+		await waitFor(() =>
+			expect(clientMock.members.setStatus.mock.lastCall?.[0]).toStrictEqual({
+				id: ANA.id,
+				active: false,
+			}),
+		);
+		await waitFor(() =>
+			expect(toastMock.success).toHaveBeenCalledWith(
+				"Ana Souza foi desativado(a)",
+			),
+		);
+		await waitFor(() =>
+			expect(clientMock.members.list.mock.calls.length).toBeGreaterThan(
+				listCalls,
+			),
+		);
+		await waitFor(() =>
+			expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+		);
+	});
+
+	it("reativar tambem pede confirmacao", async () => {
+		renderPage();
+		await memberRows();
+
+		fireEvent.click(switchOf("Reativar Carla Dias"));
+		const dialog = await screen.findByRole("alertdialog", {
+			name: "Reativar Carla Dias?",
+		});
+		fireEvent.click(within(dialog).getByRole("button", { name: "Reativar" }));
+
+		await waitFor(() =>
+			expect(clientMock.members.setStatus.mock.lastCall?.[0]).toStrictEqual({
+				id: CARLA.id,
+				active: true,
+			}),
+		);
+	});
+
+	it("cancelar nao muda nada", async () => {
+		renderPage();
+		await memberRows();
+
+		fireEvent.click(switchOf("Desativar Ana Souza"));
+		const dialog = await screen.findByRole("alertdialog");
+		fireEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+
+		await waitFor(() =>
+			expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument(),
+		);
+		expect(clientMock.members.setStatus).not.toHaveBeenCalled();
+	});
+
+	it("nao deixa desativar a propria conta", async () => {
+		renderPage(ANA.id);
+		await memberRows();
+
+		expect(switchOf("Desativar Ana Souza")).toHaveAttribute(
+			"aria-disabled",
+			"true",
+		);
+		expect(switchOf("Desativar Bruno Lima")).not.toHaveAttribute(
+			"aria-disabled",
+		);
+	});
+
+	it("traduz o erro de dominio da API", async () => {
+		clientMock.members.setStatus.mockRejectedValueOnce(
+			new ORPCError("CONFLICT", {
+				data: { code: "LAST_ADMIN_CANNOT_BE_DEACTIVATED" },
+			}),
+		);
+		renderPage();
+		await memberRows();
+
+		fireEvent.click(switchOf("Desativar Ana Souza"));
+		const dialog = await screen.findByRole("alertdialog");
+		fireEvent.click(within(dialog).getByRole("button", { name: "Desativar" }));
+
+		await waitFor(() =>
+			expect(toastMock.error).toHaveBeenCalledWith(
+				"Este é o último admin ativo. Ative outro admin antes de desativar este.",
+			),
+		);
+		expect(screen.getByRole("alertdialog")).toBeInTheDocument();
 	});
 });
 
