@@ -57,3 +57,12 @@ export const registerResponseSchema = z.object({
 	refreshToken: z.string(),
 	user: publicUserSchema,
 });
+
+export const validateInviteInputSchema = z.object({
+	token: z.string().min(1),
+});
+
+export const validateInviteResponseSchema = z.discriminatedUnion("status", [
+	z.object({ status: z.literal("VALID"), email: z.email() }),
+	z.object({ status: z.enum(["EXPIRED", "USED", "INVALID"]) }),
+]);

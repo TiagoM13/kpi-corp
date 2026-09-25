@@ -10,6 +10,8 @@ import {
 	refreshResponseSchema,
 	registerInputSchema,
 	registerResponseSchema,
+	validateInviteInputSchema,
+	validateInviteResponseSchema,
 } from "./auth.schema";
 import { authService } from "./auth.service";
 
@@ -41,6 +43,14 @@ export const authRouter = {
 		.output(logoutResponseSchema)
 		.handler(({ input }) =>
 			handle(() => authService.logout(input.refreshToken)),
+		),
+
+	validateInvite: publicProcedure
+		.route({ method: "POST" })
+		.input(validateInviteInputSchema)
+		.output(validateInviteResponseSchema)
+		.handler(({ input }) =>
+			handle(() => authService.validateInvitation(input.token)),
 		),
 
 	register: publicProcedure

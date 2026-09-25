@@ -45,6 +45,10 @@ export type LoginInput = {
 	password: string;
 };
 
+export type InvitationValidation =
+	| { status: "VALID"; email: string }
+	| { status: "EXPIRED" | "USED" | "INVALID" };
+
 export type RegisterInput = {
 	token: string;
 	name: string;
@@ -170,6 +174,26 @@ export const authService = {
 		}
 
 		return { success: true };
+	},
+
+	async validateInvitation(token: string): Promise<InvitationValidation> {
+		const invitation = await authRepository.findInvitationByTokenHash(
+			hashToken(token),
+		);
+
+		if (!invitation) {
+			return { status: "INVALID" };
+		}
+
+		if (invitation.usedAt) {
+			return { status: "USED" };
+		}
+
+		if (invitation.expiresAt < new Date()) {
+			return { status: "EXPIRED" };
+		}
+
+		return { status: "VALID", email: invitation.email };
 	},
 
 	async register(input: RegisterInput): Promise<Session> {
