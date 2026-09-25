@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { AppShell } from "@/components/app-shell";
 import { getSession } from "@/lib/auth";
+import { useRevalidatedSession } from "@/lib/use-revalidated-session";
 
 export const Route = createFileRoute("/_authed")({
 	beforeLoad: () => {
@@ -16,7 +17,7 @@ export const Route = createFileRoute("/_authed")({
 });
 
 function AuthedLayout() {
-	const { session } = Route.useRouteContext();
+	const session = useRevalidatedSession(Route.useRouteContext().session);
 
 	return (
 		<AppShell session={session}>

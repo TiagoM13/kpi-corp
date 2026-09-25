@@ -1,7 +1,5 @@
-// Usuarios mock — substituir por `auth.login` na API quando a story de backend sair.
-// Nenhum dado real: senha unica em texto puro, so para navegar o protótipo.
-
-export const MOCK_PASSWORD = "kpicorp123";
+// Elenco das telas que ainda consomem mock (ranking, membros, dashboards).
+// Nao participa do login: a sessao vem de `auth.login`.
 
 export type Role = "ADMIN" | "MEMBER";
 
@@ -113,8 +111,3 @@ export const MOCK_USERS: MockUser[] = [
 		hue: 240,
 	},
 ];
-
-export function findMockUser(email: string) {
-	const normalized = email.trim().toLowerCase();
-	return MOCK_USERS.find((user) => user.email === normalized);
-}

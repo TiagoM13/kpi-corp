@@ -3,6 +3,7 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 
 import Loader from "./components/loader";
+import { onSessionCleared } from "./lib/session-store";
 import { routeTree } from "./routeTree.gen";
 import { orpc, queryClient } from "./utils/orpc";
 
@@ -17,6 +18,11 @@ const router = createRouter({
 			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 		);
 	},
+});
+
+onSessionCleared(() => {
+	queryClient.clear();
+	void router.invalidate();
 });
 
 declare module "@tanstack/react-router" {

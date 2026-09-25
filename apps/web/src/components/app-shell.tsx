@@ -5,7 +5,7 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "@kpi-corp/ui/components/sheet";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
 	LayoutDashboardIcon,
 	LogOutIcon,
@@ -90,6 +90,14 @@ function SidebarNav({
 	);
 }
 
+function roleLabelOf({ role, position }: Session) {
+	if (role === "ADMIN") {
+		return position ? `Admin · ${position}` : "Admin";
+	}
+
+	return position ?? "—";
+}
+
 function SessionCard({
 	session,
 	onSignOut,
@@ -99,13 +107,11 @@ function SessionCard({
 }) {
 	return (
 		<div className="flex items-center gap-3 rounded-sm px-2.5 py-2">
-			<UserAvatar name={session.name} hue={session.hue} />
+			<UserAvatar name={session.name} />
 			<div className="flex min-w-0 flex-1 flex-col leading-tight">
 				<span className="truncate font-medium text-xs">{session.name}</span>
 				<span className="truncate text-2xs text-fg-3">
-					{session.role === "ADMIN"
-						? `Admin · ${session.position}`
-						: session.position}
+					{roleLabelOf(session)}
 				</span>
 			</div>
 			<Button
@@ -129,14 +135,12 @@ export function AppShell({
 	session: Session;
 	children: ReactNode;
 }) {
-	const navigate = useNavigate();
 	const [menuOpen, setMenuOpen] = useState(false);
 	const navItems = session.role === "ADMIN" ? ADMIN_NAV : MEMBER_NAV;
 
 	function handleSignOut() {
 		setMenuOpen(false);
-		signOut();
-		navigate({ to: "/login" });
+		void signOut();
 	}
 
 	return (

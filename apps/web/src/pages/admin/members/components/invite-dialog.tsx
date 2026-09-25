@@ -21,7 +21,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { OverlayHeader } from "@/components/overlay-header";
-import { INVITE_TTL_HOURS } from "@/mocks/invites";
+import { INVITE_TTL_HOURS } from "@/lib/invite";
 
 const EMAIL_SEPARATOR = /[\s,;]+/;
 const emailSchema = z.email();

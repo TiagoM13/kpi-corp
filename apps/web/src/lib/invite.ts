@@ -1,54 +1,22 @@
-import { type Session, startSession } from "@/lib/auth";
-import { findMockInvite, INVITE_TTL_HOURS } from "@/mocks/invites";
+import { domainCodeOf, type Session, startSession } from "@/lib/auth";
+import { client } from "@/utils/orpc";
+
+export const INVITE_TTL_HOURS = 48;
 
 export type InviteStatus = "VALID" | "EXPIRED" | "USED" | "INVALID";
 
+type RefusedStatus = Exclude<InviteStatus, "VALID">;
+
 export type InviteValidation =
 	| { status: "VALID"; email: string }
-	| { status: Exclude<InviteStatus, "VALID"> };
+	| { status: RefusedStatus };
 
-const BURNED_KEY = "kpicorp.mock-invites-used";
-
-function burnedTokens(): string[] {
-	try {
-		const raw = localStorage.getItem(BURNED_KEY);
-		return raw ? (JSON.parse(raw) as string[]) : [];
-	} catch {
-		return [];
-	}
-}
-
-function burnToken(token: string) {
-	try {
-		localStorage.setItem(
-			BURNED_KEY,
-			JSON.stringify([...burnedTokens(), token]),
-		);
-	} catch {
-		return;
-	}
-}
-
-export function validateInvite(token: string): InviteValidation {
-	const invite = findMockInvite(token);
-
-	if (!invite) {
-		return { status: "INVALID" };
-	}
-
-	if (invite.usedAt !== null || burnedTokens().includes(invite.token)) {
-		return { status: "USED" };
-	}
-
-	if (invite.expiresAt <= Date.now()) {
-		return { status: "EXPIRED" };
-	}
-
-	return { status: "VALID", email: invite.email };
+export function validateInvite(token: string): Promise<InviteValidation> {
+	return client.auth.validateInvite({ token });
 }
 
 export const INVITE_ERROR: Record<
-	Exclude<InviteStatus, "VALID">,
+	RefusedStatus,
 	{ title: string; description: string }
 > = {
 	EXPIRED: {
@@ -67,10 +35,17 @@ export const INVITE_ERROR: Record<
 	},
 };
 
-export class InvalidInviteError extends Error {
-	readonly status: Exclude<InviteStatus, "VALID">;
+const REFUSAL_BY_CODE: Record<string, RefusedStatus> = {
+	INVALID_INVITATION: "INVALID",
+	INVITATION_EXPIRED: "EXPIRED",
+	INVITATION_ALREADY_USED: "USED",
+	EMAIL_ALREADY_REGISTERED: "USED",
+};
 
-	constructor(status: Exclude<InviteStatus, "VALID">) {
+export class InvalidInviteError extends Error {
+	readonly status: RefusedStatus;
+
+	constructor(status: RefusedStatus) {
 		super(INVITE_ERROR[status].title);
 		this.name = "InvalidInviteError";
 		this.status = status;
@@ -84,31 +59,23 @@ export type AcceptInviteInput = {
 	password: string;
 };
 
-function hueFromEmail(email: string): number {
-	let hash = 0;
-	for (const char of email) {
-		hash = (hash * 31 + char.charCodeAt(0)) % 360;
+export async function acceptInvite(input: AcceptInviteInput): Promise<Session> {
+	try {
+		const response = await client.auth.register({
+			token: input.token,
+			name: input.name.trim(),
+			position: input.position.trim() || undefined,
+			password: input.password,
+		});
+
+		return startSession(response);
+	} catch (error) {
+		const refusal = REFUSAL_BY_CODE[domainCodeOf(error) ?? ""];
+
+		if (refusal) {
+			throw new InvalidInviteError(refusal);
+		}
+
+		throw error;
 	}
-	return hash;
-}
-
-export function acceptInvite(input: AcceptInviteInput): Session {
-	const validation = validateInvite(input.token);
-
-	if (validation.status !== "VALID") {
-		throw new InvalidInviteError(validation.status);
-	}
-
-	const session: Session = {
-		userId: `invite-${input.token}`,
-		name: input.name.trim(),
-		email: validation.email,
-		position: input.position.trim(),
-		role: "MEMBER",
-		hue: hueFromEmail(validation.email),
-	};
-
-	burnToken(input.token);
-
-	return startSession(session);
 }

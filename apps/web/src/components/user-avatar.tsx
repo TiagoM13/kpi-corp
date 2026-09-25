@@ -1,5 +1,7 @@
 import { cn } from "@kpi-corp/ui/lib/utils";
 
+import { hueFor } from "@/lib/avatar";
+
 function initialsOf(name: string) {
 	return name
 		.split(/\s+/)
@@ -11,11 +13,15 @@ function initialsOf(name: string) {
 
 type UserAvatarProps = {
 	name: string;
-	hue: number;
+	hue?: number;
 	className?: string;
 };
 
-export function UserAvatar({ name, hue, className }: UserAvatarProps) {
+export function UserAvatar({
+	name,
+	hue = hueFor(name),
+	className,
+}: UserAvatarProps) {
 	return (
 		<span
 			aria-hidden
