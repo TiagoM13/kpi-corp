@@ -2,6 +2,8 @@ import { Badge } from "@kpi-corp/ui/components/badge";
 import { UserAvatar } from "@/components/user-avatar";
 import type { MemberListItem, MemberStatus } from "@/lib/members";
 
+export { LevelBadge } from "@/components/member-profile/level-badge";
+
 const pointsFormat = new Intl.NumberFormat("pt-BR");
 
 export function formatPoints(points: number) {
@@ -21,19 +23,6 @@ export function MemberIdentity({ member }: MemberIdentityProps) {
 				<span className="truncate text-2xs text-fg-3">{member.email}</span>
 			</div>
 		</div>
-	);
-}
-
-export function LevelBadge({ level }: { level: number }) {
-	return (
-		<Badge
-			variant="outline"
-			className="bg-bg-2 text-fg-1"
-			aria-label={`Nível ${level}`}
-		>
-			<span aria-hidden className="size-1.5 rounded-full bg-primary" />
-			nv {level}
-		</Badge>
 	);
 }
 

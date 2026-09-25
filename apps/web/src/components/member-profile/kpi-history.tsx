@@ -54,7 +54,7 @@ function KpiHistoryItem({ kpi }: { kpi: ProfileKpi }) {
 	);
 }
 
-export function MemberKpiHistory({ kpis }: { kpis: ProfileKpi[] }) {
+export function KpiHistory({ kpis }: { kpis: ProfileKpi[] }) {
 	return (
 		<section className="flex flex-col gap-4 rounded-lg border bg-card p-5">
 			<div className="flex items-center justify-between gap-2">

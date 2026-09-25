@@ -2,7 +2,7 @@ import type { MemberListItem } from "@/lib/members";
 
 type Level = MemberListItem["level"];
 
-export function MemberLevelProgress({ level }: { level: Level }) {
+export function LevelProgress({ level }: { level: Level }) {
 	if (level.nextLevel === null || level.nextLevelPoints === null) {
 		return (
 			<section className="flex flex-col gap-2.5 rounded-lg border bg-card p-5">
