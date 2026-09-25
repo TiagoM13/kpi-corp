@@ -36,7 +36,27 @@ export const membersRepository = {
 				tx.user.count({ where }),
 			]);
 
-			return { items, total };
+			const scores = await tx.kpiAssignment.groupBy({
+				by: ["userId"],
+				where: {
+					userId: { in: items.map((item) => item.id) },
+					revokedAt: null,
+				},
+				_sum: { points: true },
+				_count: { _all: true },
+				_max: { assignedAt: true },
+			});
+
+			return {
+				items,
+				total,
+				scores: scores.map((score) => ({
+					userId: score.userId,
+					points: score._sum.points ?? 0,
+					kpiCount: score._count._all,
+					lastAssignmentAt: score._max.assignedAt,
+				})),
+			};
 		});
 	},
 

@@ -1,6 +1,9 @@
 export {
 	type Member,
+	type MemberListItem,
+	type MemberScore,
 	mapUserToMember,
+	mapUserToMemberListItem,
 	type UserForMemberMapping,
 } from "./members.mapper";
 export {

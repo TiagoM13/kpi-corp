@@ -12,7 +12,11 @@ import {
 	CannotDeactivateSelfError,
 	LastAdminCannotBeDeactivatedError,
 } from "./members.errors";
-import { type Member, mapUserToMember } from "./members.mapper";
+import {
+	type Member,
+	mapUserToMember,
+	mapUserToMemberListItem,
+} from "./members.mapper";
 import {
 	type MemberStatusFilter,
 	membersRepository,
@@ -44,10 +48,13 @@ function inviteUrlFor(token: string) {
 
 export const membersService = {
 	async list(input: ListMembersInput) {
-		const { items, total } = await membersRepository.list(input);
+		const { items, total, scores } = await membersRepository.list(input);
+		const scoreByUser = new Map(scores.map((score) => [score.userId, score]));
 
 		return {
-			items: items.map(mapUserToMember),
+			items: items.map((item) =>
+				mapUserToMemberListItem(item, scoreByUser.get(item.id)),
+			),
 			page: input.page,
 			limit: input.limit,
 			total,

@@ -1,6 +1,6 @@
 import z from "zod";
 
-import { emptyAsUndefined } from "../../shared/schemas";
+import { emptyAsUndefined, levelSchema } from "../../shared/schemas";
 
 export const MAX_INVITES_PER_REQUEST = 50;
 
@@ -12,6 +12,13 @@ const memberSchema = z.object({
 	position: z.string().nullable(),
 	active: z.boolean(),
 	createdAt: z.date(),
+});
+
+const memberListItemSchema = memberSchema.extend({
+	points: z.number(),
+	kpiCount: z.number().int(),
+	lastAssignmentAt: z.date().nullable(),
+	level: levelSchema,
 });
 
 export const listMembersInputSchema = z.object({
@@ -31,7 +38,7 @@ export const listMembersInputSchema = z.object({
 });
 
 export const listMembersResponseSchema = z.object({
-	items: z.array(memberSchema),
+	items: z.array(memberListItemSchema),
 	page: z.number(),
 	limit: z.number(),
 	total: z.number(),
