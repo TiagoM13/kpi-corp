@@ -27,3 +27,9 @@ export function mapKpi(kpi: KpiForMapping): Kpi {
 		createdAt: kpi.createdAt,
 	};
 }
+
+export type KpiListItem = Kpi & { uses: number };
+
+export function mapKpiListItem(kpi: KpiForMapping, uses: number): KpiListItem {
+	return { ...mapKpi(kpi), uses };
+}

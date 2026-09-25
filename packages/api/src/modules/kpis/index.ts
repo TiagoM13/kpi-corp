@@ -1,4 +1,10 @@
-export { type Kpi, type KpiForMapping, mapKpi } from "./kpis.mapper";
+export {
+	type Kpi,
+	type KpiForMapping,
+	type KpiListItem,
+	mapKpi,
+	mapKpiListItem,
+} from "./kpis.mapper";
 export { type KpisRepository, kpisRepository } from "./kpis.repository";
 export { kpisRouter } from "./kpis.router";
 export {

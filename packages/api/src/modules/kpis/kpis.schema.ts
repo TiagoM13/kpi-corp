@@ -39,7 +39,7 @@ export const listKpisInputSchema = z.object({
 });
 
 export const listKpisResponseSchema = z.object({
-	items: z.array(kpiSchema),
+	items: z.array(kpiSchema.extend({ uses: z.number().int() })),
 	total: z.number(),
 });
 

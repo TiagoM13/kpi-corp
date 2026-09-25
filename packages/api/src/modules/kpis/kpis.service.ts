@@ -1,6 +1,6 @@
 import { KpiNotFoundError } from "../../shared/errors/common.errors";
 import { KpiNameTakenError } from "./kpis.errors";
-import { type Kpi, mapKpi } from "./kpis.mapper";
+import { type Kpi, mapKpi, mapKpiListItem } from "./kpis.mapper";
 import {
 	type KpiWritableData,
 	kpisRepository,
@@ -45,9 +45,15 @@ export const kpisService = {
 	},
 
 	async list(filter: ListKpisFilter) {
-		const { items, total } = await kpisRepository.list(filter);
+		const { items, total, uses } = await kpisRepository.list(filter);
+		const usesByKpi = new Map(uses.map((use) => [use.kpiId, use.count]));
 
-		return { items: items.map(mapKpi), total };
+		return {
+			items: items.map((item) =>
+				mapKpiListItem(item, usesByKpi.get(item.id) ?? 0),
+			),
+			total,
+		};
 	},
 
 	async getById(id: string): Promise<Kpi> {

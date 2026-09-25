@@ -78,7 +78,20 @@ export const kpisRepository = {
 				tx.kpi.count({ where }),
 			]);
 
-			return { items, total };
+			const uses = await tx.kpiAssignment.groupBy({
+				by: ["kpiId"],
+				where: {
+					kpiId: { in: items.map((item) => item.id) },
+					revokedAt: null,
+				},
+				_count: { _all: true },
+			});
+
+			return {
+				items,
+				total,
+				uses: uses.map((use) => ({ kpiId: use.kpiId, count: use._count._all })),
+			};
 		});
 	},
 
