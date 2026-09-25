@@ -131,6 +131,7 @@ Sem Prisma e sem módulo: testáveis sem banco, e a ordenação existe em um lug
   `rank()` — conquista não pode depender de alguém ter aberto a tela de ranking.
 - Um banco parado por mais de 12 janelas perde as mais antigas; como `change` só olha a
   anterior, o custo é zero hoje.
-- `apps/web/src/lib/ranking.ts` segue no mock, com `place` em vez de `position` e três
-  períodos. A migração é story de web.
+- O front consome a rota em `apps/web/src/components/ranking/`. `quarter` só aparece
+  para o admin; a URL do membro rebaixa `trimestre` para `geral`, então o 403
+  `PERIOD_NOT_ALLOWED` não é alcançável pela tela.
 - Não há ranking por categoria — é `groupBy` com mais uma coluna quando virar requisito.

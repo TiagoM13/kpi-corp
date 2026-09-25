@@ -8,6 +8,25 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-25 — Ranking integrado e acesso de membros
+
+#### Adicionado
+- Ranking do admin e do membro leem `ranking.get` da API real, com pódio, destaque de
+  quem está logado (`isMe`), resumo "Você está em Nº" e intervalo do período.
+- Admin ganha o período **Trimestre**; na URL de membro, `?periodo=trimestre` cai para
+  `geral`.
+- Clicar num membro no ranking do admin abre o perfil real (`profile.getPublicProfile`).
+- Lista de membros ganha o switch **Acesso** para desativar e reativar, sempre com
+  confirmação. A própria conta não pode ser desativada; o erro de último admin ativo
+  aparece traduzido.
+- Primitives `switch` e `alert-dialog` em `packages/ui`, sobre Base UI.
+
+#### Alterado
+- Tabela do ranking troca a coluna **Nível** por **KPIs** do período: a API não devolve
+  nível por período.
+- Mudança de posição `null` (sem período anterior para comparar) aparece como "—" e é
+  anunciada como "sem comparação", não como "não mudou".
+
 ### 2026-09-25 — Tela de KPIs integrada à API
 
 #### Adicionado

@@ -194,12 +194,21 @@ A maior parte das telas ainda é `PagePlaceholder` (`src/components/page-placeho
 Implementado de verdade: login (`src/pages/login/`), cadastro por convite
 (`src/pages/invite/`), `AppShell`, sessão real com refresh e a tela de membros do admin
 (`src/pages/admin/members/`: lista, busca, paginação, convite e perfil) e a tela de
-KPIs (`src/pages/admin/kpis/`: lista, cadastro, edição, ativar e inativar).
-Ainda em mock: dashboards, ranking, modo reunião.
+KPIs (`src/pages/admin/kpis/`: lista, cadastro, edição, ativar e inativar) e o
+ranking do admin e do membro (`components/ranking/`).
+Ainda em mock: dashboards, modo reunião.
 
-A tela de membros tem drawer próprio (`member-profile-drawer.tsx`) com dados da API.
-`components/member-detail/` continua em mock e segue servindo ranking e dashboard do
-membro — não troque um pelo outro até essas telas serem integradas. Tipos e adaptadores
+Perfil real de membro mora em `components/member-profile/`: `ProfileSheet` (casca),
+`PublicMemberProfile` (só com o id — usado no ranking) e as peças que a tela de membros
+compõe com o item da lista. `components/member-detail/` continua em mock e só serve o
+dashboard do membro.
+
+Ativar/desativar membro fica na lista (switch **Acesso**) e sempre passa pelo
+`MemberStatusDialog`. A rota passa `currentUserId` da sessão para travar a própria conta.
+
+`lib/ranking.ts` tem as duas coisas: tipos e períodos da API (`TeamRanking`,
+`RANKING_PERIODS` com `quarter`, `MEMBER_RANKING_PERIODS` sem) e o mock antigo
+(`rankingFor`, `overallPositionOf`), que só os dashboards ainda leem. Tipos e adaptadores
 da API de membros ficam em `lib/members.ts`.
 
 A tela de KPIs busca o banco inteiro uma vez (`kpis.list` não pagina) e filtra no
