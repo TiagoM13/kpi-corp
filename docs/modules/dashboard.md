@@ -73,6 +73,13 @@ sequenceDiagram
 
 Collection Postman: pasta `Dashboards (3D)`.
 
+## Pendências
+
+O painel do Admin no front ainda não fecha com o mockup: série de pontos, deltas,
+sparklines, pontos totais, top movers, autor e nome da reunião no feed, e o limite de
+"esquecido" exposto. Detalhe em [`docs/pendencias-api.md`](../pendencias-api.md)
+(DA01 a DA08).
+
 ## Decisões relacionadas
 
 | Documento | Assunto |
