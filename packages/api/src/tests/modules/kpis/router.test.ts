@@ -150,6 +150,17 @@ describe("kpis router", () => {
 	});
 
 	describe("list", () => {
+		it("should expose the usage count of each kpi", async () => {
+			serviceMock.list.mockResolvedValueOnce({
+				items: [{ ...kpi, uses: 3 }],
+				total: 1,
+			});
+
+			const result = await caller(asAdmin).list({});
+
+			expect(result.items[0]?.uses).toBe(3);
+		});
+
 		beforeEach(() => {
 			serviceMock.list.mockResolvedValue({ items: [], total: 0 });
 		});

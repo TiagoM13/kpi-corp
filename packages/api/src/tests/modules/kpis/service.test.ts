@@ -95,7 +95,11 @@ describe("kpis service", () => {
 
 	describe("list", () => {
 		it("should return the items with a total", async () => {
-			repositoryMock.list.mockResolvedValueOnce({ items: [kpi], total: 1 });
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [kpi],
+				total: 1,
+				uses: [],
+			});
 
 			expect(await kpisService.list({})).toEqual({
 				items: [expect.objectContaining({ id: KPI_ID })],
@@ -103,8 +107,25 @@ describe("kpis service", () => {
 			});
 		});
 
+		it("should attach how many valid assignments use each kpi", async () => {
+			const unused = { ...kpi, id: "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d" };
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [kpi, unused],
+				total: 2,
+				uses: [{ kpiId: KPI_ID, count: 4 }],
+			});
+
+			const result = await kpisService.list({});
+
+			expect(result.items.map((item) => item.uses)).toStrictEqual([4, 0]);
+		});
+
 		it("should forward the filter untouched", async () => {
-			repositoryMock.list.mockResolvedValueOnce({ items: [], total: 0 });
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [],
+				total: 0,
+				uses: [],
+			});
 
 			await kpisService.list({
 				category: "BEHAVIOR",
