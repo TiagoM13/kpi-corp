@@ -96,6 +96,7 @@ Sem doc atualizada, a feature não está pronta.
 | `docs/modules/<nome>.md` | regras de negócio por módulo |
 | `apps/fumadocs/content/docs/adr/` | **os ADRs moram aqui**, não em `docs/` |
 | `CHANGELOG.md` | mudanças que o consumidor percebe |
+| `docs/pendencias-api.md` | o que a API ainda precisa entregar para o front |
 | `CONTRIBUTING.md` | fluxo, commits, padrão de módulo |
 
 ADR aceita é imutável. Mudou a decisão? Escreva a próxima e marque a antiga como
@@ -109,5 +110,5 @@ Desenvolvimento local apenas — **sem deploy, sem CI, sem release**.
 | --- | --- |
 | API de auth | Implementada, validada ponta a ponta |
 | Demais módulos da API | `members`, `kpis`, `assignments`, `profile`, `meetings`, `ranking` e `dashboard` implementados — roadmap do MVP fechado (specs 2B a 3E entregues) |
-| Front | Auth real (login, logout, refresh, convite — ADR 0014) telas de membros (com ativar/desativar) e KPIs do admin, e ranking; demais telas ainda consomem mock em `apps/web/src/mocks/` |
+| Front | Auth real (login, logout, refresh, convite — ADR 0014) telas de membros (com ativar/desativar), KPIs, ranking e painel do admin; demais telas ainda consomem mock em `apps/web/src/mocks/` |
 | Rate limiting | Não existe |

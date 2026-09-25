@@ -195,8 +195,14 @@ Implementado de verdade: login (`src/pages/login/`), cadastro por convite
 (`src/pages/invite/`), `AppShell`, sessão real com refresh e a tela de membros do admin
 (`src/pages/admin/members/`: lista, busca, paginação, convite e perfil) e a tela de
 KPIs (`src/pages/admin/kpis/`: lista, cadastro, edição, ativar e inativar) e o
-ranking do admin e do membro (`components/ranking/`).
-Ainda em mock: dashboards, modo reunião.
+ranking do admin e do membro (`components/ranking/`) e o painel do Admin
+(`src/pages/admin/dashboard/`).
+Ainda em mock: dashboard do membro, modo reunião.
+
+**Não derive dado no front.** Se a tela precisa de um número que a API não entrega, o
+bloco sai da tela — com a chamada **comentada**, nunca apagando o componente — e a falta
+vai para `docs/pendencias-api.md`. O front só formata
+(datas, plurais, "há 2 horas").
 
 Perfil real de membro mora em `components/member-profile/`: `ProfileSheet` (casca),
 `PublicMemberProfile` (só com o id — usado no ranking) e as peças que a tela de membros

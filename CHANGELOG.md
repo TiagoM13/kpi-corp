@@ -8,6 +8,22 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-25 — Painel do Admin integrado à API
+
+#### Adicionado
+- Painel do Admin lê `dashboard.getAdmin`: pontos do mês e da semana, KPIs e reuniões
+  da semana, membros ativos, top 5 do mês, membros sem KPI há 30 dias e as 10
+  atribuições mais recentes (com "em reunião", "avulso" e "revogado").
+- Botão do topo vira "Continuar reunião aberta" quando há reunião aberta.
+- `docs/pendencias-api.md`: o que a API ainda precisa entregar para o painel ficar
+  igual ao mockup.
+
+#### Fora da tela
+- Gráfico "Pontos por semana", deltas e sparklines dos indicadores, e o card "Top movers
+  da semana": a API não entrega esses dados (DA01 a DA05). Os componentes continuam no
+  código, com a chamada comentada no painel; voltam quando a API entregar.
+- O selo "ao vivo" do feed: o feed não se atualiza sozinho.
+
 ### 2026-09-25 — Ranking integrado e acesso de membros
 
 #### Adicionado
