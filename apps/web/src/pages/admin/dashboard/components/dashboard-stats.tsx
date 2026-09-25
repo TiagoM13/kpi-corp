@@ -5,42 +5,42 @@ import {
 	UsersIcon,
 } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
-import type { TeamTotals } from "@/lib/dashboard";
-import { TEAM_HISTORY, TEAM_STATS } from "@/mocks/team-history";
+import type { AdminDashboard } from "@/lib/dashboard";
 
 const pointsFormat = new Intl.NumberFormat("pt-BR");
 
-export function DashboardStats({ totals }: { totals: TeamTotals }) {
+function plural(total: number, one: string, many: string) {
+	return `${total} ${total === 1 ? one : many}`;
+}
+
+export function DashboardStats({ dashboard }: { dashboard: AdminDashboard }) {
+	const { points, kpis, meetings, members, membersWithoutKpis } = dashboard;
+
 	return (
 		<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
 			<StatCard
-				label="Pontos totais"
-				value={pointsFormat.format(totals.points)}
-				delta={TEAM_STATS.pointsDelta}
-				sub="vs. mês anterior"
+				label="Pontos no mês"
+				value={pointsFormat.format(points.month)}
+				sub={`${pointsFormat.format(points.week)} nesta semana`}
 				icon={TargetIcon}
-				trend={TEAM_HISTORY["90d"].points.slice(-8)}
 			/>
 			<StatCard
 				label="KPIs nesta semana"
-				value={totals.weekKpis}
-				delta={TEAM_STATS.kpisDelta}
-				sub={`${totals.weekMeetings} reuniões registradas`}
+				value={kpis.week}
+				sub={`${plural(meetings.week, "reunião", "reuniões")} nesta semana`}
 				icon={TrendingUpIcon}
 				accentClassName="text-good"
-				trend={TEAM_HISTORY["7d"].points}
 			/>
 			<StatCard
 				label="Membros ativos"
-				value={`${totals.activeMembers} / ${totals.totalMembers}`}
-				delta={TEAM_STATS.membersDelta}
-				sub="todos no time"
+				value={`${members.active} / ${members.total}`}
+				sub="ativos / cadastrados"
 				icon={UsersIcon}
 			/>
 			<StatCard
-				label="Estagnados"
-				value={totals.stagnantCount}
-				sub="sem KPI há 7 dias ou mais"
+				label="Sem KPI"
+				value={membersWithoutKpis.length}
+				sub="há 30 dias ou mais"
 				icon={TriangleAlertIcon}
 				accentClassName="text-warn"
 			/>

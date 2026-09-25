@@ -1,5 +1,15 @@
+import type { AppRouterClient } from "@kpi-corp/api/routers/index";
+
 import { MOCK_MEMBERS } from "@/mocks/members";
 import { TEAM_STATS } from "@/mocks/team-history";
+
+export type AdminDashboard = Awaited<
+	ReturnType<AppRouterClient["dashboard"]["getAdmin"]>
+>;
+
+export type DashboardAssignment = AdminDashboard["recentAssignments"][number];
+export type DashboardRankingEntry = AdminDashboard["ranking"][number];
+export type MemberWithoutKpis = AdminDashboard["membersWithoutKpis"][number];
 
 export const STAGNANT_THRESHOLD_DAYS = 7;
 
@@ -56,4 +66,29 @@ const dateFormat = new Intl.DateTimeFormat("pt-BR", {
 
 export function formatToday(date: Date) {
 	return dateFormat.format(date);
+}
+
+const relativeFormat = new Intl.RelativeTimeFormat("pt-BR", {
+	numeric: "auto",
+});
+
+const RELATIVE_STEPS: [Intl.RelativeTimeFormatUnit, number][] = [
+	["minute", 60],
+	["hour", 24],
+	["day", 7],
+	["week", 4.35],
+	["month", 12],
+];
+
+export function formatRelative(date: Date, now = new Date()) {
+	let value = (date.getTime() - now.getTime()) / 60_000;
+
+	for (const [unit, size] of RELATIVE_STEPS) {
+		if (Math.abs(value) < size) {
+			return relativeFormat.format(Math.round(value), unit);
+		}
+		value /= size;
+	}
+
+	return relativeFormat.format(Math.round(value), "year");
 }
