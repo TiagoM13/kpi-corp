@@ -1,20 +1,116 @@
+import { ORPCError } from "@orpc/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
 	fireEvent,
-	render,
+	render as renderUi,
 	screen,
 	waitFor,
 	within,
 } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import type { ReactNode } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { useKpiStore } from "@/lib/kpi-store";
+import { apiCategoryOf } from "@/lib/categories";
+import type { ApiKpi } from "@/lib/kpis";
 import { MOCK_KPIS } from "@/mocks/kpis";
 import { AdminKpisPage } from "@/pages/admin/kpis";
 
-beforeEach(() => {
-	localStorage.clear();
-	useKpiStore.setState({ kpis: MOCK_KPIS });
+type WritableKpi = Pick<ApiKpi, "name" | "description" | "points" | "category">;
+
+const { clientMock, db } = vi.hoisted(() => ({
+	db: { kpis: [] as ApiKpi[] },
+	clientMock: {
+		kpis: {
+			list: vi.fn(),
+			create: vi.fn(),
+			update: vi.fn(),
+			setStatus: vi.fn(),
+		},
+	},
+}));
+
+vi.mock("@/utils/orpc", async () => {
+	const { createTanstackQueryUtils } = await import("@orpc/tanstack-query");
+	return { client: clientMock, orpc: createTanstackQueryUtils(clientMock) };
 });
+
+function seed(): ApiKpi[] {
+	return MOCK_KPIS.map((kpi) => ({
+		id: kpi.id,
+		name: kpi.name,
+		description: kpi.description,
+		points: kpi.points,
+		category: apiCategoryOf(kpi.category),
+		active: kpi.active,
+		uses: kpi.uses,
+		createdAt: new Date("2026-01-01T12:00:00.000Z"),
+	}));
+}
+
+function nameTaken(name: string, exceptId?: string) {
+	return db.kpis.some((kpi) => kpi.name === name && kpi.id !== exceptId);
+}
+
+function conflict() {
+	return new ORPCError("CONFLICT", { data: { code: "KPI_NAME_TAKEN" } });
+}
+
+beforeEach(() => {
+	vi.clearAllMocks();
+	db.kpis = seed();
+
+	clientMock.kpis.list.mockImplementation(async () => ({
+		items: db.kpis,
+		total: db.kpis.length,
+	}));
+
+	clientMock.kpis.create.mockImplementation(async (input: WritableKpi) => {
+		if (nameTaken(input.name)) throw conflict();
+		const kpi: ApiKpi = {
+			...input,
+			id: `new-${db.kpis.length}`,
+			active: true,
+			uses: 0,
+			createdAt: new Date(),
+		};
+		db.kpis = [...db.kpis, kpi];
+		return kpi;
+	});
+
+	clientMock.kpis.update.mockImplementation(
+		async ({ id, ...input }: WritableKpi & { id: string }) => {
+			if (nameTaken(input.name, id)) throw conflict();
+			db.kpis = db.kpis.map((kpi) =>
+				kpi.id === id ? { ...kpi, ...input } : kpi,
+			);
+			return db.kpis.find((kpi) => kpi.id === id);
+		},
+	);
+
+	clientMock.kpis.setStatus.mockImplementation(
+		async ({ id, active }: { id: string; active: boolean }) => {
+			db.kpis = db.kpis.map((kpi) =>
+				kpi.id === id ? { ...kpi, active } : kpi,
+			);
+			return db.kpis.find((kpi) => kpi.id === id);
+		},
+	);
+});
+
+function render(ui: ReactNode) {
+	const queryClient = new QueryClient({
+		defaultOptions: { queries: { retry: false } },
+	});
+
+	return renderUi(
+		<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+	);
+}
+
+async function renderLoaded() {
+	render(<AdminKpisPage />);
+	await screen.findAllByRole("article");
+}
 
 function tiles() {
 	return screen.queryAllByRole("article");
@@ -37,8 +133,8 @@ function searchFor(term: string) {
 }
 
 describe("AdminKpisPage", () => {
-	it("mostra a contagem de ativos e lista todo o banco", () => {
-		render(<AdminKpisPage />);
+	it("mostra a contagem de ativos e lista todo o banco", async () => {
+		await renderLoaded();
 
 		expect(
 			screen.getByRole("heading", { name: "9 indicadores ativos" }),
@@ -47,7 +143,7 @@ describe("AdminKpisPage", () => {
 	});
 
 	it("filtra por status", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		clickToggle("Ativos");
 		await waitFor(() => expect(tiles()).toHaveLength(9));
@@ -57,7 +153,7 @@ describe("AdminKpisPage", () => {
 	});
 
 	it("filtra por categoria e aceita mais de uma", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		clickToggle("Presença");
 		await waitFor(() => expect(tiles()).toHaveLength(2));
@@ -67,7 +163,7 @@ describe("AdminKpisPage", () => {
 	});
 
 	it("combina status e categoria em vez de um substituir o outro", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		clickToggle("Ativos");
 		clickToggle("Comportamento");
@@ -77,7 +173,7 @@ describe("AdminKpisPage", () => {
 	});
 
 	it("busca no nome e na descricao", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		searchFor("incidente");
 
@@ -86,7 +182,7 @@ describe("AdminKpisPage", () => {
 	});
 
 	it("explica a lista vazia e oferece limpar os filtros", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		searchFor("nao existe esse kpi");
 		expect(await screen.findByText("Nada encontrado")).toBeVisible();
@@ -97,7 +193,7 @@ describe("AdminKpisPage", () => {
 	});
 
 	it("troca para a visao de lista", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		expect(screen.queryByRole("table")).not.toBeInTheDocument();
 
@@ -111,7 +207,7 @@ describe("AdminKpisPage", () => {
 
 describe("AdminKpisPage — edicao", () => {
 	it("abre o editor preenchido ao clicar no card", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		fireEvent.click(
 			screen.getByRole("button", { name: "Editar Presença na reunião" }),
@@ -123,7 +219,7 @@ describe("AdminKpisPage — edicao", () => {
 	});
 
 	it("salva a edicao e reflete na lista", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		fireEvent.click(
 			screen.getByRole("button", { name: "Editar Presença na reunião" }),
@@ -142,7 +238,7 @@ describe("AdminKpisPage — edicao", () => {
 	});
 
 	it("cria um KPI novo e conta ele nos ativos", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		fireEvent.click(screen.getByRole("button", { name: "Novo KPI" }));
 		expect(
@@ -161,7 +257,7 @@ describe("AdminKpisPage — edicao", () => {
 	});
 
 	it("fecha o editor pelo botao do cabecalho", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		fireEvent.click(screen.getByRole("button", { name: "Novo KPI" }));
 		await screen.findByText("Novo KPI", { selector: "h2" });
@@ -178,7 +274,7 @@ describe("AdminKpisPage — edicao", () => {
 	});
 
 	it("mantem cabecalho e acoes fora da area que rola", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		fireEvent.click(screen.getByRole("button", { name: "Novo KPI" }));
 		const title = await screen.findByText("Novo KPI", { selector: "h2" });
@@ -196,7 +292,7 @@ describe("AdminKpisPage — edicao", () => {
 	});
 
 	it("recusa KPI sem nome", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		fireEvent.click(screen.getByRole("button", { name: "Novo KPI" }));
 		await screen.findByText("Novo KPI", { selector: "h2" });
@@ -204,16 +300,16 @@ describe("AdminKpisPage — edicao", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Criar KPI" }));
 
 		expect(await screen.findByText("Informe o nome do KPI.")).toBeVisible();
-		expect(useKpiStore.getState().kpis).toHaveLength(10);
+		expect(clientMock.kpis.create).not.toHaveBeenCalled();
 	});
 });
 
 describe("AdminKpisPage — inativar", () => {
 	it("inativa pelo botao do card e atualiza a contagem", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		fireEvent.click(
-			within(firstTile()).getByRole("button", { name: "Inativar" }),
+			within(firstTile()).getByRole("button", { name: /^Inativar/ }),
 		);
 
 		await waitFor(() =>
@@ -222,15 +318,15 @@ describe("AdminKpisPage — inativar", () => {
 			).toBeInTheDocument(),
 		);
 		expect(
-			within(firstTile()).getByRole("button", { name: "Ativar" }),
+			within(firstTile()).getByRole("button", { name: /^Ativar/ }),
 		).toBeInTheDocument();
 	});
 
 	it("nao abre o editor ao clicar em inativar", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		fireEvent.click(
-			within(firstTile()).getByRole("button", { name: "Inativar" }),
+			within(firstTile()).getByRole("button", { name: /^Inativar/ }),
 		);
 
 		await waitFor(() =>
@@ -242,13 +338,87 @@ describe("AdminKpisPage — inativar", () => {
 	});
 
 	it("o KPI inativado some do filtro de ativos", async () => {
-		render(<AdminKpisPage />);
+		await renderLoaded();
 
 		fireEvent.click(
-			within(firstTile()).getByRole("button", { name: "Inativar" }),
+			within(firstTile()).getByRole("button", { name: /^Inativar/ }),
 		);
 		fireEvent.click(screen.getByRole("button", { name: "Ativos" }));
 
 		await waitFor(() => expect(tiles()).toHaveLength(8));
+	});
+});
+
+describe("AdminKpisPage — API", () => {
+	it("mostra carregando antes da primeira resposta", async () => {
+		render(<AdminKpisPage />);
+
+		expect(screen.getByText("Carregando KPIs…")).toBeInTheDocument();
+		expect(await screen.findAllByRole("article")).toHaveLength(10);
+	});
+
+	it("oferece tentar de novo quando a lista falha", async () => {
+		clientMock.kpis.list.mockRejectedValueOnce(new Error("offline"));
+		render(<AdminKpisPage />);
+
+		fireEvent.click(
+			await screen.findByRole("button", { name: "Tentar de novo" }),
+		);
+
+		expect(await screen.findAllByRole("article")).toHaveLength(10);
+	});
+
+	it("manda a categoria no formato da API e descricao vazia como null", async () => {
+		await renderLoaded();
+
+		fireEvent.click(screen.getByRole("button", { name: "Novo KPI" }));
+		await screen.findByText("Novo KPI", { selector: "h2" });
+
+		fireEvent.change(screen.getByLabelText("Nome"), {
+			target: { value: "  Pair programming  " },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Iniciativa" }));
+		fireEvent.click(screen.getByRole("button", { name: "Criar KPI" }));
+
+		await waitFor(() =>
+			expect(clientMock.kpis.create.mock.lastCall?.[0]).toStrictEqual({
+				name: "Pair programming",
+				description: null,
+				category: "INITIATIVE",
+				points: 10,
+			}),
+		);
+	});
+
+	it("aponta o nome repetido no proprio campo", async () => {
+		await renderLoaded();
+
+		fireEvent.click(screen.getByRole("button", { name: "Novo KPI" }));
+		await screen.findByText("Novo KPI", { selector: "h2" });
+
+		fireEvent.change(screen.getByLabelText("Nome"), {
+			target: { value: "Mentoria" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Criar KPI" }));
+
+		expect(
+			await screen.findByText("Já existe um KPI com esse nome."),
+		).toBeVisible();
+		expect(screen.getByText("Novo KPI", { selector: "h2" })).toBeVisible();
+	});
+
+	it("inativa pela API com o status invertido", async () => {
+		await renderLoaded();
+
+		fireEvent.click(
+			within(firstTile()).getByRole("button", { name: /^Inativar/ }),
+		);
+
+		await waitFor(() =>
+			expect(clientMock.kpis.setStatus).toHaveBeenCalledWith(
+				{ id: "k1", active: false },
+				expect.anything(),
+			),
+		);
 	});
 });
