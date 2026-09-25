@@ -20,14 +20,10 @@ import { useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { OverlayHeader } from "@/components/overlay-header";
-import {
-	type KpiDraft,
-	selectCreateKpi,
-	selectUpdateKpi,
-	useKpiStore,
-} from "@/lib/kpi-store";
+import { isKpiNameTaken } from "@/lib/kpis";
 import type { Kpi } from "@/mocks/kpis";
 import { type KpiFormValues, kpiFormDefaults, kpiFormSchema } from "../schemas";
+import { useSaveKpi } from "../use-kpis";
 import { KpiCategoryField } from "./kpi-category-field";
 import { KpiPointsField } from "./kpi-points-field";
 import { KpiPreview } from "./kpi-preview";
@@ -46,30 +42,39 @@ export function KpiEditorDialog({
 	const nameId = useId();
 	const descriptionId = useId();
 
-	const createKpi = useKpiStore(selectCreateKpi);
-	const updateKpi = useKpiStore(selectUpdateKpi);
+	const saveKpi = useSaveKpi(kpi);
 
 	const {
 		control,
 		register,
 		handleSubmit,
+		setError,
 		formState: { errors, isSubmitting },
 	} = useForm<KpiFormValues>({
 		resolver: zodResolver(kpiFormSchema),
 		defaultValues: kpiFormDefaults(kpi),
 	});
 
-	const onSubmit = handleSubmit((values) => {
-		const draft: KpiDraft = values;
+	const onSubmit = handleSubmit(async (values) => {
+		try {
+			await saveKpi.mutateAsync(values);
+		} catch (error) {
+			if (isKpiNameTaken(error)) {
+				setError(
+					"name",
+					{ message: "Já existe um KPI com esse nome." },
+					{ shouldFocus: true },
+				);
+				return;
+			}
 
-		if (kpi) {
-			updateKpi(kpi.id, draft);
-			toast.success("KPI atualizado");
-		} else {
-			createKpi(draft);
-			toast.success(`KPI “${draft.name}” criado`);
+			toast.error("Não deu para salvar o KPI. Tente de novo.");
+			return;
 		}
 
+		toast.success(
+			kpi ? "KPI atualizado" : `KPI “${values.name.trim()}” criado`,
+		);
 		onOpenChange(false);
 	});
 

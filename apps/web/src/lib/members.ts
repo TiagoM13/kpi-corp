@@ -1,8 +1,12 @@
 import type { AppRouterClient } from "@kpi-corp/api/routers/index";
 
+import {
+	API_KPI_CATEGORIES,
+	type ApiKpiCategory,
+	categoryOfApi,
+} from "@/lib/categories";
 import type { CategoryShare, MemberAchievements } from "@/lib/member-stats";
 import type { AchievementRarity } from "@/mocks/badges";
-import { KPI_CATEGORIES, type KpiCategory } from "@/mocks/kpis";
 import { client } from "@/utils/orpc";
 
 type MembersClient = AppRouterClient["members"];
@@ -54,50 +58,27 @@ export function memberStatusOf(
 	return { kind: "ACTIVE" };
 }
 
-type ApiCategory = ProfileKpi["category"];
 type ScoreKey = keyof MemberProfile["categories"];
 
-const CATEGORY_OF_API: Record<ApiCategory, KpiCategory> = {
-	PRESENCE: categoryById("presenca"),
-	PERFORMANCE: categoryById("desempenho"),
-	BEHAVIOR: categoryById("comportamento"),
-	INITIATIVE: categoryById("iniciativa"),
-};
-
-const SCORE_KEY_OF_API: Record<ApiCategory, ScoreKey> = {
+const SCORE_KEY_OF_API: Record<ApiKpiCategory, ScoreKey> = {
 	PRESENCE: "presence",
 	PERFORMANCE: "performance",
 	BEHAVIOR: "behavior",
 	INITIATIVE: "initiative",
 };
 
-function categoryById(id: KpiCategory["id"]): KpiCategory {
-	const category = KPI_CATEGORIES.find((item) => item.id === id);
-
-	if (!category) {
-		throw new Error(`Categoria desconhecida: ${id}`);
-	}
-
-	return category;
-}
-
-export function categoryOf(category: ApiCategory): KpiCategory {
-	return CATEGORY_OF_API[category];
-}
-
 export function categorySharesOf(
 	categories: MemberProfile["categories"],
 ): CategoryShare[] {
-	const apiCategories = Object.keys(CATEGORY_OF_API) as ApiCategory[];
-	const positive = apiCategories.map((category) =>
+	const positive = API_KPI_CATEGORIES.map((category) =>
 		Math.max(categories[SCORE_KEY_OF_API[category]], 0),
 	);
 	const total = positive.reduce((sum, points) => sum + points, 0);
 
-	return apiCategories.map((category, index) => {
+	return API_KPI_CATEGORIES.map((category, index) => {
 		const points = positive[index] ?? 0;
 		return {
-			category: CATEGORY_OF_API[category],
+			category: categoryOfApi(category),
 			points,
 			percent: total === 0 ? 0 : (points / total) * 100,
 		};

@@ -7,7 +7,8 @@ import {
 } from "@kpi-corp/ui/components/empty";
 import { SparklesIcon, TargetIcon } from "lucide-react";
 import { CategoryChip } from "@/components/category-chip";
-import { categoryOf, type ProfileKpi } from "@/lib/members";
+import { categoryOfApi } from "@/lib/categories";
+import type { ProfileKpi } from "@/lib/members";
 
 const VISIBLE = 12;
 
@@ -18,7 +19,7 @@ const assignedFormat = new Intl.DateTimeFormat("pt-BR", {
 });
 
 function KpiHistoryItem({ kpi }: { kpi: ProfileKpi }) {
-	const category = categoryOf(kpi.category);
+	const category = categoryOfApi(kpi.category);
 
 	return (
 		<li className="flex items-center gap-3 border-b py-3 last:border-b-0 last:pb-0">
