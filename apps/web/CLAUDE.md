@@ -192,7 +192,13 @@ Variável nova **precisa** ser declarada em `packages/env/src/web.ts` (prefixo `
 A maior parte das telas ainda é `PagePlaceholder` (`src/components/page-placeholder.tsx`). Navegação, layout e guards funcionam; o conteúdo entra story a story.
 
 Implementado de verdade: login (`src/pages/login/`), cadastro por convite
-(`src/pages/invite/`), `AppShell`, sessão real com refresh.
-Placeholder: dashboards, KPIs, membros, ranking, modo reunião.
+(`src/pages/invite/`), `AppShell`, sessão real com refresh e a tela de membros do admin
+(`src/pages/admin/members/`: lista, busca, paginação, convite e perfil).
+Ainda em mock: dashboards, KPIs, ranking, modo reunião.
+
+A tela de membros tem drawer próprio (`member-profile-drawer.tsx`) com dados da API.
+`components/member-detail/` continua em mock e segue servindo ranking e dashboard do
+membro — não troque um pelo outro até essas telas serem integradas. Tipos e adaptadores
+da API de membros ficam em `lib/members.ts`.
 
 Referência visual dos mockups: `docs/Mockup-KPICorp/` (screenshots + JSX de protótipo). Stories: `docs/stories/`.

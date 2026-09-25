@@ -109,5 +109,5 @@ Desenvolvimento local apenas — **sem deploy, sem CI, sem release**.
 | --- | --- |
 | API de auth | Implementada, validada ponta a ponta |
 | Demais módulos da API | `members`, `kpis`, `assignments`, `profile`, `meetings`, `ranking` e `dashboard` implementados — roadmap do MVP fechado (specs 2B a 3E entregues) |
-| Front | Auth real (login, logout, refresh, convite — ADR 0014); demais telas ainda consomem mock em `apps/web/src/mocks/` |
+| Front | Auth real (login, logout, refresh, convite — ADR 0014) e tela de membros do admin; demais telas ainda consomem mock em `apps/web/src/mocks/` |
 | Rate limiting | Não existe |

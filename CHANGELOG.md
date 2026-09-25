@@ -8,6 +8,24 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-25 — Tela de membros integrada à API
+
+#### Adicionado
+- `GET /members` devolve, por membro, `points`, `kpiCount`, `lastAssignmentAt` e `level`
+  — só atribuições válidas contam, a mesma soma do perfil.
+- Tela de membros do admin lista o time real, com busca por nome ou e-mail no servidor e
+  paginação de 20 em 20.
+- Perfil do membro (drawer) mostra categorias, conquistas e histórico vindos de
+  `profile.getPublicProfile`. Membro inativo mostra só o cabeçalho.
+- Convite de membros cria os convites em `members.invite`. E-mail que já tem conta é
+  avisado à parte.
+
+#### Alterado
+- Status do membro na tela vira `Ativo`, `Inativo` ou `Nd sem KPI` (30 dias, a regra do
+  dashboard). Sequência e tendência de 7 dias saem da tabela: a API não tem fonte para
+  elas.
+- O campo de mensagem do convite sai: o servidor não envia e-mail.
+
 ### 2026-09-24 — Auth do front integrada à API
 
 #### Adicionado
