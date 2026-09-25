@@ -118,6 +118,37 @@ describe("members router", () => {
 			});
 		});
 
+		it("should expose the score and level of each member", async () => {
+			serviceMock.list.mockResolvedValueOnce({
+				items: [
+					{
+						...member,
+						points: 120,
+						kpiCount: 3,
+						lastAssignmentAt: null,
+						level: {
+							level: 1,
+							tier: "INICIANTE",
+							currentPoints: 120,
+							levelFloor: 100,
+							nextLevel: 2,
+							nextLevelPoints: 200,
+							progress: 20,
+							nextTier: "INICIANTE",
+						},
+					},
+				],
+				page: 1,
+				limit: 20,
+				total: 1,
+				totalPages: 1,
+			});
+
+			const result = await caller(asAdmin).list({});
+
+			expect(result.items[0]).toMatchObject({ points: 120, kpiCount: 3 });
+		});
+
 		it("should treat cleared query filters as absent", async () => {
 			serviceMock.list.mockResolvedValueOnce({
 				items: [],

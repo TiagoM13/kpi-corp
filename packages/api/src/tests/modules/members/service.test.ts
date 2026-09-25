@@ -62,7 +62,11 @@ describe("members service", () => {
 
 	describe("list", () => {
 		it("should compute totalPages from total and limit", async () => {
-			repositoryMock.list.mockResolvedValueOnce({ items: [member], total: 21 });
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [member],
+				total: 21,
+				scores: [],
+			});
 
 			const result = await membersService.list({
 				page: 1,
@@ -76,7 +80,11 @@ describe("members service", () => {
 		});
 
 		it("should report one page when there is nothing to list", async () => {
-			repositoryMock.list.mockResolvedValueOnce({ items: [], total: 0 });
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [],
+				total: 0,
+				scores: [],
+			});
 
 			const result = await membersService.list({
 				page: 1,
@@ -88,7 +96,11 @@ describe("members service", () => {
 		});
 
 		it("should forward search and status to the repository", async () => {
-			repositoryMock.list.mockResolvedValueOnce({ items: [], total: 0 });
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [],
+				total: 0,
+				scores: [],
+			});
 
 			await membersService.list({
 				page: 2,
@@ -106,7 +118,11 @@ describe("members service", () => {
 		});
 
 		it("should not leak the password hash", async () => {
-			repositoryMock.list.mockResolvedValueOnce({ items: [member], total: 1 });
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [member],
+				total: 1,
+				scores: [],
+			});
 
 			const result = await membersService.list({
 				page: 1,
@@ -115,6 +131,51 @@ describe("members service", () => {
 			});
 
 			expect(result.items[0]).not.toHaveProperty("passwordHash");
+		});
+
+		it("should attach the valid score and level of each member", async () => {
+			const lastAssignmentAt = new Date("2026-09-20T12:00:00.000Z");
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [member],
+				total: 1,
+				scores: [
+					{ userId: MEMBER_ID, points: 250, kpiCount: 7, lastAssignmentAt },
+				],
+			});
+
+			const result = await membersService.list({
+				page: 1,
+				limit: 20,
+				status: "ALL",
+			});
+
+			expect(result.items[0]).toMatchObject({
+				points: 250,
+				kpiCount: 7,
+				lastAssignmentAt,
+				level: { level: 2, nextLevelPoints: 300 },
+			});
+		});
+
+		it("should score a member without assignments as zero", async () => {
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [member],
+				total: 1,
+				scores: [],
+			});
+
+			const result = await membersService.list({
+				page: 1,
+				limit: 20,
+				status: "ALL",
+			});
+
+			expect(result.items[0]).toMatchObject({
+				points: 0,
+				kpiCount: 0,
+				lastAssignmentAt: null,
+				level: { level: 0 },
+			});
 		});
 	});
 
