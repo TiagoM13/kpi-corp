@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { activityOf, recentActivity } from "@/lib/activity-feed";
 import {
 	firstNameOf,
+	formatRelative,
 	greetingFor,
 	STAGNANT_THRESHOLD_DAYS,
 	stagnantMembers,
@@ -47,6 +48,19 @@ describe("stagnantMembers", () => {
 
 		expect(days).toStrictEqual([...days].sort((a, b) => b - a));
 		expect(days).toStrictEqual([16, 11, 8]);
+	});
+});
+
+describe("formatRelative", () => {
+	const now = new Date("2026-09-25T12:00:00.000Z");
+
+	it.each([
+		["2026-09-25T11:58:00.000Z", "há 2 minutos"],
+		["2026-09-25T09:00:00.000Z", "há 3 horas"],
+		["2026-09-24T12:00:00.000Z", "ontem"],
+		["2026-09-19T12:00:00.000Z", "há 6 dias"],
+	])("%s vira %j", (iso, expected) => {
+		expect(formatRelative(new Date(iso), now)).toBe(expected);
 	});
 });
 
