@@ -1,4 +1,5 @@
 import { type MemberListItem, memberStatusOf } from "@/lib/members";
+import { MemberActiveSwitch } from "./member-active-switch";
 import {
 	formatPoints,
 	LevelBadge,
@@ -9,17 +10,24 @@ import {
 
 type MemberCardProps = {
 	member: MemberListItem;
+	isSelf: boolean;
 	onSelect: (member: MemberListItem) => void;
+	onToggleStatus: (member: MemberListItem) => void;
 };
 
-export function MemberCard({ member, onSelect }: MemberCardProps) {
+export function MemberCard({
+	member,
+	isSelf,
+	onSelect,
+	onToggleStatus,
+}: MemberCardProps) {
 	return (
-		<li className="border-b last:border-b-0">
+		<li className="flex flex-col border-b last:border-b-0">
 			<button
 				type="button"
 				onClick={() => onSelect(member)}
 				aria-label={`Ver perfil de ${member.name}`}
-				className="flex w-full flex-col gap-3 p-4 text-left transition-colors hover:bg-muted/50"
+				className="flex w-full flex-col gap-3 p-4 pb-3 text-left transition-colors hover:bg-muted/50"
 			>
 				<div className="flex items-start justify-between gap-3">
 					<MemberIdentity member={member} />
@@ -45,6 +53,17 @@ export function MemberCard({ member, onSelect }: MemberCardProps) {
 					</span>
 				</div>
 			</button>
+
+			<div className="flex items-center justify-between gap-3 px-4 pb-4">
+				<span className="text-2xs text-fg-3">
+					{member.active ? "Acesso liberado" : "Acesso bloqueado"}
+				</span>
+				<MemberActiveSwitch
+					member={member}
+					isSelf={isSelf}
+					onRequestToggle={onToggleStatus}
+				/>
+			</div>
 		</li>
 	);
 }

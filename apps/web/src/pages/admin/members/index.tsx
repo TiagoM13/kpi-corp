@@ -37,6 +37,12 @@ const MemberProfileDrawer = lazy(() =>
 	})),
 );
 
+const MemberStatusDialog = lazy(() =>
+	import("./components/member-status-dialog").then((module) => ({
+		default: module.MemberStatusDialog,
+	})),
+);
+
 const InviteDialog = lazy(() =>
 	import("./components/invite-dialog").then((module) => ({
 		default: module.InviteDialog,
@@ -149,8 +155,10 @@ function MembersPager({ page, totalPages, onPageChange }: MembersPagerProps) {
 
 type MembersListProps = {
 	search: string;
+	currentUserId?: string;
 	onPageChange: (page: number) => void;
 	onSelect: (member: MemberListItem) => void;
+	onToggleStatus: (member: MemberListItem) => void;
 	query: ReturnType<typeof useMembersQuery>;
 };
 
@@ -165,8 +173,10 @@ function useMembersQuery(search: string, page: number) {
 
 function MembersList({
 	search,
+	currentUserId,
 	onPageChange,
 	onSelect,
+	onToggleStatus,
 	query,
 }: MembersListProps) {
 	const { data, isPending, isError, refetch } = query;
@@ -187,12 +197,23 @@ function MembersList({
 		<div className="rounded-lg border bg-card">
 			<ul className="md:hidden">
 				{data.items.map((member) => (
-					<MemberCard key={member.id} member={member} onSelect={onSelect} />
+					<MemberCard
+						key={member.id}
+						member={member}
+						isSelf={member.id === currentUserId}
+						onSelect={onSelect}
+						onToggleStatus={onToggleStatus}
+					/>
 				))}
 			</ul>
 
 			<div className="hidden md:block">
-				<MembersTable members={data.items} onSelect={onSelect} />
+				<MembersTable
+					members={data.items}
+					currentUserId={currentUserId}
+					onSelect={onSelect}
+					onToggleStatus={onToggleStatus}
+				/>
 			</div>
 
 			<MembersPager
@@ -209,7 +230,11 @@ function membersHeading(total: number | null) {
 	return total === 1 ? "1 membro" : `${total} membros`;
 }
 
-export function AdminMembersPage() {
+type AdminMembersPageProps = {
+	currentUserId?: string;
+};
+
+export function AdminMembersPage({ currentUserId }: AdminMembersPageProps) {
 	const [search, setSearch] = useState("");
 	const debouncedSearch = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
 	const [page, setPage] = useState(1);
@@ -217,12 +242,19 @@ export function AdminMembersPage() {
 
 	const [selected, setSelected] = useState<MemberListItem | null>(null);
 	const [detailOpen, setDetailOpen] = useState(false);
+	const [statusTarget, setStatusTarget] = useState<MemberListItem | null>(null);
+	const [statusOpen, setStatusOpen] = useState(false);
 	const [inviteLoaded, setInviteLoaded] = useState(false);
 	const [inviteOpen, setInviteOpen] = useState(false);
 
 	const openMember = useCallback((member: MemberListItem) => {
 		setSelected(member);
 		setDetailOpen(true);
+	}, []);
+
+	const requestStatusChange = useCallback((member: MemberListItem) => {
+		setStatusTarget(member);
+		setStatusOpen(true);
 	}, []);
 
 	const openInvite = useCallback(() => {
@@ -274,7 +306,9 @@ export function AdminMembersPage() {
 			<MembersList
 				search={debouncedSearch}
 				onPageChange={setPage}
+				currentUserId={currentUserId}
 				onSelect={openMember}
+				onToggleStatus={requestStatusChange}
 				query={membersQuery}
 			/>
 
@@ -284,6 +318,16 @@ export function AdminMembersPage() {
 						member={selected}
 						open={detailOpen}
 						onOpenChange={setDetailOpen}
+					/>
+				</Suspense>
+			)}
+
+			{statusTarget && (
+				<Suspense fallback={null}>
+					<MemberStatusDialog
+						member={statusTarget}
+						open={statusOpen}
+						onOpenChange={setStatusOpen}
 					/>
 				</Suspense>
 			)}

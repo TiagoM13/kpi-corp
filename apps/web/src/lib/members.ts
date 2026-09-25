@@ -1,5 +1,5 @@
 import type { AppRouterClient } from "@kpi-corp/api/routers/index";
-
+import { domainCodeOf } from "@/lib/auth";
 import {
 	API_KPI_CATEGORIES,
 	type ApiKpiCategory,
@@ -133,4 +133,18 @@ export async function inviteMembers(emails: string[]): Promise<InviteOutcome> {
 			.filter((failure) => failure.code !== "EMAIL_ALREADY_REGISTERED")
 			.map((failure) => failure.email),
 	};
+}
+
+const STATUS_ERROR_BY_CODE: Record<string, string> = {
+	CANNOT_DEACTIVATE_SELF: "Você não pode desativar a própria conta.",
+	LAST_ADMIN_CANNOT_BE_DEACTIVATED:
+		"Este é o último admin ativo. Ative outro admin antes de desativar este.",
+	MEMBER_NOT_FOUND: "Este membro não existe mais. Atualize a lista.",
+};
+
+export function memberStatusErrorOf(error: unknown) {
+	return (
+		STATUS_ERROR_BY_CODE[domainCodeOf(error) ?? ""] ??
+		"Não deu para mudar o acesso do membro. Tente de novo."
+	);
 }

@@ -10,6 +10,7 @@ import {
 import { cn } from "@kpi-corp/ui/lib/utils";
 import { ArrowRightIcon } from "lucide-react";
 import { type MemberListItem, memberStatusOf } from "@/lib/members";
+import { MemberActiveSwitch } from "./member-active-switch";
 import {
 	formatPoints,
 	LevelBadge,
@@ -29,15 +30,23 @@ const COLUMNS = {
 	level: "hidden w-24 lg:table-cell",
 	kpis: "hidden w-20 pr-8 text-right tabular-nums xl:table-cell",
 	status: "w-36",
+	access: "w-20",
 	actions: "w-14 text-right",
 } as const;
 
 type MembersTableProps = {
 	members: MemberListItem[];
+	currentUserId?: string;
 	onSelect: (member: MemberListItem) => void;
+	onToggleStatus: (member: MemberListItem) => void;
 };
 
-export function MembersTable({ members, onSelect }: MembersTableProps) {
+export function MembersTable({
+	members,
+	currentUserId,
+	onSelect,
+	onToggleStatus,
+}: MembersTableProps) {
 	return (
 		<Table className="text-sm">
 			<TableHeader>
@@ -48,6 +57,7 @@ export function MembersTable({ members, onSelect }: MembersTableProps) {
 					<TableHead className={cn(HEAD, COLUMNS.level)}>Nível</TableHead>
 					<TableHead className={cn(HEAD, COLUMNS.kpis)}>KPIs</TableHead>
 					<TableHead className={cn(HEAD, COLUMNS.status)}>Status</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.access)}>Acesso</TableHead>
 					<TableHead className={cn(HEAD, COLUMNS.actions)}>
 						<span className="sr-only">Ações</span>
 					</TableHead>
@@ -83,6 +93,14 @@ export function MembersTable({ members, onSelect }: MembersTableProps) {
 
 						<TableCell className={cn(CELL, COLUMNS.status)}>
 							<StatusBadge status={memberStatusOf(member)} />
+						</TableCell>
+
+						<TableCell className={cn(CELL, COLUMNS.access)}>
+							<MemberActiveSwitch
+								member={member}
+								isSelf={member.id === currentUserId}
+								onRequestToggle={onToggleStatus}
+							/>
 						</TableCell>
 
 						<TableCell className={cn(CELL, COLUMNS.actions)}>
