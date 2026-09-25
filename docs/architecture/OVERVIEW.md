@@ -132,7 +132,7 @@ sequenceDiagram
 | --- | --- |
 | Auth (login, register, refresh, logout, me) | Implementado e testado ponta a ponta |
 | Demais módulos da API | `members`, `kpis`, `assignments`, `profile`, `meetings`, `ranking` e `dashboard` implementados — roadmap do MVP fechado (Fases 1 a 3) |
-| Front | Login e convite reais pendentes; telas ainda usam mock em `apps/web/src/mocks/` |
+| Front | Login, logout, refresh e convite consomem a API; demais telas ainda usam mock em `apps/web/src/mocks/` |
 | Deploy | Não existe. Só ambiente de desenvolvimento local |
 
 ## Onde continuar

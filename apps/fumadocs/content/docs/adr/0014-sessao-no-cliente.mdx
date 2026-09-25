@@ -1,0 +1,81 @@
+---
+title: 0014 — Sessão no cliente com snapshot em localStorage
+description: "Onde o front guarda os tokens, como os guards continuam síncronos e como o refresh é deduplicado."
+---
+
+**Status:** Aceita
+**Data:** 2026-09-24
+
+## Contexto
+
+A API de auth entrega `accessToken` e `refreshToken` no corpo da resposta
+([ADR 0011](/docs/adr/0011-jwt-refresh-token-rotativo)). O front ainda rodava sobre uma
+sessão mock em `localStorage` e oito guards de rota liam essa sessão de forma
+**síncrona** no `beforeLoad`, antes de qualquer render.
+
+A story `001-login.md` fixava cookie `httpOnly` como destino. Migrar para cookie muda
+`packages/api` e `apps/server` (emissão via `Set-Cookie`, `createContext` lendo cookie,
+refresh sem corpo) e obriga os guards a esperar uma checagem assíncrona. A story
+`005-session-api-integration.md` pediu a decisão antes da implementação.
+
+## Decisão
+
+**Tokens e um snapshot do usuário ficam em `localStorage`, na chave `kpicorp.session`.**
+
+```
+StoredSession = { accessToken, refreshToken, user: { userId, name, email, position, role } }
+```
+
+| Peça | Arquivo | Papel |
+| --- | --- | --- |
+| Store | `apps/web/src/lib/session-store.ts` | Único dono da chave. Lê validando o shape, grava, limpa e avisa quem ouve o fim da sessão |
+| Refresh | `apps/web/src/lib/refresh.ts` | `createRefresher` (rotação com promise compartilhada) e `createSessionInterceptor` (retry 1×) |
+| Link | `apps/web/src/utils/orpc.ts` | `headers` põe o Bearer a cada request; `interceptors` usa o interceptor acima |
+| Revalidação | `apps/web/src/lib/use-revalidated-session.ts` | `auth.me` em segundo plano nos layouts autenticados |
+
+**Guard síncrono.** `getSession()` lê o snapshot sem `await`. Os guards não mudaram de
+assinatura e a tela autenticada renderiza na hora.
+
+**Renovar vs. recusar.** `protectedProcedure` recusa com `UNAUTHORIZED` **sem**
+`data.code`; todo erro de domínio passa por `mapDomainErrorToORPCError` e traz um. A
+ausência de `data.code` é o único sinal de "access token vencido".
+
+**Refresh deduplicado.** RN09 revoga todos os tokens do usuário quando um refresh já
+usado reaparece. Cinco queries vencendo juntas mandariam cinco refreshes com o mesmo
+token, e o segundo derrubaria a sessão. Por isso a rotação é uma promise única
+compartilhada, e uma request que falhou com um token já trocado repete com o token novo
+sem pedir outra rotação.
+
+**Fim de sessão em um lugar só.** `clearStoredSession()` avisa os ouvintes;
+`main.tsx` limpa o cache do TanStack Query e roda `router.invalidate()`. Os guards
+redirecionam sozinhos, e páginas públicas (convite) ficam onde estão. Logout, refresh
+recusado e conta desativada passam pelo mesmo caminho.
+
+**Snapshot confere com o banco.** `useRevalidatedSession` chama `auth.me` sem bloquear o
+render, atualiza o snapshot e, se o perfil mudou, re-roda os guards.
+
+## Consequências
+
+**Risco de XSS assumido.** Qualquer script na página lê o `localStorage` — uma
+dependência comprometida consegue exfiltrar os dois tokens. Cookie `httpOnly` seria
+imune. A rotação encurta a janela (o refresh muda a cada uso e o reuso revoga tudo), mas
+não fecha o buraco. **Decisão temporária**: a migração para cookie continua critério de
+`001-login.md` e deve substituir esta ADR.
+
+**Snapshot pode ficar velho entre requests.** Usuário rebaixado vê a navegação antiga
+até o `auth.me` responder. Não é falha de segurança: `adminProcedure` recusa no servidor.
+
+**Queda de rede no refresh não desloga.** Só resposta 4xx do servidor limpa a sessão;
+erro de rede sobe para a tela e a sessão continua.
+
+## Alternativas consideradas
+
+**Cookie `httpOnly` agora.** Mais seguro contra XSS. Adiada: muda API e servidor e
+exige guard assíncrono em todas as rotas — story própria.
+
+**Access token só em memória, refresh em `localStorage`.** Reduz pouco: o refresh, que
+vale 7 dias, continuaria exposto. E todo reload custaria um refresh antes do primeiro
+guard.
+
+**Refresh no `QueryCache.onError`.** Descartada: só cobre queries, não mutations nem
+chamadas diretas ao `client`. No interceptor do `RPCLink` todas herdam.

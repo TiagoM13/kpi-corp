@@ -107,8 +107,8 @@ convite. É a **única** fonte de verdade sobre validade, expiração e perfil.
 - [x] Modelo `Invitation` no Prisma — `email`, `token`, `expiresAt`, `usedAt`
 - [x] Migration nova — `20260831110915_add_invitation`
 - [x] Procedure de criação (só Admin) gerando token de alta entropia — `members.invite`
-- [ ] Guardar **hash** do token, nunca o token em texto puro
-- [ ] Procedure pública que valide o token devolvendo o e-mail e o estado do convite
+- [x] Guardar **hash** do token, nunca o token em texto puro — `invitation.tokenHash`
+- [x] Procedure pública que valide o token devolvendo o e-mail e o estado do convite — `auth.validateInvite`
 - [x] Procedure pública que cria o `User` e queima o convite na mesma transação — `auth.register`
 - [x] `role: MEMBER` fixado no servidor, ignorando qualquer coisa que venha do cliente
 - [x] Uso único garantido contra corrida — `updateMany` guardado por `usedAt IS NULL` dentro da transação
@@ -202,6 +202,6 @@ quando houver sessão real em cookie.
 - Perfil: Membro
 - Prioridade: Alta
 - Fase: MVP
-- Web: concluído com convite mock
+- Web: concluído — `auth.validateInvite` + `auth.register` reais (story 005)
 - API: implementada — `auth.register` e `members.invite`; falta validar token antes do cadastro
 - Relacionada: `001-login.md`, `004-route-protected.md`

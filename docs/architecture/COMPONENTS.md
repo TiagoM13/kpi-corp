@@ -192,6 +192,30 @@ const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 Token ausente, expirado ou com assinatura errada resultam todos em `auth: null`. Quem
 decide se isso é erro é a procedure, não o contexto.
 
+## Sessão no front
+
+O consumidor do contexto acima é `apps/web`. Decisão em
+[ADR 0014](http://localhost:4000/docs/adr/0014-sessao-no-cliente).
+
+```mermaid
+flowchart LR
+    G[guards beforeLoad] -->|getSession síncrono| S[(session-store<br/>localStorage)]
+    L[RPCLink headers] -->|Bearer| S
+    I[createSessionInterceptor] -->|UNAUTHORIZED sem data.code| R[refreshOnce<br/>promise única]
+    R -->|auth.refresh| API[(API)]
+    R -->|par novo| S
+    R -->|4xx| C[clearStoredSession]
+    C --> M[main.tsx: queryClient.clear + router.invalidate]
+```
+
+| Arquivo | Papel |
+| --- | --- |
+| `lib/session-store.ts` | Único dono da chave `kpicorp.session` |
+| `lib/refresh.ts` | Rotação deduplicada e retry 1× |
+| `lib/auth.ts` | `signIn`, `signOut`, `getSession`, `syncSessionUser` |
+| `lib/invite.ts` | `validateInvite`, `acceptInvite` |
+| `lib/use-revalidated-session.ts` | `auth.me` em segundo plano nos layouts |
+
 ## Como adicionar um módulo
 
 1. `packages/api/src/modules/<nome>/` com os sete arquivos do padrão do auth.

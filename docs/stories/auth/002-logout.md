@@ -4,7 +4,7 @@
 
 Como usuário, quero fazer logout para encerrar minha sessão com segurança.
 
-## 🖥️ Web — `apps/web` ✅ concluído · 1 pendência
+## 🖥️ Web — `apps/web` ✅ concluído
 
 Responsável por oferecer a saída em qualquer tela autenticada, limpar o estado local e
 tirar o usuário da área protegida. **Não invalida token** — hoje não existe token para
@@ -17,7 +17,7 @@ invalidar, e quando existir quem revoga é a API.
 - [x] `/login` não devolve o usuário para dentro depois do logout
 - [x] Rota protegida acessada após o logout manda para `/login`
 - [x] `signOut()` não quebra com `localStorage` indisponível
-- [ ] Limpar o cache do TanStack Query no logout
+- [x] Limpar o cache do TanStack Query no logout — fechado pela story 005
 
 ### Estrutura entregue
 
@@ -53,7 +53,11 @@ Não há teste de interação do botão (renderizar o `AppShell`, clicar em "Sai
 a navegação). O guard de `_authed` já garante o efeito, então a lacuna é de regressão de
 UI, não de comportamento.
 
-### Pendência: cache do TanStack Query
+### Resolvido: cache do TanStack Query
+
+Fechado pela story `005-session-api-integration.md`: `clearStoredSession()` avisa
+`main.tsx`, que roda `queryClient.clear()` e `router.invalidate()`. O texto abaixo é o
+registro da pendência original.
 
 `signOut()` limpa o `localStorage`, mas o `queryClient` é um singleton criado em
 `utils/orpc.ts` e **nunca** recebe `.clear()`. Hoje é inofensivo — todas as telas são
@@ -138,6 +142,6 @@ critério; se for desejado, é mudança de UI nesta story.
 - Perfil: Admin / Membro
 - Prioridade: Alta
 - Fase: MVP
-- Web: concluído com sessão mock — falta limpar o cache de queries
+- Web: concluído — `auth.logout` real e cache limpo (story 005)
 - API: implementada — `auth.logout` revoga o refresh token
 - Relacionada: `001-login.md`, `004-route-protected.md`

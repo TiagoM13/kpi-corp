@@ -22,6 +22,7 @@ Código em `packages/api/src/modules/auth/`.
 | RN09 | Refresh já revogado que reaparece revoga **todos** os tokens do usuário (replay) |
 | RN10 | Logout revoga o refresh token; o access token segue válido até expirar (máx. 15 min). Desativação corta antes: o contexto confere `active` no banco a cada requisição |
 | RN11 | Refresh token é guardado como hash, nunca em texto puro |
+| RN12 | Validar convite não o consome e só revela o e-mail quando ele vale |
 
 ## Fluxos
 
@@ -67,6 +68,18 @@ sequenceDiagram
 O `updateMany` guardado por `usedAt: null` dentro da transação é o que fecha a corrida.
 Checar `usedAt` antes da transação e marcar dentro dela deixaria duas requisições
 passarem pela checagem antes de qualquer commit.
+
+### Validação de convite
+
+`validateInvite(token)` busca pelo SHA-256 do token e responde com a mesma ordem de
+checagem do `register`: inexistente → `INVALID`, usado → `USED`, vencido → `EXPIRED`.
+Só `VALID` devolve o e-mail — recusa não diz para quem o link foi emitido. Não consome o
+convite; quem queima é o `register`.
+
+```json
+{ "status": "VALID", "email": "novo@kpicorp.com" }
+{ "status": "EXPIRED" }
+```
 
 ### Refresh e replay
 
@@ -131,6 +144,7 @@ Prefixo `/rpc` para o client tipado, `/api-reference` para REST/OpenAPI.
 | Método | Rota | Descrição | Auth | Erros |
 | --- | --- | --- | --- | --- |
 | POST | `/auth/login` | E-mail e senha → sessão | — | 401 `INVALID_CREDENTIALS`, 403 `ACCOUNT_DEACTIVATED` |
+| POST | `/auth/validateInvite` | Diz se o convite vale, sem consumir | — | nenhum; recusa vem como `status` |
 | POST | `/auth/register` | Convite → conta + sessão | — | 401 `INVALID_INVITATION`, 401 `INVITATION_EXPIRED`, 409 `INVITATION_ALREADY_USED`, 409 `EMAIL_ALREADY_REGISTERED` |
 | POST | `/auth/refresh` | Rotaciona a sessão | refresh token no corpo | 401 `INVALID_REFRESH_TOKEN`, 403 `ACCOUNT_DEACTIVATED` |
 | POST | `/auth/logout` | Revoga o refresh token | — | nenhum, sempre `{ success: true }` |
@@ -182,7 +196,6 @@ dele — a única dependência de `shared/` para `modules/` no projeto.
 | --- | --- |
 | Rate limiting em `login`, `register` e `refresh` | Não existe. Tentativas ilimitadas |
 | Limpeza de `refresh_token` revogado/expirado | Nenhuma rotina; a tabela só cresce |
-| Validação de convite antes do cadastro | Não há endpoint. `auth.register` consome o token, mas nada responde se ele é válido antes do formulário |
 | Envio de e-mail do convite | Fora de escopo; o link é entregue por fora |
 | Troca e recuperação de senha | Não implementado |
-| Tokens em cookie `httpOnly` | Hoje vão no corpo; CORS já preparado para a troca |
+| Tokens em cookie `httpOnly` | Hoje vão no corpo e o front guarda em `localStorage` ([ADR 0014](http://localhost:4000/docs/adr/0014-sessao-no-cliente)); CORS já preparado para a troca |

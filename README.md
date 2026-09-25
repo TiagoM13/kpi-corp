@@ -218,4 +218,5 @@ Documentação de engenharia navegável em `http://localhost:4000` (`npm run dev
 
 Projeto em desenvolvimento, **sem deploy e sem release**. A API do MVP está completa —
 auth, membros, KPIs, atribuições, perfil e badges, reuniões, ranking e dashboards —
-e testada; boa parte das telas do front ainda consome mock em `apps/web/src/mocks/`.
+e testada. No front, login, logout, refresh de sessão e cadastro por convite já consomem
+a API; as demais telas ainda consomem mock em `apps/web/src/mocks/`.

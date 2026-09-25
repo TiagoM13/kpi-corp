@@ -8,6 +8,24 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-24 — Auth do front integrada à API
+
+#### Adicionado
+- `POST /auth/validateInvite`: diz se um convite vale sem consumi-lo e só devolve o
+  e-mail quando `VALID`.
+- Login, logout e cadastro por convite no front falam com a API real. A sessão renova
+  sozinha quando o access token vence, com um único refresh para requests simultâneas.
+- Conta desativada tem mensagem própria na tela de login.
+
+#### Alterado
+- Sessão do front passa a guardar tokens em `localStorage` (`kpicorp.session`); a sessão
+  mock antiga é ignorada e é preciso entrar de novo
+  ([ADR 0014](http://localhost:4000/docs/adr/0014-sessao-no-cliente)).
+- Logout limpa o cache de queries.
+- Credenciais mock (`kpicorp123`) e tokens de convite fixos (`convite-valido`, ...)
+  deixam de funcionar: use o seed (`admin@kpicorp.com` / `admin123`) e convites gerados
+  por `members.invite`.
+
 ### 2026-09-24 — Revisão da API MVP, itens 5 a 13
 
 #### Corrigido

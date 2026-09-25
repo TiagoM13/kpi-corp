@@ -20,27 +20,27 @@ ponta. **Esta story é só do lado web.** Nenhuma linha de `packages/api` muda.
 | `hue` do avatar | Sai da `Session`; `hueFor(seed)` em `lib/avatar.ts`, derivado no render | A API não devolve `hue`. Nada derivado é persistido, e a mesma função serve quando ranking e membros virarem API |
 | `position` | `string \| null`; fallback `—` na tela | `publicUserSchema` devolve `position` anulável |
 
-## 🖥️ Web — `apps/web`
+## 🖥️ Web — `apps/web` ✅ concluído
 
 Responsável por guardar a sessão, anexar o token, renovar quando expira e tirar o
 usuário quando a renovação falha. **Não valida credencial e não decide perfil** — quem
 decide é o servidor, a cada request, via `protectedProcedure`.
 
-- [ ] `signIn` chama `client.auth.login` e grava a sessão devolvida
-- [ ] `signOut` chama `client.auth.logout` com o refresh token antes de limpar o local
-- [ ] `signOut` limpa o cache do TanStack Query (**resolve a pendência aberta em `002-logout.md`**)
-- [ ] `getSession()` continua **síncrono** e continua devolvendo `null` em storage ausente ou corrompido
-- [ ] Toda request autenticada leva `Authorization: Bearer <accessToken>`
-- [ ] `UNAUTHORIZED` sem `data.code` dispara refresh e repete a request **uma** vez
-- [ ] Refresh concorrente é deduplicado numa promise única
-- [ ] Refresh que falha limpa a sessão e manda para `/login`
-- [ ] Erro ramifica por `error.data.code`, nunca por mensagem
-- [ ] `ACCOUNT_DEACTIVATED` tem mensagem própria, distinta de credencial inválida
-- [ ] E-mail inexistente e senha errada continuam com a **mesma** mensagem
-- [ ] Boot de rota autenticada revalida o snapshot com `auth.me` sem bloquear o render
-- [ ] `mocks/users.ts` apagado; aviso de credenciais some da tela de login
-- [ ] `UserAvatar` deriva o `hue` quando não recebe um explícito
-- [ ] Cargo ausente renderiza `—`
+- [x] `signIn` chama `client.auth.login` e grava a sessão devolvida
+- [x] `signOut` chama `client.auth.logout` com o refresh token antes de limpar o local
+- [x] `signOut` limpa o cache do TanStack Query (**resolve a pendência aberta em `002-logout.md`**)
+- [x] `getSession()` continua **síncrono** e continua devolvendo `null` em storage ausente ou corrompido
+- [x] Toda request autenticada leva `Authorization: Bearer <accessToken>`
+- [x] `UNAUTHORIZED` sem `data.code` dispara refresh e repete a request **uma** vez
+- [x] Refresh concorrente é deduplicado numa promise única
+- [x] Refresh que falha limpa a sessão e manda para `/login`
+- [x] Erro ramifica por `error.data.code`, nunca por mensagem
+- [x] `ACCOUNT_DEACTIVATED` tem mensagem própria, distinta de credencial inválida
+- [x] E-mail inexistente e senha errada continuam com a **mesma** mensagem
+- [x] Boot de rota autenticada revalida o snapshot com `auth.me` sem bloquear o render
+- [x] `mocks/users.ts` apagado; aviso de credenciais some da tela de login
+- [x] `UserAvatar` deriva o `hue` quando não recebe um explícito
+- [x] Cargo ausente renderiza `—`
 
 ### Arquivos
 
@@ -171,10 +171,31 @@ fingir que resolve.
 seguem vivos. A conta criada pelo convite mock continua não existindo no banco: dá para
 navegar depois do cadastro, não dá para sair e entrar de novo.
 
+## ✅ Entregue diferente do planejado
+
+**Convite entrou no escopo.** A decisão original deixava o convite no mock por falta de
+endpoint de validação. Foi criado `auth.validateInvite` (público, não consome o token,
+devolve e-mail só quando `VALID`) e o front passou a usar `auth.register`.
+`mocks/invites.ts` foi apagado; `INVITE_TTL_HOURS` foi para `lib/invite.ts`.
+`EMAIL_ALREADY_REGISTERED` no cadastro cai na mensagem de convite já usado.
+
+**`mocks/users.ts` não foi apagado.** `mocks/members.ts` monta o elenco das telas mock
+(ranking, membros, dashboards) a partir dele. Perdeu `MOCK_PASSWORD` e `findMockUser`;
+o login não o usa mais. Sai quando essas telas consumirem a API.
+
+**Interceptor extraído.** `createSessionInterceptor` vive em `lib/refresh.ts`, e
+`utils/orpc.ts` só o registra — testável sem mockar `fetch`.
+
+**Fim de sessão via ouvinte.** Em vez de o botão navegar, `clearStoredSession()` avisa
+`main.tsx`, que limpa o cache e roda `router.invalidate()`. Logout, refresh recusado e
+conta desativada passam pelo mesmo caminho.
+
+**Dashboard do membro fica vazio com usuário real.** O `userId` agora é UUID e o mock
+de membros usa `u1`…`u12`; a tela cai no estado vazio até consumir a API.
+
 ## 🚫 Fora de escopo
 
 - Migração para cookie `httpOnly` — muda `packages/api` e `apps/server`, story própria
-- `auth.register` no fluxo de convite — depende de endpoint de validação de token
 - Rate limiting
 - Troca e recuperação de senha
 - Telas que ainda consomem mock (ranking, membros, dashboards)
@@ -185,6 +206,6 @@ navegar depois do cadastro, não dá para sair e entrar de novo.
 - Perfil: Admin / Membro
 - Prioridade: Alta
 - Fase: MVP
-- Web: não iniciado
-- API: concluído — nenhuma mudança nesta story
+- Web: concluído — escopo ampliado com o convite real (ver "Entregue diferente do planejado")
+- API: `auth.validateInvite` adicionado para o convite real
 - Relacionadas: `001-login.md`, `002-logout.md`, `004-route-protected.md`

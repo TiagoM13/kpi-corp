@@ -165,6 +165,6 @@ uma tem story própria.
 - Perfil: Admin / Membro
 - Prioridade: Alta
 - Fase: MVP
-- Web: concluído com sessão mock
+- Web: concluído — `auth.login` real, sessão em `localStorage` ([ADR 0014](http://localhost:4000/docs/adr/0014-sessao-no-cliente))
 - API: implementada — falta cookie `httpOnly` e rate limiting, ambos critérios desta story
 - Relacionada: `004-route-protected.md`
