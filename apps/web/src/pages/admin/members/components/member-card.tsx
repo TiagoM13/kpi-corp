@@ -1,16 +1,15 @@
-import { Sparkline } from "@/components/sparkline";
-import type { Member } from "@/mocks/members";
+import { type MemberListItem, memberStatusOf } from "@/lib/members";
 import {
 	formatPoints,
 	LevelBadge,
 	MemberIdentity,
+	PositionText,
 	StatusBadge,
-	StreakBadge,
 } from "./member-cells";
 
 type MemberCardProps = {
-	member: Member;
-	onSelect: (member: Member) => void;
+	member: MemberListItem;
+	onSelect: (member: MemberListItem) => void;
 };
 
 export function MemberCard({ member, onSelect }: MemberCardProps) {
@@ -33,18 +32,17 @@ export function MemberCard({ member, onSelect }: MemberCardProps) {
 				</div>
 
 				<div className="flex flex-wrap items-center gap-1.5">
-					<LevelBadge points={member.points} />
-					<StreakBadge streak={member.streak} />
-					<StatusBadge stagnantDays={member.stagnantDays} />
+					<LevelBadge level={member.level.level} />
+					<StatusBadge status={memberStatusOf(member)} />
 				</div>
 
 				<div className="flex items-end justify-between gap-3">
-					<span className="truncate text-fg-2 text-xs">{member.position}</span>
-					<Sparkline
-						data={member.trend}
-						label={`Tendência de ${member.name} nos últimos 7 dias`}
-						className={member.stagnantDays ? "text-warn" : undefined}
-					/>
+					<span className="min-w-0 truncate text-fg-2 text-xs">
+						<PositionText position={member.position} />
+					</span>
+					<span className="shrink-0 text-2xs text-fg-3 tabular-nums">
+						{member.kpiCount} KPIs
+					</span>
 				</div>
 			</button>
 		</li>

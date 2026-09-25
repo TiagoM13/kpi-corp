@@ -7,84 +7,85 @@ import {
 	TableHeader,
 	TableRow,
 } from "@kpi-corp/ui/components/table";
+import { cn } from "@kpi-corp/ui/lib/utils";
 import { ArrowRightIcon } from "lucide-react";
-import { Sparkline } from "@/components/sparkline";
-import type { Member } from "@/mocks/members";
+import { type MemberListItem, memberStatusOf } from "@/lib/members";
 import {
 	formatPoints,
 	LevelBadge,
 	MemberIdentity,
+	PositionText,
 	StatusBadge,
-	StreakBadge,
 } from "./member-cells";
 
+const HEAD =
+	"h-9 px-4 font-medium text-2xs text-fg-3 uppercase tracking-widest";
+const CELL = "px-4 py-3";
+
+const COLUMNS = {
+	member: "min-w-56",
+	position: "hidden min-w-32 lg:table-cell",
+	points: "w-28 pr-8 text-right tabular-nums",
+	level: "hidden w-24 lg:table-cell",
+	kpis: "hidden w-20 pr-8 text-right tabular-nums xl:table-cell",
+	status: "w-36",
+	actions: "w-14 text-right",
+} as const;
+
 type MembersTableProps = {
-	members: Member[];
-	onSelect: (member: Member) => void;
+	members: MemberListItem[];
+	onSelect: (member: MemberListItem) => void;
 };
 
 export function MembersTable({ members, onSelect }: MembersTableProps) {
 	return (
 		<Table className="text-sm">
-			<TableHeader className="[&_th]:h-9 [&_th]:px-3 [&_th]:font-medium [&_th]:text-2xs [&_th]:text-fg-3 [&_th]:uppercase [&_th]:tracking-widest">
+			<TableHeader>
 				<TableRow className="hover:bg-transparent">
-					<TableHead>Membro</TableHead>
-					<TableHead className="hidden lg:table-cell">Cargo</TableHead>
-					<TableHead className="text-right">Pontos</TableHead>
-					<TableHead className="hidden lg:table-cell">Nível</TableHead>
-					<TableHead className="hidden xl:table-cell">Sequência</TableHead>
-					<TableHead className="hidden xl:table-cell">7 dias</TableHead>
-					<TableHead>Status</TableHead>
-					<TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.member)}>Membro</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.position)}>Cargo</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.points)}>Pontos</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.level)}>Nível</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.kpis)}>KPIs</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.status)}>Status</TableHead>
+					<TableHead className={cn(HEAD, COLUMNS.actions)}>
 						<span className="sr-only">Ações</span>
 					</TableHead>
 				</TableRow>
 			</TableHeader>
 
-			<TableBody className="[&_td]:px-3 [&_td]:py-3">
+			<TableBody>
 				{members.map((member) => (
 					<TableRow
 						key={member.id}
 						onClick={() => onSelect(member)}
 						className="cursor-pointer"
 					>
-						<TableCell>
+						<TableCell className={cn(CELL, COLUMNS.member)}>
 							<MemberIdentity member={member} />
 						</TableCell>
 
-						<TableCell className="hidden text-fg-1 lg:table-cell">
-							{member.position}
+						<TableCell className={cn(CELL, COLUMNS.position, "text-fg-1")}>
+							<PositionText position={member.position} />
 						</TableCell>
 
-						<TableCell className="text-right font-semibold tabular-nums">
+						<TableCell className={cn(CELL, COLUMNS.points, "font-semibold")}>
 							{formatPoints(member.points)}
 						</TableCell>
 
-						<TableCell className="hidden lg:table-cell">
-							<LevelBadge points={member.points} />
+						<TableCell className={cn(CELL, COLUMNS.level)}>
+							<LevelBadge level={member.level.level} />
 						</TableCell>
 
-						<TableCell className="hidden xl:table-cell">
-							{member.streak > 0 ? (
-								<StreakBadge streak={member.streak} />
-							) : (
-								<span className="text-fg-3">—</span>
-							)}
+						<TableCell className={cn(CELL, COLUMNS.kpis, "text-fg-2")}>
+							{member.kpiCount}
 						</TableCell>
 
-						<TableCell className="hidden xl:table-cell">
-							<Sparkline
-								data={member.trend}
-								label={`Tendência de ${member.name} nos últimos 7 dias`}
-								className={member.stagnantDays ? "text-warn" : undefined}
-							/>
+						<TableCell className={cn(CELL, COLUMNS.status)}>
+							<StatusBadge status={memberStatusOf(member)} />
 						</TableCell>
 
-						<TableCell>
-							<StatusBadge stagnantDays={member.stagnantDays} />
-						</TableCell>
-
-						<TableCell className="text-right">
+						<TableCell className={cn(CELL, COLUMNS.actions)}>
 							<Button
 								type="button"
 								variant="ghost"

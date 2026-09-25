@@ -1,7 +1,6 @@
 import { Badge } from "@kpi-corp/ui/components/badge";
 import { UserAvatar } from "@/components/user-avatar";
-import { levelOf } from "@/lib/member-stats";
-import type { Member } from "@/mocks/members";
+import type { MemberListItem, MemberStatus } from "@/lib/members";
 
 const pointsFormat = new Intl.NumberFormat("pt-BR");
 
@@ -9,10 +8,14 @@ export function formatPoints(points: number) {
 	return pointsFormat.format(points);
 }
 
-export function MemberIdentity({ member }: { member: Member }) {
+type MemberIdentityProps = {
+	member: Pick<MemberListItem, "name" | "email">;
+};
+
+export function MemberIdentity({ member }: MemberIdentityProps) {
 	return (
 		<div className="flex min-w-0 items-center gap-3">
-			<UserAvatar name={member.name} hue={member.hue} className="size-8" />
+			<UserAvatar name={member.name} className="size-8" />
 			<div className="flex min-w-0 flex-col leading-tight">
 				<span className="truncate font-medium text-sm">{member.name}</span>
 				<span className="truncate text-2xs text-fg-3">{member.email}</span>
@@ -21,9 +24,7 @@ export function MemberIdentity({ member }: { member: Member }) {
 	);
 }
 
-export function LevelBadge({ points }: { points: number }) {
-	const level = levelOf(points);
-
+export function LevelBadge({ level }: { level: number }) {
 	return (
 		<Badge
 			variant="outline"
@@ -36,35 +37,37 @@ export function LevelBadge({ points }: { points: number }) {
 	);
 }
 
-export function StreakBadge({ streak }: { streak: number }) {
-	if (streak === 0) return null;
-
-	return (
-		<Badge
-			variant="outline"
-			className="border-warn/25 bg-warn/10 text-warn"
-			aria-label={`Sequência de ${streak} dias`}
-		>
-			<span aria-hidden>🔥</span>
-			{streak}
-		</Badge>
-	);
-}
-
-export function StatusBadge({ stagnantDays }: { stagnantDays?: number }) {
-	if (stagnantDays === undefined) {
+export function StatusBadge({ status }: { status: MemberStatus }) {
+	if (status.kind === "INACTIVE") {
 		return (
-			<Badge variant="outline" className="border-good/25 bg-good/10 text-good">
+			<Badge variant="outline" className="bg-bg-2 text-fg-3">
 				<span aria-hidden className="size-1.5 rounded-full bg-current" />
-				Ativa
+				Inativo
+			</Badge>
+		);
+	}
+
+	if (status.kind === "STAGNANT") {
+		return (
+			<Badge variant="outline" className="border-warn/25 bg-warn/10 text-warn">
+				<span aria-hidden className="size-1.5 rounded-full bg-current" />
+				{status.days}d sem KPI
 			</Badge>
 		);
 	}
 
 	return (
-		<Badge variant="outline" className="border-warn/25 bg-warn/10 text-warn">
+		<Badge variant="outline" className="border-good/25 bg-good/10 text-good">
 			<span aria-hidden className="size-1.5 rounded-full bg-current" />
-			{stagnantDays}d sem KPI
+			Ativo
 		</Badge>
 	);
+}
+
+export function PositionText({ position }: { position: string | null }) {
+	if (!position) {
+		return <span className="text-fg-3">—</span>;
+	}
+
+	return <>{position}</>;
 }

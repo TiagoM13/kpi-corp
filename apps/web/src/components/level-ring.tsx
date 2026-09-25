@@ -3,11 +3,12 @@ import { levelProgress } from "@/lib/member-stats";
 
 type LevelRingProps = {
 	points: number;
+	progress?: { level: number; percent: number };
 	className?: string;
 };
 
-export function LevelRing({ points, className }: LevelRingProps) {
-	const { level, percent } = levelProgress(points);
+export function LevelRing({ points, progress, className }: LevelRingProps) {
+	const { level, percent } = progress ?? levelProgress(points);
 
 	return (
 		<div

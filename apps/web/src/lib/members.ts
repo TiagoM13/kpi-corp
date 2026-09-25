@@ -1,0 +1,155 @@
+import type { AppRouterClient } from "@kpi-corp/api/routers/index";
+
+import type { CategoryShare, MemberAchievements } from "@/lib/member-stats";
+import type { AchievementRarity } from "@/mocks/badges";
+import { KPI_CATEGORIES, type KpiCategory } from "@/mocks/kpis";
+import { client } from "@/utils/orpc";
+
+type MembersClient = AppRouterClient["members"];
+type ProfileClient = AppRouterClient["profile"];
+
+export type MemberListItem = Awaited<
+	ReturnType<MembersClient["list"]>
+>["items"][number];
+
+export type MemberProfile = Awaited<
+	ReturnType<ProfileClient["getPublicProfile"]>
+>;
+
+export type ProfileKpi = MemberProfile["kpis"][number];
+
+export const MEMBERS_PAGE_SIZE = 20;
+export const MAX_INVITES_PER_REQUEST = 50;
+export const STAGNANT_AFTER_DAYS = 30;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export type MemberStatus =
+	| { kind: "INACTIVE" }
+	| { kind: "STAGNANT"; days: number }
+	| { kind: "ACTIVE" };
+
+export function daysWithoutKpi(
+	member: Pick<MemberListItem, "lastAssignmentAt" | "createdAt">,
+	now = new Date(),
+) {
+	const reference = member.lastAssignmentAt ?? member.createdAt;
+	return Math.floor((now.getTime() - reference.getTime()) / DAY_MS);
+}
+
+export function memberStatusOf(
+	member: Pick<MemberListItem, "active" | "lastAssignmentAt" | "createdAt">,
+	now = new Date(),
+): MemberStatus {
+	if (!member.active) {
+		return { kind: "INACTIVE" };
+	}
+
+	const days = daysWithoutKpi(member, now);
+
+	if (days >= STAGNANT_AFTER_DAYS) {
+		return { kind: "STAGNANT", days };
+	}
+
+	return { kind: "ACTIVE" };
+}
+
+type ApiCategory = ProfileKpi["category"];
+type ScoreKey = keyof MemberProfile["categories"];
+
+const CATEGORY_OF_API: Record<ApiCategory, KpiCategory> = {
+	PRESENCE: categoryById("presenca"),
+	PERFORMANCE: categoryById("desempenho"),
+	BEHAVIOR: categoryById("comportamento"),
+	INITIATIVE: categoryById("iniciativa"),
+};
+
+const SCORE_KEY_OF_API: Record<ApiCategory, ScoreKey> = {
+	PRESENCE: "presence",
+	PERFORMANCE: "performance",
+	BEHAVIOR: "behavior",
+	INITIATIVE: "initiative",
+};
+
+function categoryById(id: KpiCategory["id"]): KpiCategory {
+	const category = KPI_CATEGORIES.find((item) => item.id === id);
+
+	if (!category) {
+		throw new Error(`Categoria desconhecida: ${id}`);
+	}
+
+	return category;
+}
+
+export function categoryOf(category: ApiCategory): KpiCategory {
+	return CATEGORY_OF_API[category];
+}
+
+export function categorySharesOf(
+	categories: MemberProfile["categories"],
+): CategoryShare[] {
+	const apiCategories = Object.keys(CATEGORY_OF_API) as ApiCategory[];
+	const positive = apiCategories.map((category) =>
+		Math.max(categories[SCORE_KEY_OF_API[category]], 0),
+	);
+	const total = positive.reduce((sum, points) => sum + points, 0);
+
+	return apiCategories.map((category, index) => {
+		const points = positive[index] ?? 0;
+		return {
+			category: CATEGORY_OF_API[category],
+			points,
+			percent: total === 0 ? 0 : (points / total) * 100,
+		};
+	});
+}
+
+const RARITY_OF_API: Record<
+	MemberProfile["badges"][number]["rarity"],
+	AchievementRarity
+> = {
+	COMUM: "comum",
+	RARA: "rara",
+	EPICA: "épica",
+	LENDARIA: "lendária",
+};
+
+export function achievementsOfProfile(
+	badges: MemberProfile["badges"],
+): MemberAchievements {
+	const available = badges.filter((badge) => badge.available);
+	const toAchievement = (badge: MemberProfile["badges"][number]) => ({
+		id: badge.code,
+		name: badge.name,
+		description: badge.description,
+		rarity: RARITY_OF_API[badge.rarity],
+		icon: badge.icon,
+		earnedBy: [],
+	});
+
+	return {
+		earned: available.filter((badge) => badge.earned).map(toAchievement),
+		locked: available.filter((badge) => !badge.earned).map(toAchievement),
+		total: available.length,
+	};
+}
+
+export type InviteOutcome = {
+	created: string[];
+	alreadyRegistered: string[];
+	failed: string[];
+};
+
+export async function inviteMembers(emails: string[]): Promise<InviteOutcome> {
+	const response = await client.members.invite({ emails });
+
+	return {
+		created: response.created.map((invite) => invite.email),
+		alreadyRegistered: response.failed
+			.filter((failure) => failure.code === "EMAIL_ALREADY_REGISTERED")
+			.map((failure) => failure.email),
+		failed: response.failed
+			.filter((failure) => failure.code !== "EMAIL_ALREADY_REGISTERED")
+			.map((failure) => failure.email),
+	};
+}
