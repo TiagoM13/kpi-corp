@@ -67,10 +67,11 @@ o client tipado em `apps/web/src/utils/orpc.ts`.
 
 | E-mail | Senha | Perfil |
 | --- | --- | --- |
-| `admin@kpicorp.com` | `admin123` | `ADMIN` |
-| `ana@kpicorp.com`, `bruno@kpicorp.com`, `carla@kpicorp.com` | `member123` | `MEMBER` |
+| `admin@kpicorp.com` (Chefe) | `admin123` | `ADMIN` |
+| `marina.duarte@kapicorp.com` (PO, 1ª do ranking) e os outros dez, em `nome.sobrenome@kapicorp.com` | `admin123` | `MEMBER` |
 
-Só para desenvolvimento local.
+O seed apaga e recria usuários, reuniões e atribuições a cada execução; os KPIs nunca
+são alterados. Só para desenvolvimento local.
 
 ```bash
 curl -s -X POST http://localhost:3000/rpc/auth/login \
@@ -151,7 +152,7 @@ O `docker-compose.yml` fica em `packages/db/`, mas os comandos rodam da raiz:
 npm run db:start     # sobe o PostgreSQL em background
 npm run db:watch     # sobe em foreground (logs)
 npm run db:migrate   # cria e aplica migration a partir do schema
-npm run db:seed      # popula com admin e membros de desenvolvimento
+npm run db:seed      # recria usuários, reuniões e atribuições (KPIs intactos)
 npm run db:push      # aplica o schema sem gerar migration (protótipo)
 npm run db:generate  # regenera o Prisma Client
 npm run db:studio    # abre o Prisma Studio

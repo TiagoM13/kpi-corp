@@ -13,7 +13,7 @@ Sempre da **raiz**, via Turborepo — não `cd packages/db && npx prisma ...`:
 npm run db:start     # sobe o Postgres em background
 npm run db:watch     # foreground, com logs
 npm run db:migrate   # cria e aplica migration a partir do schema
-npm run db:seed      # admin + 3 membros de desenvolvimento
+npm run db:seed      # recria usuários, reuniões e atribuições (KPIs intactos)
 npm run db:push      # aplica schema sem migration (protótipo)
 npm run db:generate  # regenera o Prisma Client
 npm run db:studio
@@ -79,17 +79,47 @@ invitation.prisma
 
 ## Seed
 
-`src/seed.ts`, rodado por `npm run db:seed`. Idempotente (`upsert` por e-mail).
+`src/seed.ts`, rodado por `npm run db:seed`.
 
-| E-mail | Senha | Perfil |
-| --- | --- | --- |
-| `admin@kpicorp.com` | `admin123` | `ADMIN` |
-| `ana@`, `bruno@`, `carla@kpicorp.com` | `member123` | `MEMBER` |
+**Destrutivo, exceto para KPI.** Cada execução apaga usuários, atribuições, reuniões,
+presenças, badges, snapshots de ranking, refresh tokens e convites, e recria tudo do zero.
+A tabela `kpi` nunca é alterada: o seed só a lê e sorteia as atribuições entre os KPIs
+ativos que já existem, com peso por perfil (QA recebe "Encontrou Bug Crítico", PO recebe
+"Visão de Produto" e assim por diante). Só se o catálogo estiver vazio ele cria os 8 KPIs
+base. Tudo é montado e conferido em memória antes de abrir a transação — se a conferência
+falhar, nada é apagado.
+
+Doze usuários, um único `ADMIN`, todos com a senha `admin123`:
+
+| Ordem | Nome | Cargo | Pontos |
+| --- | --- | --- | --- |
+| 1 | Marina Duarte | Product Owner Sênior | 7850 (nível 20) |
+| 2 | Pedro Henrique Alves | Desenvolvedor Full-stack Sênior | 6350 |
+| 3 | André Martins | Tech Lead | 5450 |
+| 4 | João Pedro Lima | Desenvolvedor Back-end Sênior | 4700 |
+| 5 | Juliana Mendes | Product Designer Sênior | 3900 |
+| 6 | Matheus Rocha | Desenvolvedor Full-stack Pleno | 3300 |
+| 7 | Lucas Ferreira | Desenvolvedor Front-end Pleno | 2350 |
+| 8 | Gabriel Santos | Desenvolvedor Back-end Pleno | 1950 |
+| 9 | Fernanda Lopes | Analista de QA Pleno | 1600 |
+| 10 | Eduardo Santos | Chefe (`ADMIN`, `admin@kpicorp.com`) | 1400 |
+| 11 | Mariana Costa | Product Designer Pleno | 1150 |
+| 12 | Vinícius Barros | Desenvolvedor Mobile Pleno | 750 |
+
+Os demais usam `nome.sobrenome@kapicorp.com`. A Marina fecha as 10 badges: o histórico
+tem 24 semanas de atribuições, uma reunião semanal (mais uma de planejamento a cada duas
+semanas) em que ela sempre marca presença, e ela lidera o ranking geral, de todos os
+meses e da semana corrente. Existe ainda uma reunião aberta ("Daily da squad") e
+três atribuições revogadas de exemplo.
+
+Os pontos são fixos em `MEMBERS`; o seed lança erro se a soma de alguém divergir, se a
+Marina deixar de ser a primeira ou se houver mais de um `ADMIN`.
 
 **O seed hasheia com `bcryptjs` direto, não importando de `@kpi-corp/api`.**
 `packages/api` já depende deste pacote; importar de volta fecharia um ciclo de workspace
-e o Turbo quebra ao montar o grafo de tarefas. O custo (`PASSWORD_COST = 12`) está
-duplicado de propósito, com comentário apontando para a origem — se mudar lá, mude aqui.
+e o Turbo quebra ao montar o grafo de tarefas. O custo (`PASSWORD_COST = 12`) e o teto de
+nível (`MAX_LEVEL_POINTS = 7500`) estão duplicados de propósito, com comentário apontando
+para a origem — se mudar lá, mude aqui.
 
 ## Migrations
 

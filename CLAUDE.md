@@ -59,7 +59,8 @@ Banco (o `docker-compose.yml` está em `packages/db/`, mas os comandos rodam da 
 npm run db:start db:migrate db:seed db:studio db:generate db:push db:stop db:down
 ```
 
-`db:seed` cria `admin@kpicorp.com` / `admin123` e três membros com `member123`.
+`db:seed` recria usuários, reuniões e atribuições — **nunca toca nos KPIs**. Sobem 12
+usuários (um só `ADMIN`: `admin@kpicorp.com`), todos com a senha `admin123`.
 
 ## Convenções que valem em todo lugar
 

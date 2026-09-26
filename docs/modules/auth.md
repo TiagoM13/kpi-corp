@@ -168,7 +168,7 @@ curl -s -X GET http://localhost:3000/rpc/auth/me \
 ```
 
 Credenciais de desenvolvimento vêm do seed (`npm run db:seed`): `admin@kpicorp.com` /
-`admin123`, e três membros com `member123`.
+`admin123`, e onze membros (`marina.duarte@kapicorp.com` e outros) com a mesma senha.
 
 ## Decisões relacionadas
 

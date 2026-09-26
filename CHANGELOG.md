@@ -8,6 +8,26 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-26 — Seed do time
+
+#### Alterado
+- `npm run db:seed` agora **apaga e recria** usuários, reuniões, presenças, atribuições,
+  badges, snapshots de ranking, refresh tokens e convites. A tabela de KPIs nunca é
+  alterada: as atribuições saem dos KPIs que já existem, com peso por cargo.
+- O time do seed passa a ter 12 usuários, com um único `ADMIN` (`admin@kpicorp.com`,
+  cargo "Chefe") e a mesma senha (`admin123`) para todos. Marina Duarte (PO) é a primeira
+  do ranking, no nível 20, com as 10 badges; o Chefe fica fora do pódio.
+- Os usuários `ana@`, `bruno@` e `carla@kpicorp.com` e a senha `member123` deixam de
+  existir; sessões abertas caem porque os refresh tokens são apagados.
+- O ambiente do Postman aponta `memberEmail` para `marina.duarte@kapicorp.com`.
+- No painel do membro e no modal de perfil, o box de conquistas tem a mesma altura do box
+  de distribuição por categoria e as 10 conquistas ocupam o box inteiro, em duas linhas
+  de cinco.
+- No nível máximo, a faixa de progresso vira uma faixa com gradiente de chamas animado e
+  o texto "Nível máximo atingido", sem repetir o número do nível (já está no cabeçalho).
+  Vale para o painel do membro e para os modais de perfil (membros e ranking). A animação
+  para com `prefers-reduced-motion`.
+
 ### 2026-09-25 — Painel do membro integrado à API
 
 #### Adicionado
