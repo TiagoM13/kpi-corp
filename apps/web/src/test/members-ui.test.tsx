@@ -54,6 +54,8 @@ const ANA: MemberListItem = {
 	points: 250,
 	kpiCount: 7,
 	lastAssignmentAt: new Date(),
+	daysWithoutKpi: 0,
+	stagnant: false,
 	level: level(2, 250),
 };
 
@@ -66,6 +68,8 @@ const BRUNO: MemberListItem = {
 	points: 40,
 	kpiCount: 1,
 	lastAssignmentAt: new Date(Date.now() - 45 * DAY_MS),
+	daysWithoutKpi: 45,
+	stagnant: true,
 	level: level(0, 40),
 };
 
@@ -94,6 +98,8 @@ const PROFILE = {
 		position: ANA.position,
 		role: ANA.role,
 	},
+	rankingPosition: 2,
+	teamSize: 5,
 	total: 250,
 	categories: { presence: 50, performance: 100, behavior: 60, initiative: 40 },
 	level: ANA.level,
@@ -236,6 +242,34 @@ describe("AdminMembersPage", () => {
 			{ id: ANA.id },
 			expect.anything(),
 		);
+	});
+
+	it("mostra nos detalhes a posição do membro no ranking, como no painel dele", async () => {
+		renderPage();
+
+		const table = await screen.findByRole("table");
+		fireEvent.click(
+			within(table).getByRole("button", { name: "Ver perfil de Ana Souza" }),
+		);
+
+		const drawer = await screen.findByRole("dialog");
+		expect(
+			await within(drawer).findByText("#2 no ranking"),
+		).toBeInTheDocument();
+		expect(within(drawer).getByText("#2 de 5")).toBeInTheDocument();
+	});
+
+	it("membro inativo não tem posição no ranking", async () => {
+		renderPage();
+
+		const table = await screen.findByRole("table");
+		fireEvent.click(
+			within(table).getByRole("button", { name: "Ver perfil de Carla Dias" }),
+		);
+
+		await screen.findByText("Membro inativo");
+
+		expect(screen.queryByText(/no ranking/)).not.toBeInTheDocument();
 	});
 
 	it("nao busca o perfil publico de membro inativo", async () => {

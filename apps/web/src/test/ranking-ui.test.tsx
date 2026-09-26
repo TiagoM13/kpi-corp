@@ -275,6 +275,8 @@ describe("AdminRankingPage", () => {
 	it("abre o perfil real do membro clicado", async () => {
 		clientMock.profile.getPublicProfile.mockResolvedValue({
 			member: { id: "m5", name: "Eva Rocha", position: "Dev", role: "MEMBER" },
+			rankingPosition: 5,
+			teamSize: 8,
 			total: 60,
 			categories: {
 				presence: 20,
@@ -307,6 +309,8 @@ describe("AdminRankingPage", () => {
 		expect(
 			await screen.findByRole("heading", { name: "Eva Rocha" }),
 		).toBeInTheDocument();
+		expect(await screen.findByText("#5 no ranking")).toBeInTheDocument();
+		expect(screen.getByText("#5 de 8")).toBeInTheDocument();
 		expect(
 			clientMock.profile.getPublicProfile.mock.lastCall?.[0],
 		).toStrictEqual({ id: "m5" });

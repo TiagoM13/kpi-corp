@@ -1,11 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-	categorySharesOf,
-	daysWithoutKpi,
-	inviteMembers,
-	memberStatusOf,
-} from "@/lib/members";
+import { categorySharesOf, inviteMembers, memberStatusOf } from "@/lib/members";
 
 const { clientMock } = vi.hoisted(() => ({
 	clientMock: { members: { invite: vi.fn() } },
@@ -14,56 +9,28 @@ const { clientMock } = vi.hoisted(() => ({
 vi.mock("@/utils/orpc", () => ({ client: clientMock }));
 
 const NOW = new Date("2026-09-25T12:00:00.000Z");
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function daysAgo(days: number) {
-	return new Date(NOW.getTime() - days * DAY_MS);
-}
 
 beforeEach(() => {
 	vi.clearAllMocks();
 });
 
-describe("daysWithoutKpi", () => {
-	it("conta a partir do ultimo KPI", () => {
-		expect(
-			daysWithoutKpi(
-				{ lastAssignmentAt: daysAgo(3), createdAt: daysAgo(100) },
-				NOW,
-			),
-		).toBe(3);
-	});
-
-	it("conta a partir da entrada quando nunca recebeu KPI", () => {
-		expect(
-			daysWithoutKpi({ lastAssignmentAt: null, createdAt: daysAgo(12) }, NOW),
-		).toBe(12);
-	});
-});
-
 describe("memberStatusOf", () => {
 	it("inativo vence qualquer contagem de dias", () => {
 		expect(
-			memberStatusOf(
-				{ active: false, lastAssignmentAt: null, createdAt: daysAgo(90) },
-				NOW,
-			),
+			memberStatusOf({ active: false, stagnant: false, daysWithoutKpi: 90 }),
 		).toStrictEqual({ kind: "INACTIVE" });
 	});
 
-	it("marca parado a partir de 30 dias, a mesma regra do dashboard", () => {
+	it("marca parado quando a API diz que passou do limite, com os dias que ela mandou", () => {
 		expect(
-			memberStatusOf(
-				{ active: true, lastAssignmentAt: daysAgo(29), createdAt: daysAgo(90) },
-				NOW,
-			),
-		).toStrictEqual({ kind: "ACTIVE" });
-		expect(
-			memberStatusOf(
-				{ active: true, lastAssignmentAt: daysAgo(30), createdAt: daysAgo(90) },
-				NOW,
-			),
+			memberStatusOf({ active: true, stagnant: true, daysWithoutKpi: 30 }),
 		).toStrictEqual({ kind: "STAGNANT", days: 30 });
+	});
+
+	it("não recalcula o limite: abaixo dele a API manda stagnant false", () => {
+		expect(
+			memberStatusOf({ active: true, stagnant: false, daysWithoutKpi: 29 }),
+		).toStrictEqual({ kind: "ACTIVE" });
 	});
 });
 
