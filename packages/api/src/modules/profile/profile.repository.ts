@@ -2,7 +2,7 @@ import prisma from "@kpi-corp/db";
 
 import type { KpiCategory } from "@kpi-corp/db/prisma/generated/enums";
 
-import type { RankableRow } from "../../shared/ranking";
+import { type RankableRow, toRankableRow } from "../../shared/ranking";
 import type { BadgeAssignment } from "./profile.badges";
 
 export type ScoredAssignmentRow = {
@@ -116,6 +116,22 @@ export const profileRepository = {
 			points: user.assignedKpis.reduce((sum, item) => sum + item.points, 0),
 			kpiCount: user.assignedKpis.length,
 		}));
+	},
+
+	async listTeamRanking(): Promise<RankableRow[]> {
+		const users = await prisma.user.findMany({
+			where: { active: true },
+			select: {
+				id: true,
+				name: true,
+				assignedKpis: {
+					where: { revokedAt: null },
+					select: { points: true },
+				},
+			},
+		});
+
+		return users.map(toRankableRow);
 	},
 
 	listTeamScoresByMonth(window: { start: Date; end: Date }) {

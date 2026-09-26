@@ -92,6 +92,8 @@ export const myProfileResponseSchema = z.object({
 
 export const publicProfileResponseSchema = z.object({
 	member: memberBaseSchema,
+	rankingPosition: z.number().int(),
+	teamSize: z.number().int(),
 	total: z.number(),
 	categories: scoreCategoriesSchema,
 	level: levelSchema,

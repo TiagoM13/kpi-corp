@@ -1,5 +1,6 @@
 import { MemberNotFoundError } from "../../shared/errors/common.errors";
 import { levelFor } from "../../shared/gamification";
+import { rank } from "../../shared/ranking";
 import {
 	type BadgeContractEntry,
 	buildBadgeResponse,
@@ -185,7 +186,7 @@ export const profileService = {
 			throw new MemberNotFoundError();
 		}
 
-		const [{ total, categories, level }, { items: kpis }, badges] =
+		const [{ total, categories, level }, { items: kpis }, badges, team] =
 			await Promise.all([
 				profileService.getMyScore(userId),
 				profileService.getMyKpis(userId, {
@@ -193,10 +194,20 @@ export const profileService = {
 					positiveOnly: true,
 				}),
 				profileService.getMyBadges(userId),
+				profileRepository.listTeamRanking(),
 			]);
+
+		const ranked = rank(team);
+		const me = ranked.find((row) => row.userId === userId);
+
+		if (!me) {
+			throw new MemberNotFoundError();
+		}
 
 		return {
 			member: mapMemberBase(user),
+			rankingPosition: me.position,
+			teamSize: ranked.length,
 			total,
 			categories,
 			level,
