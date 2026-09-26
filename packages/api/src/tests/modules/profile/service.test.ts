@@ -14,6 +14,7 @@ const { repositoryMock } = vi.hoisted(() => ({
 		stampBadges: vi.fn(),
 		listPresences: vi.fn(),
 		listTeamScores: vi.fn(),
+		listTeamRanking: vi.fn(),
 		listTeamScoresByMonth: vi.fn(),
 		listMonthlyMeetingCoverage: vi.fn(),
 	},
@@ -56,6 +57,9 @@ describe("profile service", () => {
 		repositoryMock.stampBadges.mockResolvedValue({ count: 0 });
 		repositoryMock.listPresences.mockResolvedValue([]);
 		repositoryMock.listTeamScores.mockResolvedValue([]);
+		repositoryMock.listTeamRanking.mockResolvedValue([
+			{ userId: USER_ID, name: "Ana Souza", points: 0, kpiCount: 0 },
+		]);
 		repositoryMock.listTeamScoresByMonth.mockResolvedValue([]);
 		repositoryMock.listMonthlyMeetingCoverage.mockResolvedValue({
 			memberSince: null,
@@ -476,6 +480,69 @@ describe("profile service", () => {
 			expect(
 				profile.badges.find((entry) => entry.code === "FIRST_POINT"),
 			).toMatchObject({ earned: false, available: true });
+		});
+
+		describe("ranking position", () => {
+			const BRUNO_ID = "60e3c1d8-f17f-4527-9da6-23ef16299e67";
+			const CARLA_ID = "3c1e2f4a-5b6c-4d7e-8f90-a1b2c3d4e5f6";
+
+			beforeEach(() => {
+				repositoryMock.findActivePublicUserById.mockResolvedValueOnce({
+					id: USER_ID,
+					name: "Ana Souza",
+					position: null,
+					role: "MEMBER",
+				});
+				repositoryMock.listScoredAssignments.mockResolvedValueOnce([]);
+				repositoryMock.listAssignments.mockResolvedValueOnce([]);
+			});
+
+			it("returns the overall position and the size of the active team", async () => {
+				repositoryMock.listTeamRanking.mockResolvedValueOnce([
+					{ userId: BRUNO_ID, name: "Bruno Lima", points: 900, kpiCount: 3 },
+					{ userId: USER_ID, name: "Ana Souza", points: 500, kpiCount: 4 },
+					{ userId: CARLA_ID, name: "Carla Dias", points: 100, kpiCount: 1 },
+				]);
+
+				const profile = await profileService.getPublicProfile(USER_ID);
+
+				expect(profile.rankingPosition).toBe(2);
+				expect(profile.teamSize).toBe(3);
+			});
+
+			it("breaks ties like the ranking: more assignments first, then name", async () => {
+				repositoryMock.listTeamRanking.mockResolvedValueOnce([
+					{ userId: BRUNO_ID, name: "Bruno Lima", points: 500, kpiCount: 4 },
+					{ userId: USER_ID, name: "Ana Souza", points: 500, kpiCount: 4 },
+					{ userId: CARLA_ID, name: "Carla Dias", points: 500, kpiCount: 9 },
+				]);
+
+				const profile = await profileService.getPublicProfile(USER_ID);
+
+				expect(profile.rankingPosition).toBe(2);
+			});
+
+			it("a member without points is last, not missing", async () => {
+				repositoryMock.listTeamRanking.mockResolvedValueOnce([
+					{ userId: BRUNO_ID, name: "Bruno Lima", points: 10, kpiCount: 1 },
+					{ userId: USER_ID, name: "Ana Souza", points: 0, kpiCount: 0 },
+				]);
+
+				const profile = await profileService.getPublicProfile(USER_ID);
+
+				expect(profile.rankingPosition).toBe(2);
+				expect(profile.teamSize).toBe(2);
+			});
+
+			it("throws MemberNotFoundError when the member left the active team mid-read", async () => {
+				repositoryMock.listTeamRanking.mockResolvedValueOnce([
+					{ userId: BRUNO_ID, name: "Bruno Lima", points: 10, kpiCount: 1 },
+				]);
+
+				await expect(profileService.getPublicProfile(USER_ID)).rejects.toThrow(
+					MemberNotFoundError,
+				);
+			});
 		});
 
 		it("throws MemberNotFoundError for an inactive or unknown member", async () => {

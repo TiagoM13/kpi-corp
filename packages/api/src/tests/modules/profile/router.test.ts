@@ -87,6 +87,8 @@ const myProfile = {
 };
 const publicProfile = {
 	member: { id: OTHER_ID, name: "Bruno Lima", position: null, role: "MEMBER" },
+	rankingPosition: 3,
+	teamSize: 12,
 	total: 0,
 	categories: zeros,
 	level,
@@ -248,6 +250,14 @@ describe("profile router", () => {
 			const result = await caller(asMember).getMyProfile();
 
 			expect(result.badges).toEqual(badges);
+		});
+
+		it("returns the ranking position and team size on the public profile", async () => {
+			const result = await caller(asMember).getPublicProfile({
+				id: OTHER_ID,
+			});
+
+			expect(result).toMatchObject({ rankingPosition: 3, teamSize: 12 });
 		});
 
 		it("returns the badges section on the public profile", async () => {
