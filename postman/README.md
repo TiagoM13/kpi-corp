@@ -19,12 +19,12 @@ Depois selecione o environment **KPICorp — local** no canto superior direito. 
 
 ```bash
 npm run db:start     # Postgres
-npm run db:seed      # admin + 3 membros
+npm run db:seed      # admin + 11 membros
 npm run dev:server   # API em :3000
 ```
 
 Credenciais do seed já vêm preenchidas: `admin@kpicorp.com` / `admin123` e
-`ana@kpicorp.com` / `member123`.
+`marina.duarte@kapicorp.com` / `admin123`.
 
 ## Como o token se propaga
 
