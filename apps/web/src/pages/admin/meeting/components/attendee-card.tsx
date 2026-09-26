@@ -1,10 +1,10 @@
 import { cn } from "@kpi-corp/ui/lib/utils";
 import { UserAvatar } from "@/components/user-avatar";
 import { categoryOfApi } from "@/lib/categories";
-import type { MeetingAssignment, MeetingPerson } from "@/lib/meetings";
+import type { MeetingAssignment, PresentAttendee } from "@/lib/meetings";
 
 type AttendeeCardProps = {
-	member: MeetingPerson;
+	member: PresentAttendee;
 	given: MeetingAssignment[];
 	selectedKpiName: string | null;
 	busy: boolean;
@@ -50,7 +50,11 @@ export function AttendeeCard({
 					</span>
 				</div>
 
-				{/* Total de pontos na reunião: a API não entrega (MT01 em docs/pendencias-api.md). */}
+				{member.points > 0 && (
+					<span className="shrink-0 font-bold text-base text-primary tabular-nums">
+						+{member.points}
+					</span>
+				)}
 			</div>
 
 			{given.length > 0 && (

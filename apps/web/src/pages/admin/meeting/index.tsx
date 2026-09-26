@@ -466,12 +466,12 @@ function MeetingRoom({ meetingId, onExit, onNewMeeting }: MeetingRoomProps) {
 
 	if (data.status === "CLOSED") {
 		return (
-			<MeetingShell title={data.title} onExit={onExit}>
+			<MeetingShell title="Reunião encerrada" onExit={onExit}>
 				<MeetingSummaryView
 					title={data.title}
 					duration={formatDuration(data.createdAt, data.closedAt ?? new Date())}
-					present={presentAttendees(data).length}
 					attributions={activeAssignments(data).length}
+					summary={data.summary}
 					onExit={onExit}
 					onRestart={onNewMeeting}
 				/>

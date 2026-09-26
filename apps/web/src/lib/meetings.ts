@@ -17,6 +17,16 @@ export type MeetingPerson = {
 	position: string | null;
 };
 
+export type PresentAttendee = MeetingPerson & { points: number };
+
+export function shortNameOf(name: string) {
+	const parts = name.trim().split(/\s+/);
+	const first = parts[0] ?? name;
+	const last = parts.length > 1 ? parts[parts.length - 1] : undefined;
+
+	return last ? `${first} ${last[0]}.` : first;
+}
+
 export function calendarDateOf(date: Date) {
 	const year = date.getFullYear();
 	const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -24,13 +34,14 @@ export function calendarDateOf(date: Date) {
 	return `${year}-${month}-${day}`;
 }
 
-export function presentAttendees(meeting: MeetingDetail): MeetingPerson[] {
+export function presentAttendees(meeting: MeetingDetail): PresentAttendee[] {
 	return meeting.attendees
 		.filter((attendee) => attendee.presentAt !== null)
 		.map((attendee) => ({
 			id: attendee.userId,
 			name: attendee.name,
 			position: attendee.position,
+			points: attendee.points,
 		}));
 }
 

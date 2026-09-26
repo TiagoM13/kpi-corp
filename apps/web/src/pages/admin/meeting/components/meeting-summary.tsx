@@ -1,24 +1,28 @@
 import { Button } from "@kpi-corp/ui/components/button";
 import { PlayIcon } from "lucide-react";
+import { UserAvatar } from "@/components/user-avatar";
+import { type MeetingDetail, shortNameOf } from "@/lib/meetings";
 
-// Pódio e total de pontos voltam quando a API entregar o resumo (MT02 em docs/pendencias-api.md).
-// import { UserAvatar } from "@/components/user-avatar";
-// const MEDALS = ["🥇", "🥈", "🥉"];
+const MEDALS = ["🥇", "🥈", "🥉"];
 
 type MeetingSummaryViewProps = {
 	title: string;
 	duration: string;
-	present: number;
 	attributions: number;
+	summary: MeetingDetail["summary"];
 	onExit: () => void;
 	onRestart: () => void;
 };
 
+function plural(total: number, one: string, many: string) {
+	return `${total} ${total === 1 ? one : many}`;
+}
+
 export function MeetingSummaryView({
 	title,
 	duration,
-	present,
 	attributions,
+	summary,
 	onExit,
 	onRestart,
 }: MeetingSummaryViewProps) {
@@ -29,34 +33,32 @@ export function MeetingSummaryView({
 			</span>
 
 			<h2 className="text-balance font-bold text-heading tracking-tight">
-				Reunião encerrada.
+				Reconhecimento registrado.
 			</h2>
 
 			<p className="text-balance text-fg-2 text-sm">
-				{title} · {duration} · {present}{" "}
-				{present === 1 ? "presente" : "presentes"} · {attributions}{" "}
-				{attributions === 1 ? "atribuição" : "atribuições"}.
+				{title} · {duration} ·{" "}
+				{plural(attributions, "atribuição", "atribuições")},{" "}
+				{plural(summary.totalPoints, "ponto", "pontos")} no total.
 			</p>
 
-			{/*
 			{summary.podium.length > 0 && (
-				<ol className="flex flex-wrap justify-center gap-3">
+				<ol
+					aria-label="Pódio da reunião"
+					className="flex flex-wrap justify-center gap-3"
+				>
 					{summary.podium.map((entry, index) => (
 						<li
-							key={entry.member.id}
+							key={entry.userId}
 							style={{ animationDelay: `${index * 120}ms` }}
-							className="flex w-40 flex-col items-center gap-2 rounded-lg border bg-card p-4 motion-safe:animate-podium-enter"
+							className="flex w-40 min-w-0 flex-col items-center gap-2 rounded-lg border bg-card p-4 motion-safe:animate-podium-enter"
 						>
 							<span aria-hidden className="text-2xl">
 								{MEDALS[index]}
 							</span>
-							<UserAvatar
-								name={entry.member.name}
-								hue={entry.member.hue}
-								className="size-12 text-base"
-							/>
-							<span className="truncate font-medium text-sm">
-								{entry.member.name}
+							<UserAvatar name={entry.name} className="size-12 text-base" />
+							<span className="max-w-full truncate font-medium text-sm">
+								{shortNameOf(entry.name)}
 							</span>
 							<span className="font-bold text-primary text-title tabular-nums">
 								+{entry.points}
@@ -65,7 +67,6 @@ export function MeetingSummaryView({
 					))}
 				</ol>
 			)}
-			*/}
 
 			<p className="max-w-md text-balance text-2xs text-fg-3">
 				Tudo o que foi atribuído já está gravado: pontos, ranking e painel

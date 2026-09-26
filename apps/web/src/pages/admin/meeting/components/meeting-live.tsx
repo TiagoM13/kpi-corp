@@ -2,13 +2,13 @@ import { Badge } from "@kpi-corp/ui/components/badge";
 import { Button } from "@kpi-corp/ui/components/button";
 import { TargetIcon, UserPlusIcon } from "lucide-react";
 import { useMemo } from "react";
-import type { MeetingAssignment, MeetingPerson } from "@/lib/meetings";
+import type { MeetingAssignment, PresentAttendee } from "@/lib/meetings";
 import type { Kpi } from "@/mocks/kpis";
 import { AttendeeCard } from "./attendee-card";
 import { KpiPicker } from "./kpi-picker";
 
 type MeetingLiveProps = {
-	attendees: MeetingPerson[];
+	attendees: PresentAttendee[];
 	kpis: Kpi[];
 	given: MeetingAssignment[];
 	selectedKpi: Kpi | null;
