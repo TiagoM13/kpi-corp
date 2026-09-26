@@ -55,7 +55,7 @@ export function PublicMemberProfile({ memberId }: { memberId: string }) {
 				<StatCard
 					label="Pontos totais"
 					value={pointsFormat.format(total)}
-					sub={`nível ${level.level}`}
+					sub={level.nextLevel === null ? undefined : `nível ${level.level}`}
 					icon={TargetIcon}
 				/>
 				<StatCard

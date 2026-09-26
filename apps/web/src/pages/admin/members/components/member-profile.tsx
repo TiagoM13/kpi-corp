@@ -60,7 +60,7 @@ export function MemberProfile({ member }: { member: MemberListItem }) {
 				<StatCard
 					label="Pontos totais"
 					value={formatPoints(member.points)}
-					sub={`nível ${member.level.level}`}
+					sub={nextLevel === null ? undefined : `nível ${member.level.level}`}
 					icon={TargetIcon}
 				/>
 				<StatCard
