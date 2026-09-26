@@ -206,9 +206,153 @@ describe("meetings service", () => {
 					name: "Ana Souza",
 					position: "Dev",
 					presentAt: null,
+					points: 0,
 				},
 				expect.objectContaining({ presentAt: expect.any(Date) }),
 			]);
+		});
+
+		describe("pontos e resumo", () => {
+			const THIRD_ID = "5d4c3b2a-1f0e-4d9c-8b7a-6f5e4d3c2b1a";
+			const FOURTH_ID = "6e5d4c3b-2a1f-4e0d-9c8b-7a6f5e4d3c2b";
+
+			function attendee(userId: string, name: string) {
+				return {
+					userId,
+					presentAt: new Date("2026-08-30T14:05:00.000Z"),
+					user: { name, position: null },
+				};
+			}
+
+			function given(userId: string, points: number, id: string, extra = {}) {
+				return assignmentRow({ id, userId, points, ...extra });
+			}
+
+			async function summaryOf(
+				attendees: ReturnType<typeof attendee>[],
+				assignments: ReturnType<typeof assignmentRow>[],
+			) {
+				repositoryMock.findDetailById.mockResolvedValueOnce(
+					detailRow({ attendees, assignments }),
+				);
+				repositoryMock.findCreator.mockResolvedValueOnce(creator);
+
+				return meetingsService.getById(MEETING_ID);
+			}
+
+			it("soma os pontos válidos de cada participante na reunião", async () => {
+				const result = await summaryOf(
+					[
+						attendee(MEMBER_ID, "Ana Souza"),
+						attendee(OTHER_MEMBER_ID, "Bruno"),
+					],
+					[
+						given(MEMBER_ID, 5, "a0000000-0000-4000-8000-000000000001"),
+						given(MEMBER_ID, 12, "a0000000-0000-4000-8000-000000000002"),
+						given(OTHER_MEMBER_ID, 5, "a0000000-0000-4000-8000-000000000003"),
+					],
+				);
+
+				expect(
+					result.attendees.map(({ userId, points }) => ({ userId, points })),
+				).toEqual([
+					{ userId: MEMBER_ID, points: 17 },
+					{ userId: OTHER_MEMBER_ID, points: 5 },
+				]);
+			});
+
+			it("atribuição revogada não conta nem para o participante nem para o total", async () => {
+				const result = await summaryOf(
+					[attendee(MEMBER_ID, "Ana Souza")],
+					[
+						given(MEMBER_ID, 5, "a0000000-0000-4000-8000-000000000001"),
+						given(MEMBER_ID, 25, "a0000000-0000-4000-8000-000000000002", {
+							revokedAt: new Date("2026-08-30T16:00:00.000Z"),
+						}),
+					],
+				);
+
+				expect(result.attendees[0]?.points).toBe(5);
+				expect(result.summary.totalPoints).toBe(5);
+			});
+
+			it("totalPoints soma tudo o que foi atribuído e vale 0 sem atribuições", async () => {
+				const empty = await summaryOf([attendee(MEMBER_ID, "Ana Souza")], []);
+
+				expect(empty.summary).toEqual({ totalPoints: 0, podium: [] });
+
+				const filled = await summaryOf(
+					[
+						attendee(MEMBER_ID, "Ana Souza"),
+						attendee(OTHER_MEMBER_ID, "Bruno"),
+					],
+					[
+						given(MEMBER_ID, 12, "a0000000-0000-4000-8000-000000000001"),
+						given(OTHER_MEMBER_ID, 30, "a0000000-0000-4000-8000-000000000002"),
+					],
+				);
+
+				expect(filled.summary.totalPoints).toBe(42);
+			});
+
+			it("o pódio traz os três que mais pontuaram, do maior para o menor", async () => {
+				const result = await summaryOf(
+					[
+						attendee(MEMBER_ID, "Ana Souza"),
+						attendee(OTHER_MEMBER_ID, "Bruno Lima"),
+						attendee(THIRD_ID, "Carla Dias"),
+						attendee(FOURTH_ID, "Davi Melo"),
+					],
+					[
+						given(MEMBER_ID, 10, "a0000000-0000-4000-8000-000000000001"),
+						given(OTHER_MEMBER_ID, 50, "a0000000-0000-4000-8000-000000000002"),
+						given(THIRD_ID, 30, "a0000000-0000-4000-8000-000000000003"),
+						given(FOURTH_ID, 20, "a0000000-0000-4000-8000-000000000004"),
+					],
+				);
+
+				expect(result.summary.podium).toEqual([
+					{ userId: OTHER_MEMBER_ID, name: "Bruno Lima", points: 50 },
+					{ userId: THIRD_ID, name: "Carla Dias", points: 30 },
+					{ userId: FOURTH_ID, name: "Davi Melo", points: 20 },
+				]);
+			});
+
+			it("empate em pontos desempata por mais reconhecimentos, depois por nome", async () => {
+				const result = await summaryOf(
+					[
+						attendee(MEMBER_ID, "Ana Souza"),
+						attendee(OTHER_MEMBER_ID, "Bruno Lima"),
+						attendee(THIRD_ID, "Carla Dias"),
+					],
+					[
+						given(MEMBER_ID, 30, "a0000000-0000-4000-8000-000000000001"),
+						given(OTHER_MEMBER_ID, 10, "a0000000-0000-4000-8000-000000000002"),
+						given(OTHER_MEMBER_ID, 20, "a0000000-0000-4000-8000-000000000003"),
+						given(THIRD_ID, 30, "a0000000-0000-4000-8000-000000000004"),
+					],
+				);
+
+				expect(result.summary.podium.map((entry) => entry.name)).toEqual([
+					"Bruno Lima",
+					"Ana Souza",
+					"Carla Dias",
+				]);
+			});
+
+			it("quem não pontuou não entra no pódio, mesmo sobrando vaga", async () => {
+				const result = await summaryOf(
+					[
+						attendee(MEMBER_ID, "Ana Souza"),
+						attendee(OTHER_MEMBER_ID, "Bruno"),
+					],
+					[given(MEMBER_ID, 5, "a0000000-0000-4000-8000-000000000001")],
+				);
+
+				expect(result.summary.podium).toEqual([
+					{ userId: MEMBER_ID, name: "Ana Souza", points: 5 },
+				]);
+			});
 		});
 
 		it("traz assignments revogadas marcadas", async () => {

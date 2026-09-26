@@ -54,6 +54,7 @@ const meetingDetail = {
 	createdBy: { id: ADMIN_ID, name: "Administrador" },
 	attendees: [],
 	assignments: [],
+	summary: { totalPoints: 0, podium: [] },
 };
 
 const assignment = {
