@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AdminDashboard } from "@/lib/dashboard";
@@ -7,7 +7,7 @@ import { AdminDashboardPage } from "@/pages/admin/dashboard";
 import { renderWithRouter } from "./render-with-router";
 
 const { clientMock } = vi.hoisted(() => ({
-	clientMock: { dashboard: { getAdmin: vi.fn() } },
+	clientMock: { dashboard: { getAdmin: vi.fn(), getPointsSeries: vi.fn() } },
 }));
 
 vi.mock("@/utils/orpc", async () => {
@@ -32,6 +32,36 @@ const DASHBOARD: AdminDashboard = {
 	meetings: { week: 2, month: 4, open: 0 },
 	points: { week: 40, month: 1234, total: 9876, monthDelta: -5 },
 	withoutKpisDays: 45,
+	trends: {
+		points: [10, 20, 30, 25, 40, 35, 50, 60],
+		kpis: [1, 2, 0, 3, 2, 4, 3],
+	},
+	movers: [
+		{
+			position: 1,
+			member: member("m2", "Carla Dias"),
+			points: 80,
+			kpiCount: 4,
+			change: 2,
+			series: [10, 30, 40],
+		},
+		{
+			position: 2,
+			member: member("m1", "Ana Souza"),
+			points: 50,
+			kpiCount: 3,
+			change: -1,
+			series: [50],
+		},
+		{
+			position: 3,
+			member: member("m3", "Bruno Lima"),
+			points: 20,
+			kpiCount: 1,
+			change: null,
+			series: [10, 10],
+		},
+	],
 	ranking: [
 		{ position: 1, member: member("m1", "Ana Souza"), points: 35, kpiCount: 5 },
 		{
@@ -91,6 +121,15 @@ const DASHBOARD: AdminDashboard = {
 	],
 };
 
+const SERIES = {
+	period: "90d" as const,
+	buckets: [
+		{ start: "2026-08-31", points: 120, kpiCount: 10 },
+		{ start: "2026-09-07", points: 180, kpiCount: 14 },
+		{ start: "2026-09-14", points: 240, kpiCount: 19 },
+	],
+};
+
 function renderDashboard() {
 	const queryClient = new QueryClient({
 		defaultOptions: { queries: { retry: false } },
@@ -114,6 +153,7 @@ function section(title: string) {
 beforeEach(() => {
 	vi.clearAllMocks();
 	clientMock.dashboard.getAdmin.mockResolvedValue(DASHBOARD);
+	clientMock.dashboard.getPointsSeries.mockResolvedValue(SERIES);
 });
 
 describe("AdminDashboardPage", () => {
@@ -227,6 +267,98 @@ describe("AdminDashboardPage", () => {
 		).toBeInTheDocument();
 		expect(
 			within(feed).getByText("ontem · por Eduardo · avulso · revogado"),
+		).toBeInTheDocument();
+	});
+
+	it("desenha a série de pontos do time, por padrão as últimas 12 semanas", async () => {
+		await renderDashboard();
+
+		expect(
+			await screen.findByRole("img", {
+				name: /Pontos do time — Últimas 12 semanas/,
+			}),
+		).toBeInTheDocument();
+		expect(
+			clientMock.dashboard.getPointsSeries.mock.lastCall?.[0],
+		).toStrictEqual({ period: "90d" });
+	});
+
+	it("troca o período do gráfico e pede a série nova à API", async () => {
+		await renderDashboard();
+		await screen.findByRole("img", { name: /Últimas 12 semanas/ });
+
+		fireEvent.click(screen.getByRole("button", { name: "7d" }));
+
+		await waitFor(() =>
+			expect(
+				clientMock.dashboard.getPointsSeries.mock.lastCall?.[0],
+			).toStrictEqual({ period: "7d" }),
+		);
+		expect(
+			await screen.findByRole("img", { name: /Últimos 7 dias/ }),
+		).toBeInTheDocument();
+	});
+
+	it("oferece tentar de novo quando a série falha, sem derrubar o painel", async () => {
+		clientMock.dashboard.getPointsSeries.mockRejectedValueOnce(
+			new Error("offline"),
+		);
+		await renderDashboard();
+
+		const card = (await screen.findByText("Pontos por semana")).closest(
+			"section",
+		);
+		if (!card) throw new Error("card do gráfico nao encontrado");
+
+		fireEvent.click(
+			await within(card).findByRole("button", { name: "Tentar de novo" }),
+		);
+
+		expect(
+			await screen.findByRole("img", { name: /Últimas 12 semanas/ }),
+		).toBeInTheDocument();
+		expect(screen.getByText("Pontos totais")).toBeInTheDocument();
+	});
+
+	it("lista os top movers da semana com pontos, variação e tendência", async () => {
+		await renderDashboard();
+		await screen.findByText("Pontos totais");
+
+		const movers = section("Top movers da semana");
+		const items = within(movers).getAllByRole("listitem");
+
+		expect(items).toHaveLength(3);
+		expect(items[0]).toHaveTextContent("Carla Dias");
+		expect(items[0]).toHaveTextContent("+80");
+		expect(
+			within(items[0] as HTMLElement).getByText("subiu 2 posições"),
+		).toBeInTheDocument();
+		expect(
+			within(items[1] as HTMLElement).getByText("desceu 1 posição"),
+		).toBeInTheDocument();
+		expect(items[2]).not.toHaveTextContent(/subiu|desceu/);
+		expect(
+			within(items[0] as HTMLElement).getByRole("img", {
+				name: "Tendência de Carla Dias",
+			}),
+		).toBeInTheDocument();
+		expect(
+			within(items[1] as HTMLElement).queryByRole("img", { name: /Tendência/ }),
+		).not.toBeInTheDocument();
+	});
+
+	it("sem ninguém pontuando na semana, o card de movers explica", async () => {
+		clientMock.dashboard.getAdmin.mockResolvedValue({
+			...DASHBOARD,
+			movers: [],
+		});
+		await renderDashboard();
+		await screen.findByText("Pontos totais");
+
+		expect(
+			within(section("Top movers da semana")).getByText(
+				"Ninguém pontuou nesta semana ainda",
+			),
 		).toBeInTheDocument();
 	});
 

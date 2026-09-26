@@ -5,51 +5,10 @@ import {
 	firstNameOf,
 	formatRelative,
 	greetingFor,
-	STAGNANT_THRESHOLD_DAYS,
-	stagnantMembers,
-	teamTotals,
+	seriesTickLabel,
 } from "@/lib/dashboard";
 import { historyOf } from "@/lib/member-stats";
 import { MOCK_ACTIVITY } from "@/mocks/activity";
-import { MOCK_MEMBERS } from "@/mocks/members";
-
-describe("teamTotals", () => {
-	it("soma os pontos de todo mundo", () => {
-		const expected = MOCK_MEMBERS.reduce(
-			(total, member) => total + member.points,
-			0,
-		);
-
-		expect(teamTotals().points).toBe(expected);
-		expect(teamTotals().points).toBe(11640);
-	});
-
-	it("conta o time e os estagnados", () => {
-		const totals = teamTotals();
-
-		expect(totals.totalMembers).toBe(MOCK_MEMBERS.length);
-		expect(totals.stagnantCount).toBe(3);
-	});
-});
-
-describe("stagnantMembers", () => {
-	it("pega so quem passou do limite", () => {
-		const stagnant = stagnantMembers();
-
-		expect(
-			stagnant.every(
-				(member) => (member.stagnantDays ?? 0) >= STAGNANT_THRESHOLD_DAYS,
-			),
-		).toBe(true);
-	});
-
-	it("ordena do mais esquecido para o menos", () => {
-		const days = stagnantMembers().map((member) => member.stagnantDays ?? 0);
-
-		expect(days).toStrictEqual([...days].sort((a, b) => b - a));
-		expect(days).toStrictEqual([16, 11, 8]);
-	});
-});
 
 describe("formatRelative", () => {
 	const now = new Date("2026-09-25T12:00:00.000Z");
@@ -118,5 +77,20 @@ describe("activityOf", () => {
 
 	it("devolve vazio para quem nunca pontuou", () => {
 		expect(activityOf("u9")).toHaveLength(0);
+	});
+});
+
+describe("seriesTickLabel", () => {
+	it("dia e semana viram dia e mês curto, sem ponto", () => {
+		expect(seriesTickLabel("7d", "2026-09-05", "2026-09-11")).toBe("5 set");
+		expect(seriesTickLabel("90d", "2026-06-29", "2026-09-14")).toBe("29 jun");
+	});
+
+	it("mês vira só o mês curto quando tudo é do mesmo ano", () => {
+		expect(seriesTickLabel("all", "2026-04-01", "2026-09-01")).toBe("abr");
+	});
+
+	it("mês de outro ano leva o ano com dois dígitos", () => {
+		expect(seriesTickLabel("all", "2025-11-01", "2026-02-01")).toBe("nov 25");
 	});
 });
