@@ -30,6 +30,7 @@ export const memberDashboardResponseSchema = z.object({
 	rankingPosition: z.number().int(),
 	teamSize: z.number().int(),
 	level: levelSchema,
+	weekPoints: z.number(),
 	recentKpis: z.array(recentKpiSchema),
 });
 
@@ -58,9 +59,13 @@ export const adminDashboardResponseSchema = z.object({
 		active: z.number().int(),
 		total: z.number().int(),
 	}),
-	kpis: weekMonthSchema,
+	kpis: weekMonthSchema.extend({ weekDelta: z.number().int().nullable() }),
 	meetings: weekMonthSchema.extend({ open: z.number().int() }),
-	points: weekMonthSchema,
+	points: weekMonthSchema.extend({
+		total: z.number(),
+		monthDelta: z.number().int().nullable(),
+	}),
+	withoutKpisDays: z.number().int(),
 	ranking: z.array(dashboardRankingEntrySchema),
 	recentAssignments: z.array(assignmentHistoryItemSchema),
 	membersWithoutKpis: z.array(memberWithoutKpisSchema),

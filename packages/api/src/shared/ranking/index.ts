@@ -1,5 +1,6 @@
 export {
 	type CalendarPeriod,
+	previousElapsedWindow,
 	previousWindow,
 	type RankingWindow,
 	windowOf,

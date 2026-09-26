@@ -77,3 +77,19 @@ export function previousWindow(
 	// Um milissegundo antes do início cai no fim da janela anterior.
 	return windowOf(period, new Date(window.start.getTime() - 1));
 }
+
+export function previousElapsedWindow(
+	period: CalendarPeriod,
+	now: Date,
+): Pick<RankingWindow, "start" | "end"> {
+	const current = windowOf(period, now);
+	const previous = previousWindow(period, current);
+	const elapsed = now.getTime() - current.start.getTime();
+
+	return {
+		start: previous.start,
+		end: new Date(
+			Math.min(previous.start.getTime() + elapsed, previous.end.getTime()),
+		),
+	};
+}

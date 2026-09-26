@@ -10,7 +10,9 @@ const MEMBER_SELECT = {
 	role: true,
 } as const;
 
-function windowWhere(window: RankingWindow) {
+type TimeSpan = Pick<RankingWindow, "start" | "end">;
+
+function windowWhere(window: TimeSpan) {
 	return { gte: window.start, lt: window.end };
 }
 
@@ -62,6 +64,15 @@ export const dashboardRepository = {
 		});
 	},
 
+	async sumPointsInWindow(userId: string, window: TimeSpan) {
+		const result = await prisma.kpiAssignment.aggregate({
+			where: { userId, revokedAt: null, assignedAt: windowWhere(window) },
+			_sum: { points: true },
+		});
+
+		return result._sum.points ?? 0;
+	},
+
 	async countMembers() {
 		const [active, total] = await Promise.all([
 			prisma.user.count({ where: { active: true } }),
@@ -71,9 +82,12 @@ export const dashboardRepository = {
 		return { active, total };
 	},
 
-	async assignmentTotals(window: RankingWindow) {
+	async assignmentTotals(window: TimeSpan | null) {
 		const result = await prisma.kpiAssignment.aggregate({
-			where: { revokedAt: null, assignedAt: windowWhere(window) },
+			where: {
+				revokedAt: null,
+				...(window ? { assignedAt: windowWhere(window) } : {}),
+			},
 			_count: { _all: true },
 			_sum: { points: true },
 		});
@@ -96,6 +110,8 @@ export const dashboardRepository = {
 			include: {
 				kpi: { select: { id: true, name: true, category: true } },
 				user: { select: { id: true, name: true, position: true } },
+				assigner: { select: { id: true, name: true } },
+				meeting: { select: { id: true, title: true } },
 			},
 		});
 	},

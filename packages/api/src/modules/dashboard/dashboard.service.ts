@@ -4,7 +4,17 @@ import {
 } from "../../shared/errors/common.errors";
 import { levelFor } from "../../shared/gamification";
 import { mapAssignmentHistoryItem } from "../../shared/mappers";
-import { rank, toRankableRow, windowOf } from "../../shared/ranking";
+import {
+	daysWithoutKpi,
+	isStagnant,
+	WITHOUT_KPIS_DAYS,
+} from "../../shared/members";
+import {
+	previousElapsedWindow,
+	rank,
+	toRankableRow,
+	windowOf,
+} from "../../shared/ranking";
 import { mapDashboardMember, mapRecentKpi } from "./dashboard.mapper";
 import { dashboardRepository } from "./dashboard.repository";
 
@@ -12,12 +22,16 @@ const RECENT_KPIS = 5;
 const RANKING_TOP = 5;
 const RECENT_ASSIGNMENTS = 10;
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+function percentChange(current: number, previous: number): number | null {
+	if (previous <= 0) {
+		return null;
+	}
 
-const WITHOUT_KPIS_DAYS = 30;
+	return Math.round(((current - previous) / previous) * 100);
+}
 
 export const dashboardService = {
-	async getMemberDashboard(userId: string) {
+	async getMemberDashboard(userId: string, now = new Date()) {
 		const user = await dashboardRepository.findUserById(userId);
 
 		if (!user) {
@@ -28,9 +42,10 @@ export const dashboardService = {
 			throw new AccountDeactivatedError();
 		}
 
-		const [team, recent] = await Promise.all([
+		const [team, recent, weekPoints] = await Promise.all([
 			dashboardRepository.aggregateTeam(null),
 			dashboardRepository.listRecentValidAssignments(userId, RECENT_KPIS),
+			dashboardRepository.sumPointsInWindow(userId, windowOf("week", now)),
 		]);
 
 		const ranked = rank(team.map(toRankableRow));
@@ -47,6 +62,7 @@ export const dashboardService = {
 			rankingPosition: me.position,
 			teamSize: ranked.length,
 			level: levelFor(me.points),
+			weekPoints,
 			recentKpis: recent.map(mapRecentKpi),
 		};
 	},
@@ -54,11 +70,16 @@ export const dashboardService = {
 	async getAdminDashboard(now = new Date()) {
 		const week = windowOf("week", now);
 		const month = windowOf("month", now);
+		const previousWeek = previousElapsedWindow("week", now);
+		const previousMonth = previousElapsedWindow("month", now);
 
 		const [
 			members,
 			weekTotals,
 			monthTotals,
+			allTimeTotals,
+			previousWeekTotals,
+			previousMonthTotals,
 			weekMeetings,
 			monthMeetings,
 			openMeetings,
@@ -69,6 +90,9 @@ export const dashboardService = {
 			dashboardRepository.countMembers(),
 			dashboardRepository.assignmentTotals(week),
 			dashboardRepository.assignmentTotals(month),
+			dashboardRepository.assignmentTotals(null),
+			dashboardRepository.assignmentTotals(previousWeek),
+			dashboardRepository.assignmentTotals(previousMonth),
 			dashboardRepository.countMeetingsInWindow(week),
 			dashboardRepository.countMeetingsInWindow(month),
 			dashboardRepository.countOpenMeetings(),
@@ -96,37 +120,46 @@ export const dashboardService = {
 				};
 			});
 
-		const threshold = now.getTime() - WITHOUT_KPIS_DAYS * DAY_MS;
-
 		const membersWithoutKpis = activeMembers
 			.map((member) => {
 				const lastAssignmentAt = member.assignedKpis[0]?.assignedAt ?? null;
-				const reference = lastAssignmentAt ?? member.createdAt;
 
 				return {
 					id: member.id,
 					name: member.name,
 					position: member.position,
 					lastAssignmentAt,
-					reference,
-					daysWithout: Math.floor(
-						(now.getTime() - reference.getTime()) / DAY_MS,
+					daysWithout: daysWithoutKpi(
+						{ lastAssignmentAt, createdAt: member.createdAt },
+						now,
 					),
 				};
 			})
-			.filter((member) => member.reference.getTime() <= threshold)
-			.sort((a, b) => b.daysWithout - a.daysWithout)
-			.map(({ reference: _reference, ...member }) => member);
+			.filter((member) => isStagnant(member.daysWithout))
+			.sort((a, b) => b.daysWithout - a.daysWithout);
 
 		return {
 			members,
-			kpis: { week: weekTotals.count, month: monthTotals.count },
+			kpis: {
+				week: weekTotals.count,
+				month: monthTotals.count,
+				weekDelta: percentChange(weekTotals.count, previousWeekTotals.count),
+			},
 			meetings: {
 				week: weekMeetings,
 				month: monthMeetings,
 				open: openMeetings,
 			},
-			points: { week: weekTotals.points, month: monthTotals.points },
+			points: {
+				week: weekTotals.points,
+				month: monthTotals.points,
+				total: allTimeTotals.points,
+				monthDelta: percentChange(
+					monthTotals.points,
+					previousMonthTotals.points,
+				),
+			},
+			withoutKpisDays: WITHOUT_KPIS_DAYS,
 			ranking,
 			recentAssignments: recentAssignments.map(mapAssignmentHistoryItem),
 			membersWithoutKpis,
