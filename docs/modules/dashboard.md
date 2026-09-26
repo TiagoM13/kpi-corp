@@ -17,7 +17,7 @@ Código em `packages/api/src/modules/dashboard/`.
 | RN03 | `/dashboard/member` é `protectedProcedure`: todo autenticado tem dashboard de membro, ADMIN incluído (PRD § 6) |
 | RN04 | `points` e `kpiCount` somam atribuições com `revokedAt IS NULL`, sem filtro de sinal — a mesma pontuação de `/me/score`. `level` é o objeto inteiro de `levelFor`, idêntico ao de `/me/score` |
 | RN05 | `rankingPosition` é do período `all` — a posição que o membro carrega como identidade — e `teamSize` é a quantidade de ativos: "4º" sem denominador não diz nada |
-| RN06 | `recentKpis` traz as **cinco** últimas atribuições válidas, decrescente. Revogada fica de fora: é vitrine; o histórico com revogação é `/me/kpis` |
+| RN06 | `recentKpis` deixou de existir: nenhuma tela lia o campo, porque o painel do membro mostra o histórico completo de `GET /me/profile` (`kpis`) |
 | RN07 | Usuário desativado com token válido recebe **403 `ACCOUNT_DEACTIVATED`** — o mesmo erro do login, não o `MEMBER_INACTIVE` (409) de atribuição. Na prática o contexto já derruba a sessão antes (401); este é o segundo muro. Usuário inexistente recebe **404 `MEMBER_NOT_FOUND`** |
 | RN08 | `/dashboard/admin` é `adminProcedure`. Contadores de `kpis`, `points` e `meetings` usam a **semana ISO e o mês de calendário correntes** de `shared/ranking/periods.ts` — na segunda de manhã a semana zera. O "mês" do dashboard é o mesmo "mês" do ranking |
 | RN09 | `meetings.week` e `meetings.month` contam pela `date` da reunião **por dia de calendário**: `meeting.date` é gravado como meia-noite UTC do dia (3A), então a janela compara com `startDay`/`endDay`, não com os instantes de São Paulo — senão a reunião de segunda cairia na semana anterior. `meetings.open` conta `closedAt IS NULL` |
@@ -29,7 +29,11 @@ Código em `packages/api/src/modules/dashboard/`.
 | RN15 | `points.total` soma **todo o histórico** de atribuições válidas, sem janela — o mesmo critério de `points.week` e `points.month` (todo usuário, ativo ou não). Equivale a `assignmentTotals(null)` |
 | RN16 | `points.monthDelta` e `kpis.weekDelta` são a variação **em %, inteira**, contra o **mesmo trecho** do período anterior (`previousElapsedWindow`): quarta às 12h compara com a quarta às 12h da semana passada, não com a semana passada inteira — senão a semana corrente perderia toda segunda a sexta. Anterior sem pontos (≤ 0) devolve `null`, nunca infinito. A variação de membros ativos **não existe**: o banco não guarda histórico de ativação |
 | RN17 | `withoutKpisDays` expõe o limite de RN12 (`shared/members/stagnation.ts`, hoje 30), para o texto do card não repetir a regra. A mesma constante e a mesma conta de dias alimentam `GET /members` (`daysWithoutKpi`, `stagnant`) |
-| RN18 | `weekPoints` do dashboard do membro é a soma das atribuições válidas dele na semana ISO corrente (fuso de São Paulo). A série dos últimos 7 dias ainda não existe |
+| RN18 | `weekPoints` do dashboard do membro é a soma das atribuições válidas dele na semana ISO corrente (fuso de São Paulo). `weekSeries` são os pontos por dia dessa semana, da segunda até hoje — dias que ainda não chegaram não entram, então a soma da série é sempre `weekPoints` |
+| RN19 | `rankingChange` é quantas posições o membro subiu (positivo) ou desceu (negativo) no ranking **geral** desde o início da semana ISO corrente: a posição de então sai de `rank()` sobre as atribuições anteriores à segunda-feira, calculada na leitura, sem snapshot. `null` quando o membro não tinha nenhuma atribuição antes da semana — "não sei" não é "não mudou" |
+| RN20 | `trends` do Admin alimenta os sparklines dos cards sem uma segunda requisição: `points` são as últimas 8 semanas ISO (pontos por semana, a corrente em curso) e `kpis` os últimos 7 dias (KPIs por dia). Vem de **uma** consulta agrupada por dia |
+| RN21 | `movers` é o top 5 da **semana ISO corrente** por pontos, só de quem pontuou, com `points`, `kpiCount`, `series` (pontos por dia da semana até hoje) e `change`: posição na semana anterior menos a de agora, calculada na leitura com `rank()` sobre a janela anterior inteira, sem snapshot (RN10 continua valendo). `null` quando a semana anterior não teve nenhuma atribuição |
+| RN22 | `GET /dashboard/admin/points-series?period=` devolve `buckets: [{ start, points, kpiCount }]` do time, com zero nos vazios, só atribuições válidas e dias de São Paulo. `7d` e `30d`: um bucket por dia; `90d` (padrão): 12 semanas ISO, cada uma rotulada pela segunda-feira; `all`: um bucket por mês, do primeiro mês com dado até o corrente. A consulta agrupa por dia no banco (`to_char` no fuso de São Paulo) e o agrupamento em semana e mês é em memória, em `dashboard.series.ts` |
 
 ## Fluxos
 
@@ -52,7 +56,8 @@ sequenceDiagram
         S->>R: listRecentAssignments(10)
         S->>R: listActiveMembersWithLastValidAssignment
     end
-    S->>P: rank(time do mês) → top 5
+    S->>R: listPointsByUserInWindow(top da semana)
+    S->>P: rank(time do mês) → top 5 do mês; rank(semana) → movers
     S->>S: filtra ≥ 30 dias sem KPI, ordena por daysWithout
     S-->>C: members, kpis, meetings, points, withoutKpisDays, ranking, recentAssignments, membersWithoutKpis
 ```
@@ -61,8 +66,9 @@ sequenceDiagram
 
 | Método | Rota | Descrição | Auth | Erros |
 | --- | --- | --- | --- | --- |
-| GET | `/dashboard/member` | Pontos, pontos da semana, contagem, posição geral, nível e KPIs recentes do autenticado | `Bearer` (ADMIN e MEMBER) | 401, 403 `ACCOUNT_DEACTIVATED`, 404 `MEMBER_NOT_FOUND` |
-| GET | `/dashboard/admin` | Contadores, top 5 do mês, feed e membros sem KPI | `Bearer` (ADMIN) | 401, 403 |
+| GET | `/dashboard/member` | Pontos, pontos e série da semana, contagem, posição geral e sua variação, nível do autenticado | `Bearer` (ADMIN e MEMBER) | 401, 403 `ACCOUNT_DEACTIVATED`, 404 `MEMBER_NOT_FOUND` |
+| GET | `/dashboard/admin` | Contadores, sparklines, top movers da semana, top 5 do mês, feed e membros sem KPI | `Bearer` (ADMIN) | 401, 403 |
+| GET | `/dashboard/admin/points-series` | Série de pontos e KPIs do time por período (`7d`, `30d`, `90d`, `all`) | `Bearer` (ADMIN) | 400, 401, 403 |
 
 | Bloco do Admin | O que é | Janela |
 | --- | --- | --- |
@@ -75,6 +81,8 @@ sequenceDiagram
 | `points.total` | soma de `points` das válidas, todo o histórico | — |
 | `points.monthDelta` | variação % contra o mesmo trecho do mês anterior (`null` sem base) | mês corrente |
 | `withoutKpisDays` | limite que define "esquecido" | — |
+| `trends.points` / `.kpis` | 8 semanas de pontos, 7 dias de KPIs (sparklines) | 8 semanas / 7 dias |
+| `movers` | top 5 da semana com série e `change` | semana ISO corrente |
 | `ranking` | top 5 | mês corrente |
 | `recentAssignments` | últimas 10, válidas e revogadas, com quem atribuiu e a reunião | — |
 | `membersWithoutKpis` | ativos sem atribuição válida | últimos 30 dias corridos |
@@ -83,10 +91,9 @@ Collection Postman: pasta `Dashboards (3D)`.
 
 ## Pendências
 
-O painel do Admin ainda não fecha com o mockup em quatro pontos: série de pontos por
-semana (DA01), sparklines (DA03), top movers (DA05) e a variação de membros ativos (DA02,
-parte que sobrou). No painel do membro faltam a série de 7 dias (MB01) e a variação de
-posição (MB02). Detalhe em [`docs/pendencias-api.md`](../pendencias-api.md).
+Nenhuma do painel: o que sobrou de `docs/pendencias-api.md` é o KPI de presença da reunião
+(MT03) e a recuperação de senha (AU01). A variação de membros ativos foi descartada — o
+banco não guarda histórico de ativação, só o estado atual.
 
 ## Decisões relacionadas
 

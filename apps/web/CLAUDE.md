@@ -196,7 +196,7 @@ não entrega está em `docs/pendencias-api.md`.
 | --- | --- | --- |
 | Login, logout, sessão | `pages/login/`, `lib/auth.ts` | `auth.login`, `logout`, `refresh`, `me` |
 | Cadastro por convite | `pages/invite/` | `auth.validateInvite`, `register` |
-| Painel do Admin | `pages/admin/dashboard/` | `dashboard.getAdmin` |
+| Painel do Admin | `pages/admin/dashboard/` | `dashboard.getAdmin`, `dashboard.getPointsSeries` |
 | Membros | `pages/admin/members/` | `members.list`, `invite`, `setStatus`, `profile.getPublicProfile` |
 | Banco de KPIs | `pages/admin/kpis/` | `kpis.list`, `create`, `update`, `setStatus` |
 | Ranking (admin e membro) | `components/ranking/` | `ranking.get`, `profile.getPublicProfile` |

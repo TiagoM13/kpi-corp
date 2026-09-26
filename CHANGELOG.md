@@ -8,6 +8,38 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-26 — Sem "ISO" nos textos do app
+
+#### Alterado
+- As descrições das badges de constância passam a dizer "Pontuou em 4 semanas
+  consecutivas." e "Pontuou em 12 semanas consecutivas.", sem a palavra "ISO". Os exemplos
+  do Postman acompanham. O nome continua só em código, testes e documentação técnica.
+
+### 2026-09-26 — Painéis fechados com a API
+
+#### Adicionado
+- `GET /dashboard/admin/points-series?period=7d|30d|90d|all` devolve a série de pontos e
+  KPIs do time (dia, semana ISO ou mês, com zero nos vazios). O gráfico "Pontos por semana"
+  do painel do Admin lê essa série, com seletor de período e tentativa de novo se falhar
+  (DA01).
+- `GET /dashboard/admin` devolve `trends` (8 semanas de pontos e 7 dias de KPIs) e o painel
+  desenha os sparklines dos cards de pontos e de KPIs (DA03).
+- `GET /dashboard/admin` devolve `movers`: o top 5 da semana com pontos, tendência de 7
+  dias e a variação de posição contra a semana anterior. O card "Top movers da semana"
+  voltou ao painel, ao lado do "Top 5 do mês" (DA05).
+- `GET /dashboard/member` devolve `weekSeries` (pontos por dia da semana) e `rankingChange`
+  (posições que subiu ou desceu desde o início da semana). O card "Pontos nesta semana"
+  ganha o sparkline e o selo de ranking mostra a seta (MB01, MB02).
+- O painel do membro e os modais de perfil mostram "🔥 N semanas", a sequência de semanas
+  pontuando, lida da badge de constância.
+
+#### Alterado
+- `GET /dashboard/member` deixa de devolver `recentKpis`: nenhuma tela lia o campo.
+- `mocks/team-history.ts` e a derivação de `teamTotals`/`stagnantMembers` em `lib/dashboard.ts`
+  saem do front, porque nenhuma tela dependia deles.
+- A variação de "Membros ativos" (DA02) foi descartada: o banco não guarda histórico de
+  ativação. `docs/pendencias-api.md` fica só com MT03 e AU01.
+
 ### 2026-09-26 — Posição no ranking nos detalhes do membro
 
 #### Adicionado
