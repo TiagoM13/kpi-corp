@@ -41,7 +41,8 @@ function AssignmentItem({
 				</span>
 				<span className="truncate text-2xs text-fg-3">
 					{formatRelative(assignment.assignedAt, now)}
-					{assignment.meetingId ? " · em reunião" : " · avulso"}
+					{` · por ${firstNameOf(assignment.assigner.name)}`}
+					{` · ${assignment.meeting?.title ?? "avulso"}`}
 					{revoked ? " · revogado" : ""}
 				</span>
 			</div>
