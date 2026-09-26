@@ -25,4 +25,14 @@ export const assignmentHistoryItemSchema = kpiAssignmentSchema.extend({
 		name: z.string(),
 		position: z.string().nullable(),
 	}),
+	assigner: z.object({
+		id: z.string(),
+		name: z.string(),
+	}),
+	meeting: z
+		.object({
+			id: z.string(),
+			title: z.string(),
+		})
+		.nullable(),
 });

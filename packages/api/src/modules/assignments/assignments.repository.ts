@@ -114,6 +114,8 @@ export const assignmentsRepository = {
 					include: {
 						kpi: KPI_INCLUDE,
 						user: { select: { id: true, name: true, position: true } },
+						assigner: { select: { id: true, name: true } },
+						meeting: { select: { id: true, title: true } },
 					},
 				}),
 				tx.kpiAssignment.count({ where }),
