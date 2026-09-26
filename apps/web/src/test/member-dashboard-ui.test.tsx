@@ -36,10 +36,11 @@ const DASHBOARD = {
 	teamSize: 5,
 	level: LEVEL,
 	weekPoints: 35,
-	recentKpis: [],
+	weekSeries: [10, 25],
+	rankingChange: 2,
 };
 
-function badge(code: string, name: string, earned: boolean) {
+function badge(code: string, name: string, earned: boolean, current = 0) {
 	return {
 		code,
 		name,
@@ -49,7 +50,7 @@ function badge(code: string, name: string, earned: boolean) {
 		available: true,
 		earned,
 		earnedAt: earned ? new Date() : null,
-		current: 0,
+		current,
 		target: null,
 		progress: 0,
 	};
@@ -94,6 +95,7 @@ const PROFILE = {
 		badge("FIRST_POINT", "Primeira pontuação", true),
 		badge("TOP_THREE", "Pódio", true),
 		badge("TEN_MEETINGS", "Dez reuniões", false),
+		badge("FOUR_WEEK_STREAK", "Constante", false, 3),
 	],
 };
 
@@ -133,7 +135,7 @@ describe("MemberDashboardPage", () => {
 
 		expect(await screen.findByText("60")).toBeInTheDocument();
 		expect(screen.getByText("7")).toBeInTheDocument();
-		expect(screen.getByText("2 / 3")).toBeInTheDocument();
+		expect(screen.getByText("2 / 4")).toBeInTheDocument();
 	});
 
 	it("mostra os pontos da semana como a API entrega, sem recalcular", async () => {
@@ -146,6 +148,57 @@ describe("MemberDashboardPage", () => {
 
 		expect(within(card).getByText("35")).toBeInTheDocument();
 		expect(within(card).getByText("semana atual")).toBeInTheDocument();
+	});
+
+	it("mostra quantas posições o membro subiu no ranking desde o início da semana", async () => {
+		await renderDashboard();
+
+		expect(await screen.findByText("subiu 2 posições")).toBeInTheDocument();
+	});
+
+	it("descer no ranking aparece como queda", async () => {
+		clientMock.dashboard.getMember.mockResolvedValue({
+			...DASHBOARD,
+			rankingChange: -1,
+		});
+		await renderDashboard();
+
+		expect(await screen.findByText("desceu 1 posição")).toBeInTheDocument();
+	});
+
+	it.each([0, null])(
+		"sem variação (%s) o selo de ranking não mostra seta",
+		async (change) => {
+			clientMock.dashboard.getMember.mockResolvedValue({
+				...DASHBOARD,
+				rankingChange: change,
+			});
+			await renderDashboard();
+
+			await screen.findByText("#3 no ranking");
+
+			expect(screen.queryByText(/subiu|desceu/)).not.toBeInTheDocument();
+		},
+	);
+
+	it("mostra a sequência de semanas pontuando, vinda da badge de constância", async () => {
+		await renderDashboard();
+
+		expect(
+			await screen.findByLabelText("Sequência de 3 semanas"),
+		).toBeInTheDocument();
+	});
+
+	it("sem sequência, não mostra o selo", async () => {
+		clientMock.profile.getMyProfile.mockResolvedValue({
+			...PROFILE,
+			badges: PROFILE.badges.filter((item) => item.code !== "FOUR_WEEK_STREAK"),
+		});
+		await renderDashboard();
+
+		await screen.findByRole("heading", { name: "Carla Dias" });
+
+		expect(screen.queryByLabelText(/Sequência de/)).not.toBeInTheDocument();
 	});
 
 	it("traz historico, categorias e conquistas do perfil", async () => {

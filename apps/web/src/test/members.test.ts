@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { categorySharesOf, inviteMembers, memberStatusOf } from "@/lib/members";
+import {
+	categorySharesOf,
+	inviteMembers,
+	memberStatusOf,
+	streakWeeksOf,
+} from "@/lib/members";
 
 const { clientMock } = vi.hoisted(() => ({
 	clientMock: { members: { invite: vi.fn() } },
@@ -91,5 +96,21 @@ describe("inviteMembers", () => {
 			alreadyRegistered: ["ana@b.com"],
 			failed: ["x@b.com"],
 		});
+	});
+});
+
+describe("streakWeeksOf", () => {
+	const badge = (code: string, current: number) =>
+		({ code, current }) as Parameters<typeof streakWeeksOf>[0][number];
+
+	it("lê a sequência atual da badge de quatro semanas, ganha ou não", () => {
+		expect(
+			streakWeeksOf([badge("FIRST_POINT", 1), badge("FOUR_WEEK_STREAK", 3)]),
+		).toBe(3);
+	});
+
+	it("sem a badge, a sequência é zero", () => {
+		expect(streakWeeksOf([badge("FIRST_POINT", 1)])).toBe(0);
+		expect(streakWeeksOf([])).toBe(0);
 	});
 });

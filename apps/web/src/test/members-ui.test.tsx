@@ -115,7 +115,21 @@ const PROFILE = {
 			revokedAt: null,
 		},
 	],
-	badges: [],
+	badges: [
+		{
+			code: "FOUR_WEEK_STREAK",
+			name: "Constante",
+			description: "Pontuou em 4 semanas consecutivas.",
+			icon: "🔥",
+			rarity: "EPICA",
+			available: true,
+			earned: false,
+			earnedAt: null,
+			current: 2,
+			target: 4,
+			progress: 50,
+		},
+	],
 };
 
 function renderPage(currentUserId?: string) {
@@ -257,6 +271,20 @@ describe("AdminMembersPage", () => {
 			await within(drawer).findByText("#2 no ranking"),
 		).toBeInTheDocument();
 		expect(within(drawer).getByText("#2 de 5")).toBeInTheDocument();
+	});
+
+	it("mostra nos detalhes a sequência de semanas do membro", async () => {
+		renderPage();
+
+		const table = await screen.findByRole("table");
+		fireEvent.click(
+			within(table).getByRole("button", { name: "Ver perfil de Ana Souza" }),
+		);
+
+		const drawer = await screen.findByRole("dialog");
+		expect(
+			await within(drawer).findByLabelText("Sequência de 2 semanas"),
+		).toBeInTheDocument();
 	});
 
 	it("membro inativo não tem posição no ranking", async () => {
