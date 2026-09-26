@@ -8,6 +8,24 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-25 — Modo reunião integrado à API
+
+#### Adicionado
+- Preparação lista o time ativo (`members.list`) e pede o **KPI de presença** — a API
+  não escolhe por convenção. Iniciar cria a reunião do dia (`meetings.create`) e marca
+  os presentes (`meetings.registerAttendance`), que ganham o KPI de presença.
+- Reuniões que ficaram abertas aparecem na preparação com **Continuar**. O id da reunião
+  fica na URL (`?reuniao=`): recarregar a página não perde a reunião.
+- Ao vivo: reconhecer grava na hora (`meetings.assignKpi`), **Desfazer** revoga o último
+  reconhecimento (`assignments.revoke`) e **Adicionar participantes** marca a presença de
+  quem não entrou no começo, com os escalados sinalizados.
+- **Encerrar** pede confirmação (não dá para reabrir) e mostra o resumo gravado.
+
+#### Alterado
+- Sair do modo reunião não descarta mais nada: a reunião continua aberta na API.
+- Pódio e total de pontos do resumo, e o "+N" por participante, ficam comentados até a
+  API entregar os totais (MT01, MT02).
+
 ### 2026-09-25 — Painel do Admin integrado à API
 
 #### Adicionado

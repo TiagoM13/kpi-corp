@@ -196,8 +196,12 @@ Implementado de verdade: login (`src/pages/login/`), cadastro por convite
 (`src/pages/admin/members/`: lista, busca, paginação, convite e perfil) e a tela de
 KPIs (`src/pages/admin/kpis/`: lista, cadastro, edição, ativar e inativar) e o
 ranking do admin e do membro (`components/ranking/`) e o painel do Admin
-(`src/pages/admin/dashboard/`).
-Ainda em mock: dashboard do membro, modo reunião.
+(`src/pages/admin/dashboard/`) e o modo reunião (`src/pages/admin/meeting/`).
+Ainda em mock: dashboard do membro.
+
+Modo reunião: o id vai na URL (`/admin/meeting?reuniao=<id>`); sem id é a preparação.
+Dados em `pages/admin/meeting/use-meeting.ts`, tipos e helpers em `lib/meetings.ts`.
+`lib/meeting.ts` (singular) é o reducer do mock antigo e só sobrevive pelos testes.
 
 **Não derive dado no front.** Se a tela precisa de um número que a API não entrega, o
 bloco sai da tela — com a chamada **comentada**, nunca apagando o componente — e a falta
