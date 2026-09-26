@@ -9,6 +9,7 @@ const { serviceMock } = vi.hoisted(() => ({
 	serviceMock: {
 		getMemberDashboard: vi.fn(),
 		getAdminDashboard: vi.fn(),
+		getPointsSeries: vi.fn(),
 	},
 }));
 
@@ -37,7 +38,8 @@ const memberDashboard = {
 	teamSize: 12,
 	level: levelFor(850),
 	weekPoints: 45,
-	recentKpis: [],
+	weekSeries: [20, 0, 25],
+	rankingChange: 2,
 };
 
 const adminDashboard = {
@@ -46,15 +48,39 @@ const adminDashboard = {
 	meetings: { week: 1, month: 4, open: 1 },
 	points: { week: 30, month: 120, total: 900, monthDelta: 50 },
 	withoutKpisDays: 30,
+	trends: { points: [10, 20, 30], kpis: [1, 2, 3] },
+	movers: [
+		{
+			position: 1,
+			member: {
+				id: MEMBER_ID,
+				name: "Ana Souza",
+				position: "Dev",
+				role: "MEMBER",
+			},
+			points: 50,
+			kpiCount: 2,
+			change: 2,
+			series: [30, 0, 20],
+		},
+	],
 	ranking: [],
 	recentAssignments: [],
 	membersWithoutKpis: [],
+};
+
+const pointsSeries = {
+	period: "90d" as const,
+	buckets: [{ start: "2026-09-14", points: 35, kpiCount: 3 }],
 };
 
 function caller(context: Context) {
 	return {
 		getMember: createProcedureClient(dashboardRouter.getMember, { context }),
 		getAdmin: createProcedureClient(dashboardRouter.getAdmin, { context }),
+		getPointsSeries: createProcedureClient(dashboardRouter.getPointsSeries, {
+			context,
+		}),
 	};
 }
 
@@ -71,6 +97,7 @@ describe("dashboard router", () => {
 		vi.clearAllMocks();
 		serviceMock.getMemberDashboard.mockResolvedValue(memberDashboard);
 		serviceMock.getAdminDashboard.mockResolvedValue(adminDashboard);
+		serviceMock.getPointsSeries.mockResolvedValue(pointsSeries);
 	});
 
 	describe("/dashboard/member", () => {
@@ -83,6 +110,8 @@ describe("dashboard router", () => {
 			await expect(caller(asMember).getMember()).resolves.toMatchObject({
 				rankingPosition: 4,
 				teamSize: 12,
+				weekSeries: [20, 0, 25],
+				rankingChange: 2,
 			});
 			expect(serviceMock.getMemberDashboard).toHaveBeenCalledWith(MEMBER_ID);
 		});
@@ -121,6 +150,47 @@ describe("dashboard router", () => {
 
 		it("lets an admin through", async () => {
 			await expect(caller(asAdmin).getAdmin()).resolves.toEqual(adminDashboard);
+		});
+	});
+
+	describe("/dashboard/admin/points-series", () => {
+		it("rejects an anonymous request with UNAUTHORIZED", async () => {
+			expect(await codeOf(caller(anonymous).getPointsSeries({}))).toBe(
+				"UNAUTHORIZED",
+			);
+		});
+
+		it("rejects a member with FORBIDDEN, without reaching the service", async () => {
+			expect(await codeOf(caller(asMember).getPointsSeries({}))).toBe(
+				"FORBIDDEN",
+			);
+			expect(serviceMock.getPointsSeries).not.toHaveBeenCalled();
+		});
+
+		it("defaults to the last 12 weeks", async () => {
+			await expect(caller(asAdmin).getPointsSeries({})).resolves.toEqual(
+				pointsSeries,
+			);
+			expect(serviceMock.getPointsSeries).toHaveBeenCalledWith("90d");
+		});
+
+		it("treats a cleared period as absent", async () => {
+			await caller(asAdmin).getPointsSeries({ period: "" as never });
+
+			expect(serviceMock.getPointsSeries).toHaveBeenCalledWith("90d");
+		});
+
+		it("passes a valid period through", async () => {
+			await caller(asAdmin).getPointsSeries({ period: "7d" });
+
+			expect(serviceMock.getPointsSeries).toHaveBeenCalledWith("7d");
+		});
+
+		it("rejects an unknown period", async () => {
+			await expect(
+				caller(asAdmin).getPointsSeries({ period: "1y" as never }),
+			).rejects.toThrow();
+			expect(serviceMock.getPointsSeries).not.toHaveBeenCalled();
 		});
 	});
 });
