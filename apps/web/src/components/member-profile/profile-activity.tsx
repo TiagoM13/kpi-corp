@@ -22,14 +22,8 @@ export function ProfileActivity({ profile }: { profile: MemberProfile }) {
 	return (
 		<>
 			<div className="grid gap-3 lg:grid-cols-2">
-				<div className="min-w-0">
-					<CategoryBreakdown shares={categorySharesOf(profile.categories)} />
-				</div>
-				<div className="min-w-0">
-					<AchievementGrid
-						achievements={achievementsOfProfile(profile.badges)}
-					/>
-				</div>
+				<CategoryBreakdown shares={categorySharesOf(profile.categories)} />
+				<AchievementGrid achievements={achievementsOfProfile(profile.badges)} />
 			</div>
 
 			<KpiHistory kpis={profile.kpis} />
