@@ -2,30 +2,9 @@ import type { MemberListItem } from "@/lib/members";
 
 type Level = MemberListItem["level"];
 
-function MaxLevelBand() {
-	return (
-		<section className="relative flex items-center justify-center gap-2 overflow-hidden rounded-lg border border-primary/40 px-5 py-4 text-primary-foreground">
-			<div
-				aria-hidden
-				className="absolute inset-y-0 left-0 w-[200%] animate-flame-flow bg-flame will-change-transform motion-reduce:animate-none"
-			/>
-			<div
-				aria-hidden
-				className="absolute inset-0 bg-linear-to-t from-black/25 to-transparent"
-			/>
-			<span aria-hidden className="relative">
-				🔥
-			</span>
-			<h3 className="relative font-semibold text-sm uppercase tracking-widest">
-				Nível máximo atingido
-			</h3>
-		</section>
-	);
-}
-
 export function LevelProgress({ level }: { level: Level }) {
 	if (level.nextLevel === null || level.nextLevelPoints === null) {
-		return <MaxLevelBand />;
+		return null;
 	}
 
 	const current = Math.max(level.currentPoints, 0) - level.levelFloor;

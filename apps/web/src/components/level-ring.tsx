@@ -4,16 +4,25 @@ import { levelProgress } from "@/lib/member-stats";
 type LevelRingProps = {
 	points: number;
 	progress?: { level: number; percent: number };
+	max?: boolean;
 	className?: string;
 };
 
-export function LevelRing({ points, progress, className }: LevelRingProps) {
+export function LevelRing({
+	points,
+	progress,
+	max = false,
+	className,
+}: LevelRingProps) {
 	const { level, percent } = progress ?? levelProgress(points);
+	const label = max
+		? `Nível ${level}, nível máximo`
+		: `Nível ${level}, ${Math.round(percent)}% do caminho para o próximo`;
 
 	return (
 		<div
 			role="img"
-			aria-label={`Nível ${level}, ${Math.round(percent)}% do caminho para o próximo`}
+			aria-label={label}
 			className={cn(
 				"grid size-24 shrink-0 place-items-center rounded-full p-1.5",
 				className,
@@ -29,6 +38,14 @@ export function LevelRing({ points, progress, className }: LevelRingProps) {
 				<span className="font-bold text-title tabular-nums leading-none">
 					{level}
 				</span>
+				{max && (
+					<span
+						aria-hidden
+						className="indent-px font-semibold text-2xs text-primary uppercase leading-none tracking-widest"
+					>
+						max
+					</span>
+				)}
 			</div>
 		</div>
 	);

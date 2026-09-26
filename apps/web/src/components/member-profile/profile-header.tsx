@@ -59,6 +59,7 @@ export function ProfileHeader({
 			<LevelRing
 				points={level.currentPoints}
 				progress={{ level: level.level, percent: level.progress }}
+				max={level.nextLevel === null}
 				className="size-28 self-center sm:order-3 sm:size-24 sm:self-start"
 			/>
 		</header>
