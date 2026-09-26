@@ -3,6 +3,8 @@ import { handle } from "../../shared/errors/handle";
 import {
 	adminDashboardResponseSchema,
 	memberDashboardResponseSchema,
+	pointsSeriesInputSchema,
+	pointsSeriesResponseSchema,
 } from "./dashboard.schema";
 import { dashboardService } from "./dashboard.service";
 
@@ -18,4 +20,12 @@ export const dashboardRouter = {
 		.route({ method: "GET", path: "/dashboard/admin" })
 		.output(adminDashboardResponseSchema)
 		.handler(() => handle(() => dashboardService.getAdminDashboard())),
+
+	getPointsSeries: adminProcedure
+		.route({ method: "GET", path: "/dashboard/admin/points-series" })
+		.input(pointsSeriesInputSchema)
+		.output(pointsSeriesResponseSchema)
+		.handler(({ input }) =>
+			handle(() => dashboardService.getPointsSeries(input.period)),
+		),
 };

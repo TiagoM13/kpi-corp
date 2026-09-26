@@ -1,7 +1,9 @@
 import prisma from "@kpi-corp/db";
+import { Prisma } from "@kpi-corp/db/prisma/generated/client";
 
 import type { RankingWindow } from "../../shared/ranking";
-import { addDays } from "../../shared/time";
+import { addDays, TIMEZONE } from "../../shared/time";
+import type { DailyTotal } from "./dashboard.series";
 
 const MEMBER_SELECT = {
 	id: true,
@@ -32,7 +34,7 @@ export const dashboardRepository = {
 		});
 	},
 
-	aggregateTeam(window: RankingWindow | null) {
+	aggregateTeam(window: TimeSpan | null) {
 		return prisma.user.findMany({
 			where: { active: true },
 			select: {
@@ -46,31 +48,6 @@ export const dashboardRepository = {
 				},
 			},
 		});
-	},
-
-	listRecentValidAssignments(userId: string, take: number) {
-		return prisma.kpiAssignment.findMany({
-			where: { userId, revokedAt: null },
-			orderBy: [{ assignedAt: "desc" }, { id: "desc" }],
-			take,
-			select: {
-				id: true,
-				kpiId: true,
-				points: true,
-				note: true,
-				assignedAt: true,
-				kpi: { select: { name: true, category: true } },
-			},
-		});
-	},
-
-	async sumPointsInWindow(userId: string, window: TimeSpan) {
-		const result = await prisma.kpiAssignment.aggregate({
-			where: { userId, revokedAt: null, assignedAt: windowWhere(window) },
-			_sum: { points: true },
-		});
-
-		return result._sum.points ?? 0;
 	},
 
 	async countMembers() {
@@ -114,6 +91,42 @@ export const dashboardRepository = {
 				meeting: { select: { id: true, title: true } },
 			},
 		});
+	},
+
+	listPointsInWindow(userId: string, window: TimeSpan) {
+		return prisma.kpiAssignment.findMany({
+			where: { userId, revokedAt: null, assignedAt: windowWhere(window) },
+			select: { points: true, assignedAt: true },
+		});
+	},
+
+	listPointsByUserInWindow(userIds: string[], window: TimeSpan) {
+		return prisma.kpiAssignment.findMany({
+			where: {
+				userId: { in: userIds },
+				revokedAt: null,
+				assignedAt: windowWhere(window),
+			},
+			select: { userId: true, points: true, assignedAt: true },
+		});
+	},
+
+	async dailyTotals(range: {
+		start: Date | null;
+		end: Date;
+	}): Promise<DailyTotal[]> {
+		const from = range.start
+			? Prisma.sql`AND "assignedAt" >= ${range.start}`
+			: Prisma.empty;
+
+		return prisma.$queryRaw<DailyTotal[]>`
+			SELECT to_char(("assignedAt" AT TIME ZONE 'UTC') AT TIME ZONE ${TIMEZONE}, 'YYYY-MM-DD') AS "day",
+				COALESCE(SUM("points"), 0)::int AS "points",
+				COUNT(*)::int AS "kpiCount"
+			FROM "kpi_assignment"
+			WHERE "revokedAt" IS NULL AND "assignedAt" < ${range.end} ${from}
+			GROUP BY 1
+			ORDER BY 1`;
 	},
 
 	listActiveMembersWithLastValidAssignment() {

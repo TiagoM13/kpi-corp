@@ -1,9 +1,4 @@
-export {
-	type DashboardMember,
-	mapDashboardMember,
-	mapRecentKpi,
-	type RecentKpi,
-} from "./dashboard.mapper";
+export { type DashboardMember, mapDashboardMember } from "./dashboard.mapper";
 export {
 	type DashboardRepository,
 	dashboardRepository,

@@ -2,7 +2,7 @@ import z from "zod";
 
 import {
 	assignmentHistoryItemSchema,
-	kpiCategorySchema,
+	emptyAsUndefined,
 	levelSchema,
 } from "../../shared/schemas";
 
@@ -13,16 +13,6 @@ const dashboardMemberSchema = z.object({
 	role: z.enum(["ADMIN", "MEMBER"]),
 });
 
-const recentKpiSchema = z.object({
-	id: z.string(),
-	kpiId: z.string(),
-	name: z.string(),
-	category: kpiCategorySchema,
-	points: z.number(),
-	note: z.string().nullable(),
-	assignedAt: z.date(),
-});
-
 export const memberDashboardResponseSchema = z.object({
 	user: dashboardMemberSchema,
 	points: z.number(),
@@ -31,7 +21,8 @@ export const memberDashboardResponseSchema = z.object({
 	teamSize: z.number().int(),
 	level: levelSchema,
 	weekPoints: z.number(),
-	recentKpis: z.array(recentKpiSchema),
+	weekSeries: z.array(z.number()),
+	rankingChange: z.number().int().nullable(),
 });
 
 const dashboardRankingEntrySchema = z.object({
@@ -54,6 +45,15 @@ const weekMonthSchema = z.object({
 	month: z.number(),
 });
 
+const moverSchema = z.object({
+	position: z.number().int(),
+	member: dashboardMemberSchema,
+	points: z.number(),
+	kpiCount: z.number().int(),
+	change: z.number().int().nullable(),
+	series: z.array(z.number()),
+});
+
 export const adminDashboardResponseSchema = z.object({
 	members: z.object({
 		active: z.number().int(),
@@ -66,7 +66,29 @@ export const adminDashboardResponseSchema = z.object({
 		monthDelta: z.number().int().nullable(),
 	}),
 	withoutKpisDays: z.number().int(),
+	trends: z.object({
+		points: z.array(z.number()),
+		kpis: z.array(z.number()),
+	}),
+	movers: z.array(moverSchema),
 	ranking: z.array(dashboardRankingEntrySchema),
 	recentAssignments: z.array(assignmentHistoryItemSchema),
 	membersWithoutKpis: z.array(memberWithoutKpisSchema),
+});
+
+const seriesPeriodSchema = z.enum(["7d", "30d", "90d", "all"]);
+
+export const pointsSeriesInputSchema = z.object({
+	period: z.preprocess(emptyAsUndefined, seriesPeriodSchema.default("90d")),
+});
+
+export const pointsSeriesResponseSchema = z.object({
+	period: seriesPeriodSchema,
+	buckets: z.array(
+		z.object({
+			start: z.string(),
+			points: z.number().int(),
+			kpiCount: z.number().int(),
+		}),
+	),
 });

@@ -11,15 +11,27 @@ import {
 } from "../../shared/members";
 import {
 	previousElapsedWindow,
+	previousWindow,
+	type RankingWindow,
 	rank,
 	toRankableRow,
 	windowOf,
 } from "../../shared/ranking";
-import { mapDashboardMember, mapRecentKpi } from "./dashboard.mapper";
+import { dayEnd, dayOf, dayStart } from "../../shared/time";
+import { mapDashboardMember } from "./dashboard.mapper";
 import { dashboardRepository } from "./dashboard.repository";
+import {
+	buildSeries,
+	buildTrends,
+	dailyPoints,
+	elapsedDays,
+	type SeriesPeriod,
+	seriesFirstDay,
+	trendsFirstDay,
+} from "./dashboard.series";
 
-const RECENT_KPIS = 5;
 const RANKING_TOP = 5;
+const MOVERS_TOP = 5;
 const RECENT_ASSIGNMENTS = 10;
 
 function percentChange(current: number, previous: number): number | null {
@@ -28,6 +40,83 @@ function percentChange(current: number, previous: number): number | null {
 	}
 
 	return Math.round(((current - previous) / previous) * 100);
+}
+
+function positionChange(
+	before: Parameters<typeof toRankableRow>[0][],
+	userId: string,
+	currentPosition: number,
+): number | null {
+	const rows = before.map(toRankableRow);
+	const mine = rows.find((row) => row.userId === userId);
+
+	if (!mine || mine.kpiCount === 0) {
+		return null;
+	}
+
+	const previous = rank(rows).find((row) => row.userId === userId);
+
+	return previous ? previous.position - currentPosition : null;
+}
+
+type TeamRow = Parameters<typeof toRankableRow>[0];
+
+async function buildMovers(
+	weekTeam: (TeamRow & {
+		position: string | null;
+		role: "ADMIN" | "MEMBER";
+	})[],
+	previousTeam: TeamRow[],
+	week: RankingWindow,
+	today: string,
+) {
+	const top = rank(weekTeam.map(toRankableRow))
+		.filter((row) => row.points > 0)
+		.slice(0, MOVERS_TOP);
+
+	if (top.length === 0) {
+		return [];
+	}
+
+	const memberById = new Map(weekTeam.map((member) => [member.id, member]));
+	const previousHasData = previousTeam.some(
+		(member) => member.assignedKpis.length > 0,
+	);
+	const previousPosition = new Map(
+		rank(previousTeam.map(toRankableRow)).map((row) => [
+			row.userId,
+			row.position,
+		]),
+	);
+	const rows = await dashboardRepository.listPointsByUserInWindow(
+		top.map((row) => row.userId),
+		week,
+	);
+	const lastDay = elapsedDays(week.startDay, today);
+
+	return top.map((row) => {
+		const member = memberById.get(row.userId);
+
+		if (!member) {
+			throw new Error(`Mover ${row.userId} has no member`);
+		}
+
+		const before = previousPosition.get(row.userId);
+
+		return {
+			position: row.position,
+			member: mapDashboardMember(member),
+			points: row.points,
+			kpiCount: row.kpiCount,
+			change:
+				previousHasData && before !== undefined ? before - row.position : null,
+			series: dailyPoints(
+				rows.filter((item) => item.userId === row.userId),
+				week.startDay,
+				today,
+			).slice(0, lastDay),
+		};
+	});
 }
 
 export const dashboardService = {
@@ -42,10 +131,14 @@ export const dashboardService = {
 			throw new AccountDeactivatedError();
 		}
 
-		const [team, recent, weekPoints] = await Promise.all([
+		const week = windowOf("week", now);
+		const [team, weekRows, teamBeforeWeek] = await Promise.all([
 			dashboardRepository.aggregateTeam(null),
-			dashboardRepository.listRecentValidAssignments(userId, RECENT_KPIS),
-			dashboardRepository.sumPointsInWindow(userId, windowOf("week", now)),
+			dashboardRepository.listPointsInWindow(userId, week),
+			dashboardRepository.aggregateTeam({
+				start: new Date(0),
+				end: week.start,
+			}),
 		]);
 
 		const ranked = rank(team.map(toRankableRow));
@@ -62,8 +155,9 @@ export const dashboardService = {
 			rankingPosition: me.position,
 			teamSize: ranked.length,
 			level: levelFor(me.points),
-			weekPoints,
-			recentKpis: recent.map(mapRecentKpi),
+			weekPoints: weekRows.reduce((sum, row) => sum + row.points, 0),
+			weekSeries: dailyPoints(weekRows, week.startDay, dayOf(now)),
+			rankingChange: positionChange(teamBeforeWeek, userId, me.position),
 		};
 	},
 
@@ -72,6 +166,7 @@ export const dashboardService = {
 		const month = windowOf("month", now);
 		const previousWeek = previousElapsedWindow("week", now);
 		const previousMonth = previousElapsedWindow("month", now);
+		const today = dayOf(now);
 
 		const [
 			members,
@@ -84,6 +179,9 @@ export const dashboardService = {
 			monthMeetings,
 			openMeetings,
 			monthTeam,
+			weekTeam,
+			previousWeekTeam,
+			trendRows,
 			recentAssignments,
 			activeMembers,
 		] = await Promise.all([
@@ -97,6 +195,12 @@ export const dashboardService = {
 			dashboardRepository.countMeetingsInWindow(month),
 			dashboardRepository.countOpenMeetings(),
 			dashboardRepository.aggregateTeam(month),
+			dashboardRepository.aggregateTeam(week),
+			dashboardRepository.aggregateTeam(previousWindow("week", week)),
+			dashboardRepository.dailyTotals({
+				start: dayStart(trendsFirstDay(today)),
+				end: dayEnd(today),
+			}),
 			dashboardRepository.listRecentAssignments(RECENT_ASSIGNMENTS),
 			dashboardRepository.listActiveMembersWithLastValidAssignment(),
 		]);
@@ -160,10 +264,23 @@ export const dashboardService = {
 				),
 			},
 			withoutKpisDays: WITHOUT_KPIS_DAYS,
+			trends: buildTrends(trendRows, today),
+			movers: await buildMovers(weekTeam, previousWeekTeam, week, today),
 			ranking,
 			recentAssignments: recentAssignments.map(mapAssignmentHistoryItem),
 			membersWithoutKpis,
 		};
+	},
+
+	async getPointsSeries(period: SeriesPeriod, now = new Date()) {
+		const today = dayOf(now);
+		const firstDay = seriesFirstDay(period, today);
+		const rows = await dashboardRepository.dailyTotals({
+			start: firstDay ? dayStart(firstDay) : null,
+			end: dayEnd(today),
+		});
+
+		return { period, buckets: buildSeries(period, rows, today) };
 	},
 };
 

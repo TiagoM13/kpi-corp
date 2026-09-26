@@ -1,5 +1,7 @@
 export {
 	type CalendarPeriod,
+	isoWeekMonday,
+	monthStartDay,
 	previousElapsedWindow,
 	previousWindow,
 	type RankingWindow,

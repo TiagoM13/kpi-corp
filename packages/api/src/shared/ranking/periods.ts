@@ -11,13 +11,13 @@ export type RankingWindow = {
 
 export type CalendarPeriod = "week" | "month" | "quarter";
 
-function isoWeekMonday(day: string): string {
+export function isoWeekMonday(day: string): string {
 	const weekday = new Date(`${day}T00:00:00.000Z`).getUTCDay();
 
 	return addDays(day, -((weekday + 6) % 7));
 }
 
-function monthStartDay(day: string): string {
+export function monthStartDay(day: string): string {
 	return `${day.slice(0, 7)}-01`;
 }
 
