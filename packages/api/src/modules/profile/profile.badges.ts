@@ -87,7 +87,7 @@ export const BADGE_CATALOG = [
 	{
 		code: "FOUR_WEEK_STREAK",
 		name: "Constante",
-		description: "Pontuou em 4 semanas ISO consecutivas.",
+		description: "Pontuou em 4 semanas consecutivas.",
 		icon: "🔥",
 		rarity: "EPICA",
 		available: true,
@@ -96,7 +96,7 @@ export const BADGE_CATALOG = [
 	{
 		code: "TWELVE_WEEK_STREAK",
 		name: "Inabalável",
-		description: "Pontuou em 12 semanas ISO consecutivas.",
+		description: "Pontuou em 12 semanas consecutivas.",
 		icon: "💎",
 		rarity: "EPICA",
 		available: true,
