@@ -16,7 +16,7 @@ import {
 import { Input } from "@kpi-corp/ui/components/input";
 import { Textarea } from "@kpi-corp/ui/components/textarea";
 import { XIcon } from "lucide-react";
-import { useId } from "react";
+import { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { OverlayHeader } from "@/components/overlay-header";
@@ -48,12 +48,19 @@ export function KpiEditorDialog({
 		control,
 		register,
 		handleSubmit,
+		reset,
 		setError,
 		formState: { errors, isSubmitting },
 	} = useForm<KpiFormValues>({
 		resolver: zodResolver(kpiFormSchema),
 		defaultValues: kpiFormDefaults(kpi),
 	});
+
+	useEffect(() => {
+		if (open) {
+			reset(kpiFormDefaults(kpi));
+		}
+	}, [open, kpi, reset]);
 
 	const onSubmit = handleSubmit(async (values) => {
 		try {
