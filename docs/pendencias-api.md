@@ -32,6 +32,19 @@ DA01 e DA03, e os demais como campos novos na resposta atual (`points.previousMo
 | MT02 | **Resumo da reunião encerrada**: total de pontos e pódio dos três que mais pontuaram | `assignments` e `attendees` crus | Resumo mostra duração, presentes e atribuições; pódio comentado em `meeting-summary.tsx` |
 | MT03 | **KPI de presença usado pela reunião**, para quem chega atrasado ganhar o mesmo | A reunião não guarda qual KPI de presença foi usado | O admin escolhe de novo no "Adicionar participantes" (pré-selecionado quando só existe um) |
 
+## Painel do membro (`GET /dashboard/member`, `GET /me/profile`)
+
+| # | A tela precisa | Hoje a API entrega | Enquanto isso |
+| --- | --- | --- | --- |
+| MB01 | **Pontos do membro na semana** e a **série dos últimos 7 dias** (sparkline), para o card "Pontos nesta semana" | Só `points` e `kpiCount` de todo o histórico | Card comentado em `pages/member/dashboard.tsx` |
+| MB02 | **Variação de posição no ranking** do membro, para mostrar se subiu ou desceu | `rankingPosition` e `teamSize`, sem `change` (a 3B tem `change` em `/ranking`, o dashboard não) | Mostra só a posição atual |
+
+## Autenticação (`/auth`)
+
+| # | A tela precisa | Hoje a API entrega | Enquanto isso |
+| --- | --- | --- | --- |
+| AU01 | **Recuperar senha** — o link "esqueci" do login | Não existe rota nem tela | O link aponta para `/login` |
+
 ## Membros (`GET /members`)
 
 | # | A tela precisa | Hoje a API entrega | Enquanto isso |
