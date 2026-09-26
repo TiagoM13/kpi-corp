@@ -24,9 +24,10 @@ import { LevelProgress } from "@/components/member-profile/level-progress";
 import { ProfileActivity } from "@/components/member-profile/profile-activity";
 import { ProfileHeader } from "@/components/member-profile/profile-header";
 import { RankingBadge } from "@/components/member-profile/ranking-badge";
+import { StreakBadge } from "@/components/member-profile/streak-badge";
 import { StatCard } from "@/components/stat-card";
 import { firstNameOf } from "@/lib/dashboard";
-import { achievementsOfProfile } from "@/lib/members";
+import { achievementsOfProfile, streakWeeksOf } from "@/lib/members";
 import { PERIOD_SLUGS } from "@/lib/ranking";
 import { orpc } from "@/utils/orpc";
 
@@ -114,6 +115,7 @@ function MemberDashboardContent({
 	profile: MyProfile;
 }) {
 	const achievements = achievementsOfProfile(profile.badges);
+	const streak = streakWeeksOf(profile.badges);
 
 	return (
 		<div className="flex flex-col gap-5">
@@ -125,8 +127,12 @@ function MemberDashboardContent({
 				level={dashboard.level}
 				badges={
 					<>
-						<RankingBadge position={dashboard.rankingPosition} />
+						<RankingBadge
+							position={dashboard.rankingPosition}
+							change={dashboard.rankingChange}
+						/>
 						<LevelBadge level={dashboard.level.level} />
+						{streak > 0 && <StreakBadge weeks={streak} />}
 					</>
 				}
 			/>
@@ -140,10 +146,12 @@ function MemberDashboardContent({
 					sub={`#${dashboard.rankingPosition} de ${dashboard.teamSize}`}
 					icon={TargetIcon}
 				/>
-				{/* Tendência de 7 dias (sparkline): a API não entrega (MB01 em docs/pendencias-api.md). */}
 				<StatCard
 					label="Pontos nesta semana"
 					value={pointsFormat.format(dashboard.weekPoints)}
+					trend={
+						dashboard.weekSeries.length > 1 ? dashboard.weekSeries : undefined
+					}
 					sub="semana atual"
 					icon={TrendingUpIcon}
 					accentClassName="text-good"

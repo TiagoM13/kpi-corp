@@ -10,8 +10,13 @@ import {
 } from "@/components/member-profile/profile-activity";
 import { ProfileHeader } from "@/components/member-profile/profile-header";
 import { RankingBadge } from "@/components/member-profile/ranking-badge";
+import { StreakBadge } from "@/components/member-profile/streak-badge";
 import { StatCard } from "@/components/stat-card";
-import { type MemberListItem, memberStatusOf } from "@/lib/members";
+import {
+	type MemberListItem,
+	memberStatusOf,
+	streakWeeksOf,
+} from "@/lib/members";
 import { orpc } from "@/utils/orpc";
 import { formatPoints, LevelBadge, StatusBadge } from "./member-cells";
 
@@ -52,6 +57,9 @@ export function MemberProfile({ member }: { member: MemberListItem }) {
 					<>
 						{profile && <RankingBadge position={profile.rankingPosition} />}
 						<LevelBadge level={member.level.level} />
+						{profile && streakWeeksOf(profile.badges) > 0 && (
+							<StreakBadge weeks={streakWeeksOf(profile.badges)} />
+						)}
 						<StatusBadge status={memberStatusOf(member)} />
 						{member.role === "ADMIN" && (
 							<Badge variant="outline" className="bg-bg-2 text-fg-1">

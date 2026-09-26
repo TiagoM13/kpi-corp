@@ -44,6 +44,10 @@ export function memberStatusOf(
 	return { kind: "ACTIVE" };
 }
 
+export function streakWeeksOf(badges: MemberProfile["badges"]): number {
+	return badges.find((item) => item.code === "FOUR_WEEK_STREAK")?.current ?? 0;
+}
+
 type ScoreKey = keyof MemberProfile["categories"];
 
 const SCORE_KEY_OF_API: Record<ApiKpiCategory, ScoreKey> = {

@@ -2,7 +2,7 @@ import { Badge } from "@kpi-corp/ui/components/badge";
 import { useQuery } from "@tanstack/react-query";
 import { TargetIcon, TrophyIcon, ZapIcon } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
-import { achievementsOfProfile } from "@/lib/members";
+import { achievementsOfProfile, streakWeeksOf } from "@/lib/members";
 import { orpc } from "@/utils/orpc";
 import { LevelBadge } from "./level-badge";
 import { LevelProgress } from "./level-progress";
@@ -13,6 +13,7 @@ import {
 } from "./profile-activity";
 import { ProfileHeader } from "./profile-header";
 import { RankingBadge } from "./ranking-badge";
+import { StreakBadge } from "./streak-badge";
 
 const pointsFormat = new Intl.NumberFormat("pt-BR");
 
@@ -31,6 +32,7 @@ export function PublicMemberProfile({ memberId }: { memberId: string }) {
 
 	const { member, level, total } = data;
 	const achievements = achievementsOfProfile(data.badges);
+	const streak = streakWeeksOf(data.badges);
 
 	return (
 		<div className="flex flex-col gap-5">
@@ -42,6 +44,7 @@ export function PublicMemberProfile({ memberId }: { memberId: string }) {
 					<>
 						<RankingBadge position={data.rankingPosition} />
 						<LevelBadge level={level.level} />
+						{streak > 0 && <StreakBadge weeks={streak} />}
 						{member.role === "ADMIN" && (
 							<Badge variant="outline" className="bg-bg-2 text-fg-1">
 								Admin
