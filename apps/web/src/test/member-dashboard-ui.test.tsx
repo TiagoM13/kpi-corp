@@ -35,6 +35,7 @@ const DASHBOARD = {
 	rankingPosition: 3,
 	teamSize: 5,
 	level: LEVEL,
+	weekPoints: 35,
 	recentKpis: [],
 };
 
@@ -133,6 +134,18 @@ describe("MemberDashboardPage", () => {
 		expect(await screen.findByText("60")).toBeInTheDocument();
 		expect(screen.getByText("7")).toBeInTheDocument();
 		expect(screen.getByText("2 / 3")).toBeInTheDocument();
+	});
+
+	it("mostra os pontos da semana como a API entrega, sem recalcular", async () => {
+		await renderDashboard();
+
+		const card = (await screen.findByText("Pontos nesta semana")).closest(
+			"div",
+		)?.parentElement;
+		if (!card) throw new Error("card nao encontrado");
+
+		expect(within(card).getByText("35")).toBeInTheDocument();
+		expect(within(card).getByText("semana atual")).toBeInTheDocument();
 	});
 
 	it("traz historico, categorias e conquistas do perfil", async () => {

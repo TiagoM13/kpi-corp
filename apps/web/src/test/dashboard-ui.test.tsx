@@ -28,9 +28,10 @@ function member(id: string, name: string) {
 
 const DASHBOARD: AdminDashboard = {
 	members: { active: 4, total: 5 },
-	kpis: { week: 3, month: 12 },
+	kpis: { week: 3, month: 12, weekDelta: 20 },
 	meetings: { week: 2, month: 4, open: 0 },
-	points: { week: 40, month: 1234 },
+	points: { week: 40, month: 1234, total: 9876, monthDelta: -5 },
+	withoutKpisDays: 45,
 	ranking: [
 		{ position: 1, member: member("m1", "Ana Souza"), points: 35, kpiCount: 5 },
 		{
@@ -53,6 +54,8 @@ const DASHBOARD: AdminDashboard = {
 			assignedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
 			kpi: { id: "k1", name: "Entregou no prazo", category: "PERFORMANCE" },
 			user: { id: "m1", name: "Ana Souza", position: "Dev" },
+			assigner: { id: "admin", name: "Eduardo Santos" },
+			meeting: { id: "meet1", title: "Daily de terça" },
 		},
 		{
 			id: "a2",
@@ -66,6 +69,8 @@ const DASHBOARD: AdminDashboard = {
 			assignedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
 			kpi: { id: "k2", name: "Presença na reunião", category: "PRESENCE" },
 			user: { id: "m2", name: "Carla Dias", position: "Dev" },
+			assigner: { id: "admin", name: "Eduardo Santos" },
+			meeting: null,
 		},
 	],
 	membersWithoutKpis: [
@@ -123,16 +128,65 @@ describe("AdminDashboardPage", () => {
 	it("mostra os indicadores como a API entrega", async () => {
 		await renderDashboard();
 
-		expect(await screen.findByText("1.234")).toBeInTheDocument();
-		expect(screen.getByText("40 nesta semana")).toBeInTheDocument();
+		expect(await screen.findByText("Pontos totais")).toBeInTheDocument();
+		expect(screen.getByText("9.876")).toBeInTheDocument();
 		expect(screen.getByText("2 reuniões nesta semana")).toBeInTheDocument();
 		expect(screen.getByText("4 / 5")).toBeInTheDocument();
-		expect(screen.getByText("há 30 dias ou mais")).toBeInTheDocument();
+	});
+
+	it("mostra o total do time e o mês com a variação contra o mês anterior", async () => {
+		await renderDashboard();
+
+		expect(
+			await screen.findByText("1.234 no mês · -5% vs. mês anterior"),
+		).toBeInTheDocument();
+	});
+
+	it("sem variação do mês, mostra só os pontos do mês", async () => {
+		clientMock.dashboard.getAdmin.mockResolvedValue({
+			...DASHBOARD,
+			points: { ...DASHBOARD.points, monthDelta: null },
+		});
+		await renderDashboard();
+
+		expect(await screen.findByText("1.234 no mês")).toBeInTheDocument();
+	});
+
+	it("mostra a variação de KPIs da semana vinda da API", async () => {
+		await renderDashboard();
+
+		const card = (await screen.findByText("KPIs nesta semana")).closest("div");
+		if (!card?.parentElement) throw new Error("card nao encontrado");
+
+		expect(within(card.parentElement).getByText("20%")).toBeInTheDocument();
+		expect(
+			within(card.parentElement).getByText("acima do período anterior"),
+		).toBeInTheDocument();
+	});
+
+	it("sem período anterior para comparar, o card de KPIs fica sem variação", async () => {
+		clientMock.dashboard.getAdmin.mockResolvedValue({
+			...DASHBOARD,
+			kpis: { ...DASHBOARD.kpis, weekDelta: null },
+		});
+		await renderDashboard();
+
+		await screen.findByText("KPIs nesta semana");
+
+		expect(
+			screen.queryByText("acima do período anterior"),
+		).not.toBeInTheDocument();
+	});
+
+	it("o texto do card Sem KPI usa o limite da API, não um número fixo", async () => {
+		await renderDashboard();
+
+		expect(await screen.findByText("há 45 dias ou mais")).toBeInTheDocument();
 	});
 
 	it("lista o top do mes da API", async () => {
 		await renderDashboard();
-		await screen.findByText("1.234");
+		await screen.findByText("Pontos totais");
 
 		const top = section("Top 5 do mês");
 		const items = within(top).getAllByRole("listitem");
@@ -157,22 +211,22 @@ describe("AdminDashboardPage", () => {
 			membersWithoutKpis: [],
 		});
 		await renderDashboard();
-		await screen.findByText("1.234");
+		await screen.findByText("Pontos totais");
 
 		expect(screen.queryByText("Atenção — esquecidos")).not.toBeInTheDocument();
 	});
 
 	it("mostra o feed com contexto e marca o que foi revogado", async () => {
 		await renderDashboard();
-		await screen.findByText("1.234");
+		await screen.findByText("Pontos totais");
 
 		const feed = section("Atribuições recentes");
 		expect(within(feed).getByText("Entregou no prazo")).toBeInTheDocument();
 		expect(
-			within(feed).getByText("há 2 horas · em reunião"),
+			within(feed).getByText("há 2 horas · por Eduardo · Daily de terça"),
 		).toBeInTheDocument();
 		expect(
-			within(feed).getByText("ontem · avulso · revogado"),
+			within(feed).getByText("ontem · por Eduardo · avulso · revogado"),
 		).toBeInTheDocument();
 	});
 
@@ -196,7 +250,7 @@ describe("AdminDashboardPage", () => {
 			await screen.findByRole("button", { name: "Tentar de novo" }),
 		);
 
-		expect(await screen.findByText("1.234")).toBeInTheDocument();
+		expect(await screen.findByText("Pontos totais")).toBeInTheDocument();
 	});
 
 	it("os dois atalhos do topo levam para as telas certas", async () => {
