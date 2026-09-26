@@ -9,6 +9,9 @@ import {
 	type KpiAssignmentForMapping,
 	mapKpiAssignment,
 } from "../../shared/mappers";
+import { rank } from "../../shared/ranking";
+
+const PODIUM_SIZE = 3;
 
 export type MeetingStatus = "OPEN" | "CLOSED";
 
@@ -28,6 +31,18 @@ export type MeetingAttendee = {
 	name: string;
 	position: string | null;
 	presentAt: Date | null;
+	points: number;
+};
+
+export type MeetingPodiumEntry = {
+	userId: string;
+	name: string;
+	points: number;
+};
+
+export type MeetingSummary = {
+	totalPoints: number;
+	podium: MeetingPodiumEntry[];
 };
 
 export type MeetingDetail = {
@@ -40,6 +55,7 @@ export type MeetingDetail = {
 	createdBy: MeetingCreator;
 	attendees: MeetingAttendee[];
 	assignments: KpiAssignment[];
+	summary: MeetingSummary;
 };
 
 export type MeetingDetailForMapping = Pick<
@@ -52,10 +68,48 @@ export type MeetingDetailForMapping = Pick<
 	assignments: KpiAssignmentForMapping[];
 };
 
+type Score = { points: number; kpiCount: number };
+
+function scoreByUser(assignments: KpiAssignmentForMapping[]) {
+	const scores = new Map<string, Score>();
+
+	for (const assignment of assignments) {
+		if (assignment.revokedAt !== null) {
+			continue;
+		}
+
+		const score = scores.get(assignment.userId) ?? { points: 0, kpiCount: 0 };
+
+		scores.set(assignment.userId, {
+			points: score.points + assignment.points,
+			kpiCount: score.kpiCount + 1,
+		});
+	}
+
+	return scores;
+}
+
 export function mapMeetingDetail(
 	meeting: MeetingDetailForMapping,
 	creator: MeetingCreator,
 ): MeetingDetail {
+	const scores = scoreByUser(meeting.assignments);
+	const totalPoints = [...scores.values()].reduce(
+		(sum, score) => sum + score.points,
+		0,
+	);
+	const podium = rank(
+		meeting.attendees.map((attendee) => ({
+			userId: attendee.userId,
+			name: attendee.user.name,
+			points: scores.get(attendee.userId)?.points ?? 0,
+			kpiCount: scores.get(attendee.userId)?.kpiCount ?? 0,
+		})),
+	)
+		.filter((row) => row.points > 0)
+		.slice(0, PODIUM_SIZE)
+		.map(({ userId, name, points }) => ({ userId, name, points }));
+
 	return {
 		id: meeting.id,
 		title: meeting.title,
@@ -69,8 +123,10 @@ export function mapMeetingDetail(
 			name: attendee.user.name,
 			position: attendee.user.position,
 			presentAt: attendee.presentAt,
+			points: scores.get(attendee.userId)?.points ?? 0,
 		})),
 		assignments: meeting.assignments.map(mapKpiAssignment),
+		summary: { totalPoints, podium },
 	};
 }
 

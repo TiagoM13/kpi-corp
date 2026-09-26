@@ -14,6 +14,18 @@ const meetingAttendeeSchema = z.object({
 	name: z.string(),
 	position: z.string().nullable(),
 	presentAt: z.date().nullable(),
+	points: z.number(),
+});
+
+const meetingSummarySchema = z.object({
+	totalPoints: z.number(),
+	podium: z.array(
+		z.object({
+			userId: z.string(),
+			name: z.string(),
+			points: z.number(),
+		}),
+	),
 });
 
 export const meetingAssignmentSchema = kpiAssignmentSchema;
@@ -28,6 +40,7 @@ export const meetingDetailSchema = z.object({
 	createdBy: meetingCreatorSchema,
 	attendees: z.array(meetingAttendeeSchema),
 	assignments: z.array(meetingAssignmentSchema),
+	summary: meetingSummarySchema,
 });
 
 const meetingListItemSchema = z.object({
