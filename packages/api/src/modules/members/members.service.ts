@@ -47,13 +47,13 @@ function inviteUrlFor(token: string) {
 }
 
 export const membersService = {
-	async list(input: ListMembersInput) {
+	async list(input: ListMembersInput, now = new Date()) {
 		const { items, total, scores } = await membersRepository.list(input);
 		const scoreByUser = new Map(scores.map((score) => [score.userId, score]));
 
 		return {
 			items: items.map((item) =>
-				mapUserToMemberListItem(item, scoreByUser.get(item.id)),
+				mapUserToMemberListItem(item, scoreByUser.get(item.id), now),
 			),
 			page: input.page,
 			limit: input.limit,

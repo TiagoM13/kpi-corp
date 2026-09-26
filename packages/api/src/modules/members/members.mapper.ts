@@ -1,6 +1,7 @@
 import type { User } from "@kpi-corp/db/prisma/generated/client";
 import type { Role } from "@kpi-corp/db/prisma/generated/enums";
 import { type LevelInfo, levelFor } from "../../shared/gamification";
+import { daysWithoutKpi, isStagnant } from "../../shared/members";
 
 export type Member = {
 	id: string;
@@ -38,6 +39,8 @@ export type MemberScore = {
 export type MemberListItem = Member &
 	MemberScore & {
 		level: LevelInfo;
+		daysWithoutKpi: number;
+		stagnant: boolean;
 	};
 
 const NO_SCORE: MemberScore = {
@@ -49,12 +52,20 @@ const NO_SCORE: MemberScore = {
 export function mapUserToMemberListItem(
 	user: UserForMemberMapping,
 	score: MemberScore = NO_SCORE,
+	now: Date = new Date(),
 ): MemberListItem {
+	const days = daysWithoutKpi(
+		{ lastAssignmentAt: score.lastAssignmentAt, createdAt: user.createdAt },
+		now,
+	);
+
 	return {
 		...mapUserToMember(user),
 		points: score.points,
 		kpiCount: score.kpiCount,
 		lastAssignmentAt: score.lastAssignmentAt,
 		level: levelFor(score.points),
+		daysWithoutKpi: days,
+		stagnant: user.active && isStagnant(days),
 	};
 }

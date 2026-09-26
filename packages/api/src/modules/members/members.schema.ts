@@ -19,6 +19,8 @@ const memberListItemSchema = memberSchema.extend({
 	kpiCount: z.number().int(),
 	lastAssignmentAt: z.date().nullable(),
 	level: levelSchema,
+	daysWithoutKpi: z.number().int(),
+	stagnant: z.boolean(),
 });
 
 export const listMembersInputSchema = z.object({
