@@ -18,7 +18,11 @@ import {
 } from "@/lib/members";
 import { KpiHistory } from "./kpi-history";
 
-export function ProfileActivity({ profile }: { profile: MemberProfile }) {
+type ProfileActivityProps = {
+	profile: Pick<MemberProfile, "categories" | "badges" | "kpis">;
+};
+
+export function ProfileActivity({ profile }: ProfileActivityProps) {
 	return (
 		<>
 			<div className="grid gap-3 lg:grid-cols-2">

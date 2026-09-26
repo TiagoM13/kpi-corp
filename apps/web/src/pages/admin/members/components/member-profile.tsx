@@ -9,6 +9,7 @@ import {
 	ProfileError,
 } from "@/components/member-profile/profile-activity";
 import { ProfileHeader } from "@/components/member-profile/profile-header";
+import { RankingBadge } from "@/components/member-profile/ranking-badge";
 import { StatCard } from "@/components/stat-card";
 import { type MemberListItem, memberStatusOf } from "@/lib/members";
 import { orpc } from "@/utils/orpc";
@@ -32,6 +33,12 @@ function ActiveProfileActivity({ memberId }: { memberId: string }) {
 
 export function MemberProfile({ member }: { member: MemberListItem }) {
 	const { nextLevel, progress } = member.level;
+	const { data: profile } = useQuery(
+		orpc.profile.getPublicProfile.queryOptions({
+			input: { id: member.id },
+			enabled: member.active,
+		}),
+	);
 
 	return (
 		<div className="flex flex-col gap-5">
@@ -43,6 +50,7 @@ export function MemberProfile({ member }: { member: MemberListItem }) {
 				level={member.level}
 				badges={
 					<>
+						{profile && <RankingBadge position={profile.rankingPosition} />}
 						<LevelBadge level={member.level.level} />
 						<StatusBadge status={memberStatusOf(member)} />
 						{member.role === "ADMIN" && (
@@ -60,7 +68,11 @@ export function MemberProfile({ member }: { member: MemberListItem }) {
 				<StatCard
 					label="Pontos totais"
 					value={formatPoints(member.points)}
-					sub={nextLevel === null ? undefined : `nível ${member.level.level}`}
+					sub={
+						profile
+							? `#${profile.rankingPosition} de ${profile.teamSize}`
+							: undefined
+					}
 					icon={TargetIcon}
 				/>
 				<StatCard

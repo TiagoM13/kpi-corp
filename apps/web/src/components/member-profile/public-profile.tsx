@@ -12,6 +12,7 @@ import {
 	ProfileError,
 } from "./profile-activity";
 import { ProfileHeader } from "./profile-header";
+import { RankingBadge } from "./ranking-badge";
 
 const pointsFormat = new Intl.NumberFormat("pt-BR");
 
@@ -39,6 +40,7 @@ export function PublicMemberProfile({ memberId }: { memberId: string }) {
 				level={level}
 				badges={
 					<>
+						<RankingBadge position={data.rankingPosition} />
 						<LevelBadge level={level.level} />
 						{member.role === "ADMIN" && (
 							<Badge variant="outline" className="bg-bg-2 text-fg-1">
@@ -55,7 +57,7 @@ export function PublicMemberProfile({ memberId }: { memberId: string }) {
 				<StatCard
 					label="Pontos totais"
 					value={pointsFormat.format(total)}
-					sub={level.nextLevel === null ? undefined : `nível ${level.level}`}
+					sub={`#${data.rankingPosition} de ${data.teamSize}`}
 					icon={TargetIcon}
 				/>
 				<StatCard
