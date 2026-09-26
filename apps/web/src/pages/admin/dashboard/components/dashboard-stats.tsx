@@ -31,6 +31,7 @@ export function DashboardStats({ dashboard }: { dashboard: AdminDashboard }) {
 		members,
 		membersWithoutKpis,
 		withoutKpisDays,
+		trends,
 	} = dashboard;
 
 	return (
@@ -39,12 +40,14 @@ export function DashboardStats({ dashboard }: { dashboard: AdminDashboard }) {
 				label="Pontos totais"
 				value={pointsFormat.format(points.total)}
 				sub={monthSub(points.month, points.monthDelta)}
+				trend={trends.points}
 				icon={TargetIcon}
 			/>
 			<StatCard
 				label="KPIs nesta semana"
 				value={kpis.week}
 				delta={kpis.weekDelta ?? undefined}
+				trend={trends.kpis}
 				sub={`${plural(meetings.week, "reunião", "reuniões")} nesta semana`}
 				icon={TrendingUpIcon}
 				accentClassName="text-good"

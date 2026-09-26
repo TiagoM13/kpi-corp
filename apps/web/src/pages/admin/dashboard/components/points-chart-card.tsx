@@ -1,22 +1,33 @@
+import { Button } from "@kpi-corp/ui/components/button";
+import { Skeleton } from "@kpi-corp/ui/components/skeleton";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { AreaChart } from "@/components/area-chart";
 import {
 	SegmentedControl,
 	type SegmentedOption,
 } from "@/components/segmented-control";
-import {
-	TEAM_HISTORY,
-	TEAM_PERIODS,
-	type TeamPeriod,
-} from "@/mocks/team-history";
+import { type SeriesPeriod, seriesTickLabel } from "@/lib/dashboard";
+import { orpc } from "@/utils/orpc";
 
-const PERIOD_OPTIONS: SegmentedOption<TeamPeriod>[] = TEAM_PERIODS.map(
-	(period) => ({ value: period, label: TEAM_HISTORY[period].shortLabel }),
+const PERIODS: { value: SeriesPeriod; label: string; title: string }[] = [
+	{ value: "7d", label: "7d", title: "Últimos 7 dias" },
+	{ value: "30d", label: "30d", title: "Últimos 30 dias" },
+	{ value: "90d", label: "90d", title: "Últimas 12 semanas" },
+	{ value: "all", label: "Tudo", title: "Desde o início" },
+];
+
+const PERIOD_OPTIONS: SegmentedOption<SeriesPeriod>[] = PERIODS.map(
+	({ value, label }) => ({ value, label }),
 );
 
 export function PointsChartCard() {
-	const [period, setPeriod] = useState<TeamPeriod>("90d");
-	const series = TEAM_HISTORY[period];
+	const [period, setPeriod] = useState<SeriesPeriod>("90d");
+	const { data, isPending, isError, refetch } = useQuery({
+		...orpc.dashboard.getPointsSeries.queryOptions({ input: { period } }),
+		placeholderData: keepPreviousData,
+	});
+	const title = PERIODS.find((item) => item.value === period)?.title ?? "";
 
 	return (
 		<section className="flex flex-col gap-4 rounded-lg border bg-card p-5">
@@ -25,7 +36,7 @@ export function PointsChartCard() {
 					<h2 className="font-medium text-2xs text-fg-3 uppercase tracking-widest">
 						Pontos por semana
 					</h2>
-					<p className="font-semibold text-base">{series.title}</p>
+					<p className="font-semibold text-base">{title}</p>
 				</div>
 
 				<SegmentedControl
@@ -37,11 +48,35 @@ export function PointsChartCard() {
 				/>
 			</div>
 
-			<AreaChart
-				points={series.points}
-				ticks={series.ticks}
-				label={`Pontos do time — ${series.title}`}
-			/>
+			{isPending && <Skeleton className="h-44 rounded-md" />}
+
+			{isError && (
+				<div className="flex h-44 flex-col items-center justify-center gap-3 text-center">
+					<p className="text-fg-2 text-sm">Não deu para carregar o gráfico.</p>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => void refetch()}
+					>
+						Tentar de novo
+					</Button>
+				</div>
+			)}
+
+			{data && (
+				<AreaChart
+					points={data.buckets.map((bucket) => bucket.points)}
+					ticks={data.buckets.map((bucket) =>
+						seriesTickLabel(
+							data.period,
+							bucket.start,
+							data.buckets[data.buckets.length - 1]?.start ?? bucket.start,
+						),
+					)}
+					label={`Pontos do time — ${title}`}
+				/>
+			)}
 		</section>
 	);
 }

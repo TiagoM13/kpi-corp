@@ -20,12 +20,11 @@ import {
 } from "@/lib/dashboard";
 import { orpc } from "@/utils/orpc";
 import { DashboardStats } from "./components/dashboard-stats";
-// Fora da tela até a API entregar a série e os top movers (DA01, DA05 em docs/pendencias-api.md).
-// import { PointsChartCard } from "./components/points-chart-card";
-// import { TopMoversCard } from "./components/top-movers-card";
+import { PointsChartCard } from "./components/points-chart-card";
 import { RecentAssignmentsCard } from "./components/recent-assignments-card";
 import { StagnantCard } from "./components/stagnant-card";
 import { TopMonthCard } from "./components/top-month-card";
+import { TopMoversCard } from "./components/top-movers-card";
 
 const SKELETON_STATS = ["a", "b", "c", "d"];
 
@@ -78,8 +77,8 @@ function DashboardContent({
 
 			<div className="grid gap-4 lg:grid-cols-3">
 				<div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
-					{/* <PointsChartCard /> */}
-					{/* <TopMoversCard /> */}
+					<PointsChartCard />
+					<TopMoversCard movers={dashboard.movers} />
 					<TopMonthCard entries={dashboard.ranking} />
 				</div>
 

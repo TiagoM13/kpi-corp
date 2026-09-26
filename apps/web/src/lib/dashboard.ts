@@ -1,8 +1,5 @@
 import type { AppRouterClient } from "@kpi-corp/api/routers/index";
 
-import { MOCK_MEMBERS } from "@/mocks/members";
-import { TEAM_STATS } from "@/mocks/team-history";
-
 export type AdminDashboard = Awaited<
 	ReturnType<AppRouterClient["dashboard"]["getAdmin"]>
 >;
@@ -10,39 +7,12 @@ export type AdminDashboard = Awaited<
 export type DashboardAssignment = AdminDashboard["recentAssignments"][number];
 export type DashboardRankingEntry = AdminDashboard["ranking"][number];
 export type MemberWithoutKpis = AdminDashboard["membersWithoutKpis"][number];
+export type DashboardMover = AdminDashboard["movers"][number];
 
-export const STAGNANT_THRESHOLD_DAYS = 7;
-
-export type TeamTotals = {
-	points: number;
-	activeMembers: number;
-	totalMembers: number;
-	stagnantCount: number;
-	weekKpis: number;
-	weekMeetings: number;
-};
-
-export function stagnantMembers() {
-	return MOCK_MEMBERS.filter(
-		(member) => (member.stagnantDays ?? 0) >= STAGNANT_THRESHOLD_DAYS,
-	).sort((a, b) => (b.stagnantDays ?? 0) - (a.stagnantDays ?? 0));
-}
-
-export function teamTotals(): TeamTotals {
-	let points = 0;
-	for (const member of MOCK_MEMBERS) {
-		points += member.points;
-	}
-
-	return {
-		points,
-		activeMembers: MOCK_MEMBERS.length,
-		totalMembers: MOCK_MEMBERS.length,
-		stagnantCount: stagnantMembers().length,
-		weekKpis: TEAM_STATS.weekKpis,
-		weekMeetings: TEAM_STATS.weekMeetings,
-	};
-}
+export type PointsSeries = Awaited<
+	ReturnType<AppRouterClient["dashboard"]["getPointsSeries"]>
+>;
+export type SeriesPeriod = PointsSeries["period"];
 
 export type Greeting = "Bom dia" | "Boa tarde" | "Boa noite";
 
@@ -91,4 +61,35 @@ export function formatRelative(date: Date, now = new Date()) {
 	}
 
 	return relativeFormat.format(Math.round(value), "year");
+}
+
+const tickDayFormat = new Intl.DateTimeFormat("pt-BR", {
+	day: "numeric",
+	month: "short",
+	timeZone: "UTC",
+});
+const tickMonthFormat = new Intl.DateTimeFormat("pt-BR", {
+	month: "short",
+	timeZone: "UTC",
+});
+
+function stripDot(text: string) {
+	return text.replace(".", "");
+}
+
+export function seriesTickLabel(
+	period: SeriesPeriod,
+	start: string,
+	lastStart: string,
+) {
+	const date = new Date(`${start}T00:00:00.000Z`);
+
+	if (period !== "all") {
+		return stripDot(tickDayFormat.format(date)).replace(" de ", " ");
+	}
+
+	const month = stripDot(tickMonthFormat.format(date));
+	const sameYear = start.slice(0, 4) === lastStart.slice(0, 4);
+
+	return sameYear ? month : `${month} ${start.slice(2, 4)}`;
 }
