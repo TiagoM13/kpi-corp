@@ -24,35 +24,21 @@ export type ProfileKpi = MemberProfile["kpis"][number];
 
 export const MEMBERS_PAGE_SIZE = 20;
 export const MAX_INVITES_PER_REQUEST = 50;
-export const STAGNANT_AFTER_DAYS = 30;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export type MemberStatus =
 	| { kind: "INACTIVE" }
 	| { kind: "STAGNANT"; days: number }
 	| { kind: "ACTIVE" };
 
-export function daysWithoutKpi(
-	member: Pick<MemberListItem, "lastAssignmentAt" | "createdAt">,
-	now = new Date(),
-) {
-	const reference = member.lastAssignmentAt ?? member.createdAt;
-	return Math.floor((now.getTime() - reference.getTime()) / DAY_MS);
-}
-
 export function memberStatusOf(
-	member: Pick<MemberListItem, "active" | "lastAssignmentAt" | "createdAt">,
-	now = new Date(),
+	member: Pick<MemberListItem, "active" | "stagnant" | "daysWithoutKpi">,
 ): MemberStatus {
 	if (!member.active) {
 		return { kind: "INACTIVE" };
 	}
 
-	const days = daysWithoutKpi(member, now);
-
-	if (days >= STAGNANT_AFTER_DAYS) {
-		return { kind: "STAGNANT", days };
+	if (member.stagnant) {
+		return { kind: "STAGNANT", days: member.daysWithoutKpi };
 	}
 
 	return { kind: "ACTIVE" };
