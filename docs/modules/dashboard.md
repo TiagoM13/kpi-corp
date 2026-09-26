@@ -22,10 +22,14 @@ Código em `packages/api/src/modules/dashboard/`.
 | RN08 | `/dashboard/admin` é `adminProcedure`. Contadores de `kpis`, `points` e `meetings` usam a **semana ISO e o mês de calendário correntes** de `shared/ranking/periods.ts` — na segunda de manhã a semana zera. O "mês" do dashboard é o mesmo "mês" do ranking |
 | RN09 | `meetings.week` e `meetings.month` contam pela `date` da reunião **por dia de calendário**: `meeting.date` é gravado como meia-noite UTC do dia (3A), então a janela compara com `startDay`/`endDay`, não com os instantes de São Paulo — senão a reunião de segunda cairia na semana anterior. `meetings.open` conta `closedAt IS NULL` |
 | RN10 | `ranking` é o top 5 do **mês corrente**, com a entrada da 3B **sem** `change` e **sem** `isMe`. Nenhuma das duas rotas grava `ranking_snapshot` |
-| RN11 | `recentAssignments` são as 10 últimas atribuições, válidas **e** revogadas, com `user` embutido — o feed de auditoria do Admin, no shape do histórico da 3C |
+| RN11 | `recentAssignments` são as 10 últimas atribuições, válidas **e** revogadas, com `user`, `assigner` (`{ id, name }`, quem atribuiu) e `meeting` (`{ id, title }` ou `null` para avulsa) embutidos — o feed de auditoria do Admin, no shape do histórico da 3C |
 | RN12 | `membersWithoutKpis` usa janela **deslizante** de 30 dias corridos — a exceção deliberada: é pergunta sobre tempo passado, e um mês de calendário zeraria o alerta na virada. Entra o ativo cuja última atribuição válida tem 30 dias ou mais; revogada não conta como reconhecimento |
 | RN13 | Quem nunca recebeu nada conta desde o `createdAt` da conta: criado ontem não entra, criado há dois meses e nunca reconhecido é o caso mais grave. A lista sai ordenada por `daysWithout` decrescente, com `lastAssignmentAt` (`null` para quem nunca recebeu) |
 | RN14 | Equipe vazia responde todos os blocos com zeros e listas vazias, sem erro |
+| RN15 | `points.total` soma **todo o histórico** de atribuições válidas, sem janela — o mesmo critério de `points.week` e `points.month` (todo usuário, ativo ou não). Equivale a `assignmentTotals(null)` |
+| RN16 | `points.monthDelta` e `kpis.weekDelta` são a variação **em %, inteira**, contra o **mesmo trecho** do período anterior (`previousElapsedWindow`): quarta às 12h compara com a quarta às 12h da semana passada, não com a semana passada inteira — senão a semana corrente perderia toda segunda a sexta. Anterior sem pontos (≤ 0) devolve `null`, nunca infinito. A variação de membros ativos **não existe**: o banco não guarda histórico de ativação |
+| RN17 | `withoutKpisDays` expõe o limite de RN12 (`shared/members/stagnation.ts`, hoje 30), para o texto do card não repetir a regra. A mesma constante e a mesma conta de dias alimentam `GET /members` (`daysWithoutKpi`, `stagnant`) |
+| RN18 | `weekPoints` do dashboard do membro é a soma das atribuições válidas dele na semana ISO corrente (fuso de São Paulo). A série dos últimos 7 dias ainda não existe |
 
 ## Fluxos
 
@@ -50,35 +54,39 @@ sequenceDiagram
     end
     S->>P: rank(time do mês) → top 5
     S->>S: filtra ≥ 30 dias sem KPI, ordena por daysWithout
-    S-->>C: members, kpis, meetings, points, ranking, recentAssignments, membersWithoutKpis
+    S-->>C: members, kpis, meetings, points, withoutKpisDays, ranking, recentAssignments, membersWithoutKpis
 ```
 
 ## Endpoints
 
 | Método | Rota | Descrição | Auth | Erros |
 | --- | --- | --- | --- | --- |
-| GET | `/dashboard/member` | Pontos, contagem, posição geral, nível e KPIs recentes do autenticado | `Bearer` (ADMIN e MEMBER) | 401, 403 `ACCOUNT_DEACTIVATED`, 404 `MEMBER_NOT_FOUND` |
+| GET | `/dashboard/member` | Pontos, pontos da semana, contagem, posição geral, nível e KPIs recentes do autenticado | `Bearer` (ADMIN e MEMBER) | 401, 403 `ACCOUNT_DEACTIVATED`, 404 `MEMBER_NOT_FOUND` |
 | GET | `/dashboard/admin` | Contadores, top 5 do mês, feed e membros sem KPI | `Bearer` (ADMIN) | 401, 403 |
 
 | Bloco do Admin | O que é | Janela |
 | --- | --- | --- |
 | `members.active` / `.total` | contagem de usuários | — |
 | `kpis.week` / `.month` | atribuições válidas criadas | semana ISO / mês corrente |
+| `kpis.weekDelta` | variação % contra o mesmo trecho da semana anterior (`null` sem base) | semana ISO |
 | `meetings.week` / `.month` | reuniões pela `date` | semana ISO / mês corrente, por dia |
 | `meetings.open` | `closedAt IS NULL` | — |
 | `points.week` / `.month` | soma de `points` das válidas | semana ISO / mês corrente |
+| `points.total` | soma de `points` das válidas, todo o histórico | — |
+| `points.monthDelta` | variação % contra o mesmo trecho do mês anterior (`null` sem base) | mês corrente |
+| `withoutKpisDays` | limite que define "esquecido" | — |
 | `ranking` | top 5 | mês corrente |
-| `recentAssignments` | últimas 10, válidas e revogadas | — |
+| `recentAssignments` | últimas 10, válidas e revogadas, com quem atribuiu e a reunião | — |
 | `membersWithoutKpis` | ativos sem atribuição válida | últimos 30 dias corridos |
 
 Collection Postman: pasta `Dashboards (3D)`.
 
 ## Pendências
 
-O painel do Admin no front ainda não fecha com o mockup: série de pontos, deltas,
-sparklines, pontos totais, top movers, autor e nome da reunião no feed, e o limite de
-"esquecido" exposto. Detalhe em [`docs/pendencias-api.md`](../pendencias-api.md)
-(DA01 a DA08).
+O painel do Admin ainda não fecha com o mockup em quatro pontos: série de pontos por
+semana (DA01), sparklines (DA03), top movers (DA05) e a variação de membros ativos (DA02,
+parte que sobrou). No painel do membro faltam a série de 7 dias (MB01) e a variação de
+posição (MB02). Detalhe em [`docs/pendencias-api.md`](../pendencias-api.md).
 
 ## Decisões relacionadas
 

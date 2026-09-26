@@ -29,7 +29,7 @@ Código em `packages/api/src/modules/assignments/`.
 | # | Regra |
 | --- | --- |
 | RN09 | `GET /kpi-assignments` lista as atribuições de toda a equipe, paginado no shape de `GET /members`: `items`, `page`, `limit`, `total`, `totalPages`. `page` padrão 1, `limit` padrão 20, teto 100 |
-| RN10 | Cada linha estende a atribuição da 2B com `user: { id, name, position }`. O schema base (`kpiAssignmentSchema`) fica intacto — `POST` e `/bulk` não pagam join para devolver um nome que a tela já tem |
+| RN10 | Cada linha estende a atribuição da 2B com `user: { id, name, position }`, `assigner: { id, name }` (quem atribuiu) e `meeting: { id, title } \| null` (reunião de origem; `null` para avulsa). O schema base (`kpiAssignmentSchema`) fica intacto — `POST` e `/bulk` não pagam join para devolver um nome que a tela já tem. O mesmo shape alimenta `recentAssignments` do dashboard |
 | RN11 | Filtros opcionais e combináveis: `userId`, `kpiId`, `category`, `from`, `to`, `revoked`. Sem `revoked`, vêm válidas **e** revogadas — esconder revogação numa rota de auditoria esconderia o que ela existe para mostrar |
 | RN12 | `from` e `to` são dias `YYYY-MM-DD` **inclusivos nas duas pontas** em `America/Sao_Paulo`: `assignedAt >= dayStart(from)` e `assignedAt < dayEnd(to)` de `shared/time`. Atribuição às 23h59 do `to` aparece. `to` anterior a `from` → 400; data inexistente (`2026-02-30`) → 400 |
 | RN13 | Ordenação `assignedAt` DESC com desempate por `id` DESC — sem o segundo critério, duas atribuições em massa no mesmo instante trocariam de página entre requisições |

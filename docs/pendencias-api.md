@@ -11,32 +11,24 @@ Cada item diz o que a tela precisa, o que existe hoje e o que a tela faz enquant
 | # | A tela precisa | Hoje a API entrega | Enquanto isso |
 | --- | --- | --- | --- |
 | DA01 | **Série de pontos do time por semana**, com período escolhido (7, 30 e 90 dias), para o gráfico "Pontos por semana" | Nada — só os totais `points.week` e `points.month` | `PointsChartCard` com a chamada comentada no painel |
-| DA02 | **Variação contra o período anterior** (`delta` em %) de pontos do mês, KPIs da semana e membros ativos | Só o valor do período corrente | Cards sem o indicador de ▲▼ |
+| DA02 | **Variação de membros ativos** contra o período anterior (`delta` em %) — a de pontos do mês e a de KPIs da semana já saem da API | O banco não guarda histórico de ativação e desativação: só o estado atual (`active`) | Card "Membros ativos" sem o indicador de ▲▼. Precisa de uma tabela de eventos de status, ou de decidir que a variação sai do produto |
 | DA03 | **Mini-série (sparkline)** de pontos e de KPIs para os cards de indicador | Nada | Cards sem sparkline |
-| DA04 | **Pontos totais do time** (todo o histórico). O mockup mostra "Pontos totais" | Só `points.week` e `points.month` | Card mostra "Pontos no mês" |
 | DA05 | **Top movers da semana**: quem mais subiu, com `change` de posição e a série de 7 dias de cada um | `ranking` = top 5 do mês, sem `change` e sem série (RN10) | `TopMoversCard` comentado; no lugar, "Top 5 do mês" com pontos e KPIs |
-| DA06 | **Quem atribuiu** cada KPI no feed ("por Fulano") | `recentAssignments[].assignedBy` é só o id | Feed sem o autor |
-| DA07 | **Nome da reunião** no feed, para o contexto ("Daily de terça") | `meetingId` só | Feed diz "em reunião" ou "avulso" |
-| DA08 | **Limite de dias** que define "esquecido", para o texto do card não repetir a regra | O limite (30 dias, RN12) vive só no service | Texto "há 30 dias ou mais" fixo no front — se a regra mudar na API, o texto fica errado |
 
 Sugestão de forma, sem compromisso: um `GET /dashboard/admin/points-series?period=` para
-DA01 e DA03, e os demais como campos novos na resposta atual (`points.previousMonth` ou
-`delta`, `points.total`, `withoutKpisDays`, `assignedBy: { id, name }`,
-`meeting: { id, title } | null`, `movers: [...]`).
+DA01 e DA03, e `movers: [...]` como campo novo na resposta atual para DA05.
 
 ## Modo reunião (`/meetings`)
 
 | # | A tela precisa | Hoje a API entrega | Enquanto isso |
 | --- | --- | --- | --- |
-| MT01 | **Pontos de cada participante na reunião**, para o selo "+N" do card | `assignments` da reunião, sem total por pessoa | Card mostra os KPIs recebidos, sem o total (comentado em `attendee-card.tsx`) |
-| MT02 | **Resumo da reunião encerrada**: total de pontos e pódio dos três que mais pontuaram | `assignments` e `attendees` crus | Resumo mostra duração, presentes e atribuições; pódio comentado em `meeting-summary.tsx` |
 | MT03 | **KPI de presença usado pela reunião**, para quem chega atrasado ganhar o mesmo | A reunião não guarda qual KPI de presença foi usado | O admin escolhe de novo no "Adicionar participantes" (pré-selecionado quando só existe um) |
 
 ## Painel do membro (`GET /dashboard/member`, `GET /me/profile`)
 
 | # | A tela precisa | Hoje a API entrega | Enquanto isso |
 | --- | --- | --- | --- |
-| MB01 | **Pontos do membro na semana** e a **série dos últimos 7 dias** (sparkline), para o card "Pontos nesta semana" | Só `points` e `kpiCount` de todo o histórico | Card comentado em `pages/member/dashboard.tsx` |
+| MB01 | **Série dos últimos 7 dias** de pontos do membro (sparkline), para o card "Pontos nesta semana" — o total da semana já vem em `weekPoints` | Só o total da semana | Card sem sparkline (comentário em `pages/member/dashboard.tsx`) |
 | MB02 | **Variação de posição no ranking** do membro, para mostrar se subiu ou desceu | `rankingPosition` e `teamSize`, sem `change` (a 3B tem `change` em `/ranking`, o dashboard não) | Mostra só a posição atual |
 
 ## Autenticação (`/auth`)
@@ -44,12 +36,6 @@ DA01 e DA03, e os demais como campos novos na resposta atual (`points.previousMo
 | # | A tela precisa | Hoje a API entrega | Enquanto isso |
 | --- | --- | --- | --- |
 | AU01 | **Recuperar senha** — o link "esqueci" do login | Não existe rota nem tela | O link aponta para `/login` |
-
-## Membros (`GET /members`)
-
-| # | A tela precisa | Hoje a API entrega | Enquanto isso |
-| --- | --- | --- | --- |
-| ME01 | **Status "parado"** de cada membro (dias sem KPI e se passou do limite) | `lastAssignmentAt` e `createdAt` | O front calcula `daysWithoutKpi` e aplica o limite de 30 dias em `lib/members.ts` (`memberStatusOf`). **É derivação no cliente** e duplica a regra RN12 do dashboard — deve sair quando a API entregar `daysWithoutKpi` (ou `status`) |
 
 ## Como usar este arquivo
 

@@ -48,7 +48,9 @@ packages/api/src/
 │   ├── guards/              # assertMembersActive — assignments e meetings
 │   ├── email/               # normalizeEmail — auth e members
 │   ├── mappers/
-│   │   └── kpi-assignment.ts # KpiAssignment e histórico com user
+│   │   └── kpi-assignment.ts # KpiAssignment e histórico com user, assigner e meeting
+│   ├── members/
+│   │   └── stagnation.ts    # limite de 30 dias e daysWithoutKpi — dashboard e members
 │   ├── security/
 │   │   ├── password.ts      # bcrypt + DUMMY_PASSWORD_HASH
 │   │   ├── access-token.ts  # assina e valida o access token (typ, role, email)
@@ -58,7 +60,7 @@ packages/api/src/
 │   │   └── timezone.ts      # TIMEZONE America/Sao_Paulo, dayStart/dayEnd/dayOf
 │   ├── ranking/
 │   │   ├── rank.ts          # ordenação, desempate em três níveis, posição sequencial
-│   │   └── periods.ts       # windowOf / previousWindow — semana ISO, mês, trimestre
+│   │   └── periods.ts       # windowOf / previousWindow / previousElapsedWindow
 │   └── gamification/
 │       └── levels.ts        # 21 limiares, faixas, levelFor — saiu de profile na 3D
 └── tests/
@@ -74,7 +76,7 @@ sete arquivos — ver `docs/modules/<nome>.md` para as regras de cada um.
 
 ### Regras puras em `shared/`
 
-Quatro regras saíram de módulo para `shared/` na Fase 3, todas pelo mesmo motivo: dois
+Estas regras saíram de módulo para `shared/`, todas pelo mesmo motivo: dois
 módulos precisam da mesma regra e módulo não importa módulo. Nenhuma fala com Prisma —
 quem carrega a linha é o repository de cada módulo.
 
@@ -82,6 +84,8 @@ quem carrega a linha é o repository de cada módulo.
 | --- | --- | --- |
 | Fuso e dia de calendário | `shared/time/timezone.ts` | ranking, assignments, profile |
 | Janelas de calendário | `shared/ranking/periods.ts` | ranking, dashboard, profile |
+| Mesmo trecho do período anterior | `shared/ranking/periods.ts` (`previousElapsedWindow`) | dashboard |
+| Membro "esquecido" (30 dias sem KPI) | `shared/members/stagnation.ts` | dashboard, members |
 | Ordenação do ranking | `shared/ranking/rank.ts` | ranking, dashboard, profile |
 | Níveis | `shared/gamification/levels.ts` | profile, dashboard |
 | Linha agregada → linha do ranking | `shared/ranking/rank.ts` (`toRankableRow`) | ranking, dashboard |

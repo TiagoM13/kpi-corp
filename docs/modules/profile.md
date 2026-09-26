@@ -23,6 +23,7 @@ Código em `packages/api/src/modules/profile/`.
 | RN06 | Nível 20 é o teto: acima de 7.500 os pontos seguem somando, mas `nextLevel`, `nextLevelPoints` e `nextTier` vêm `null` e `progress` vem 100 |
 | RN07 | `progress` é o percentual de pontos dentro do nível atual — nunca o percentual do caminho total |
 | RN08 | O perfil público (`/members/{id}/profile`) devolve o mesmo conteúdo do `/me/profile`, exceto: **sem e-mail**, **sem status de ativação** e histórico **só com atribuições não revogadas e de pontuação positiva** (`points > 0`). Membro inativo ou inexistente → 404 |
+| RN08a | O perfil público também traz `rankingPosition` e `teamSize`: a posição no ranking **geral** (sem janela) entre os usuários ativos e o tamanho desse grupo — o mesmo número de `GET /ranking?period=all` e do `rankingPosition` do dashboard do membro (pontuação com `revokedAt IS NULL`, sem filtro de sinal, desempate de `shared/ranking/rank.ts`). O admin vê a posição nos detalhes do membro e o ranking abre o mesmo perfil. Membro que sai do grupo ativo entre as leituras → 404 |
 
 ### Badges (2D)
 

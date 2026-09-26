@@ -8,6 +8,47 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-26 — Posição no ranking nos detalhes do membro
+
+#### Adicionado
+- `GET /members/{id}/profile` devolve `rankingPosition` e `teamSize` (ranking geral entre
+  os ativos, o mesmo número do ranking e do painel do membro).
+- O modal de detalhes do membro (lista de membros e ranking) mostra a posição como o painel
+  do membro: selo "#N no ranking" no cabeçalho e "#N de M" no card "Pontos totais". Membro
+  inativo não tem posição.
+
+#### Alterado
+- O card "Pontos totais" dos modais deixa de mostrar "nível N", que já está no cabeçalho.
+
+### 2026-09-26 — Pendências simples da API resolvidas
+
+#### Adicionado
+- `GET /dashboard/admin` devolve `points.total` (todo o histórico), `points.monthDelta` e
+  `kpis.weekDelta` (variação % contra o mesmo trecho do período anterior, `null` sem base)
+  e `withoutKpisDays` (o limite de "esquecido"). O painel mostra "Pontos totais", a
+  variação de KPIs da semana e o texto do card "Sem KPI" com o limite da API (DA02
+  parcial, DA04, DA08).
+- Os itens de `recentAssignments` e do histórico `GET /kpi-assignments` trazem `assigner`
+  (`{ id, name }`) e `meeting` (`{ id, title }` ou `null`). O feed do painel diz "por
+  Fulano" e o nome da reunião, ou "avulso" (DA06, DA07).
+- `GET /members` devolve `daysWithoutKpi` e `stagnant` por membro. O status "parado" da
+  lista sai da API, com a mesma regra do dashboard, e o front deixou de calcular (ME01).
+- `GET /meetings/{id}` (e as demais rotas que devolvem o detalhe) traz `attendees[].points`
+  e `summary` (`totalPoints` e `podium` com os três que mais pontuaram). O card do modo
+  ao vivo mostra o selo "+N" e o resumo da reunião encerrada mostra o pódio, como no
+  mockup: "Reconhecimento registrado.", atribuições, pontos no total e as três medalhas
+  (MT01, MT02).
+- `GET /dashboard/member` devolve `weekPoints`. O painel do membro voltou a mostrar o card
+  "Pontos nesta semana" (MB01 parcial: a série de 7 dias continua pendente).
+
+#### Alterado
+- O título do modo reunião encerrada é "Reunião encerrada" e o resumo deixa de mostrar o
+  número de presentes, como no mockup.
+- A regra de "esquecido" (30 dias) e a conta de dias sem KPI moraram em `shared/members/`,
+  usadas por dashboard e members. `previousElapsedWindow` entrou em `shared/ranking`.
+- `docs/pendencias-api.md` perde DA04, DA06, DA07, DA08, MT01, MT02 e ME01; DA02 e MB01
+  ficam só com o que a API ainda não entrega.
+
 ### 2026-09-26 — Seed do time
 
 #### Alterado
@@ -23,10 +64,9 @@ de entrega.
 - No painel do membro e no modal de perfil, o box de conquistas tem a mesma altura do box
   de distribuição por categoria e as 10 conquistas ocupam o box inteiro, em duas linhas
   de cinco.
-- No nível máximo, a faixa de progresso vira uma faixa com gradiente de chamas animado e
-  o texto "Nível máximo atingido", sem repetir o número do nível (já está no cabeçalho).
-  Vale para o painel do membro e para os modais de perfil (membros e ranking). A animação
-  para com `prefers-reduced-motion`.
+- No nível máximo, a barra de progresso some e o círculo de nível do cabeçalho mostra
+  "max" abaixo do número. Vale para o painel do membro e para os modais de perfil (membros
+  e ranking).
 
 ### 2026-09-25 — Painel do membro integrado à API
 

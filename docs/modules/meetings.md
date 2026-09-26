@@ -25,6 +25,8 @@ Código em `packages/api/src/modules/meetings/`.
 | RN10 | `points` do assignment de reunião é copiado do KPI no instante da atribuição — reprecificar o KPI depois não reescreve o passado. A regra existe aqui e na 2B (módulo não importa módulo); há teste cobrindo os dois caminhos |
 | RN11 | O módulo escreve em `kpi_assignment` pelo próprio repository — `meetings` não importa `assignments`, `kpis`, `members` nem `profile` |
 | RN12 | Encerrar reunião sem nenhum presente é permitido — reunião que não aconteceu é fato, não erro. Não existe reabrir: `closedAt` só é preenchido, nunca limpo |
+| RN13 | Cada item de `attendees` traz `points`: a soma das atribuições **válidas** (`revokedAt IS NULL`) daquele membro **nesta reunião**, presença incluída. Sem atribuição, `0`. É calculado no mapper a partir dos `assignments` que o detalhe já carrega — nada é guardado |
+| RN14 | O detalhe traz `summary`: `totalPoints` (soma das atribuições válidas da reunião) e `podium` (até três participantes, do que mais pontuou para o que menos, só quem tem `points > 0`). O desempate é o de `rank()` em `shared/ranking`: mais pontos, depois mais reconhecimentos, depois nome em ordem alfabética. Cada entrada é `{ userId, name, points }`. Revogar uma atribuição recalcula tudo na leitura seguinte |
 
 ## Fluxos
 
@@ -81,9 +83,9 @@ da constraint `@@unique([meetingId, userId])`: membro já escalado é ignorado, 
 
 - O front consome as sete rotas em `apps/web/src/pages/admin/meeting/`: preparação
   (`create` + `registerAttendance`), ao vivo (`getById`, `assignKpi`, `registerAttendance`
-  para quem chega depois, `revoke` da 2B para desfazer) e `end`. Totais por participante,
-  pódio e o KPI de presença da reunião ainda faltam na API — `docs/pendencias-api.md`
-  (MT01 a MT03).
+  para quem chega depois, `revoke` da 2B para desfazer) e `end`. O selo "+N" do card e o
+  pódio do resumo vêm de `attendees[].points` e `summary` (RN13 e RN14). O KPI de
+  presença usado pela reunião ainda falta na API — `docs/pendencias-api.md` (MT03).
 - Não há rota de reunião para MEMBER: o membro não vê nem a reunião de que participou. Se
   virar requisito, é `GET /me/meetings` com o mesmo repository, sem migration.
 - Não existe reabrir reunião; não há trava de duas reuniões abertas simultâneas (daily e
