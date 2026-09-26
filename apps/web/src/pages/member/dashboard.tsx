@@ -1,5 +1,4 @@
 import type { AppRouterClient } from "@kpi-corp/api/routers/index";
-import { Badge } from "@kpi-corp/ui/components/badge";
 import { Button } from "@kpi-corp/ui/components/button";
 import {
 	Empty,
@@ -15,6 +14,7 @@ import { Link } from "@tanstack/react-router";
 import {
 	SproutIcon,
 	TargetIcon,
+	TrendingUpIcon,
 	TriangleAlertIcon,
 	TrophyIcon,
 	ZapIcon,
@@ -23,6 +23,7 @@ import { LevelBadge } from "@/components/member-profile/level-badge";
 import { LevelProgress } from "@/components/member-profile/level-progress";
 import { ProfileActivity } from "@/components/member-profile/profile-activity";
 import { ProfileHeader } from "@/components/member-profile/profile-header";
+import { RankingBadge } from "@/components/member-profile/ranking-badge";
 import { StatCard } from "@/components/stat-card";
 import { firstNameOf } from "@/lib/dashboard";
 import { achievementsOfProfile } from "@/lib/members";
@@ -124,10 +125,7 @@ function MemberDashboardContent({
 				level={dashboard.level}
 				badges={
 					<>
-						<Badge variant="outline" className="bg-bg-2 text-fg-1">
-							<span aria-hidden className="size-1.5 rounded-full bg-primary" />#
-							{dashboard.rankingPosition} no ranking
-						</Badge>
+						<RankingBadge position={dashboard.rankingPosition} />
 						<LevelBadge level={dashboard.level.level} />
 					</>
 				}
@@ -135,14 +133,21 @@ function MemberDashboardContent({
 
 			<LevelProgress level={dashboard.level} />
 
-			<div className="grid gap-3 sm:grid-cols-3">
+			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				<StatCard
 					label="Pontos totais"
 					value={pointsFormat.format(dashboard.points)}
 					sub={`#${dashboard.rankingPosition} de ${dashboard.teamSize}`}
 					icon={TargetIcon}
 				/>
-				{/* "Pontos nesta semana" com tendência: a API não entrega (MB01 em docs/pendencias-api.md). */}
+				{/* Tendência de 7 dias (sparkline): a API não entrega (MB01 em docs/pendencias-api.md). */}
+				<StatCard
+					label="Pontos nesta semana"
+					value={pointsFormat.format(dashboard.weekPoints)}
+					sub="semana atual"
+					icon={TrendingUpIcon}
+					accentClassName="text-good"
+				/>
 				<StatCard
 					label="KPIs recebidos"
 					value={dashboard.kpiCount}
