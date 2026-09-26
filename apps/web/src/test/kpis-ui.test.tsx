@@ -304,6 +304,68 @@ describe("AdminKpisPage — edicao", () => {
 	});
 });
 
+describe("AdminKpisPage — reabertura do editor", () => {
+	it("abre vazio ao criar outro KPI logo apos salvar", async () => {
+		await renderLoaded();
+
+		fireEvent.click(screen.getByRole("button", { name: "Novo KPI" }));
+		await screen.findByText("Novo KPI", { selector: "h2" });
+
+		fireEvent.change(screen.getByLabelText("Nome"), {
+			target: { value: "Pair programming" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Criar KPI" }));
+		await waitFor(() => expect(tiles()).toHaveLength(11));
+
+		fireEvent.click(screen.getByRole("button", { name: "Novo KPI" }));
+		await screen.findByText("Novo KPI", { selector: "h2" });
+
+		expect(screen.getByLabelText("Nome")).toHaveValue("");
+		expect(screen.getByLabelText("Descrição")).toHaveValue("");
+	});
+
+	it("descarta o rascunho ao cancelar e reabrir o editor novo", async () => {
+		await renderLoaded();
+
+		fireEvent.click(screen.getByRole("button", { name: "Novo KPI" }));
+		await screen.findByText("Novo KPI", { selector: "h2" });
+
+		fireEvent.change(screen.getByLabelText("Nome"), {
+			target: { value: "Rascunho parado" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+		fireEvent.click(screen.getByRole("button", { name: "Novo KPI" }));
+		await screen.findByText("Novo KPI", { selector: "h2" });
+
+		expect(screen.getByLabelText("Nome")).toHaveValue("");
+	});
+
+	it("reabre a edicao com os dados salvos", async () => {
+		await renderLoaded();
+
+		fireEvent.click(
+			screen.getByRole("button", { name: "Editar Presença na reunião" }),
+		);
+		await screen.findByText("Editar KPI");
+
+		fireEvent.change(screen.getByLabelText("Nome"), {
+			target: { value: "Presença renomeada" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+		await waitFor(() =>
+			expect(screen.getByText("Presença renomeada")).toBeInTheDocument(),
+		);
+
+		fireEvent.click(
+			screen.getByRole("button", { name: "Editar Presença renomeada" }),
+		);
+		await screen.findByText("Editar KPI");
+
+		expect(screen.getByLabelText("Nome")).toHaveValue("Presença renomeada");
+	});
+});
+
 describe("AdminKpisPage — inativar", () => {
 	it("inativa pelo botao do card e atualiza a contagem", async () => {
 		await renderLoaded();
@@ -346,6 +408,33 @@ describe("AdminKpisPage — inativar", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Ativos" }));
 
 		await waitFor(() => expect(tiles()).toHaveLength(8));
+	});
+
+	it("reativa pelo botao do card logo apos inativar", async () => {
+		await renderLoaded();
+
+		fireEvent.click(
+			within(firstTile()).getByRole("button", { name: /^Inativar/ }),
+		);
+
+		await waitFor(() =>
+			expect(
+				within(firstTile()).getByRole("button", { name: /^Ativar/ }),
+			).toBeInTheDocument(),
+		);
+
+		const activate = within(firstTile()).getByRole("button", {
+			name: /^Ativar/,
+		});
+		expect(activate).toBeEnabled();
+
+		fireEvent.click(activate);
+
+		await waitFor(() =>
+			expect(
+				within(firstTile()).getByRole("button", { name: /^Inativar/ }),
+			).toBeInTheDocument(),
+		);
 	});
 });
 
