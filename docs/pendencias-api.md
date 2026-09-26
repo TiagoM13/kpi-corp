@@ -24,6 +24,14 @@ DA01 e DA03, e os demais como campos novos na resposta atual (`points.previousMo
 `delta`, `points.total`, `withoutKpisDays`, `assignedBy: { id, name }`,
 `meeting: { id, title } | null`, `movers: [...]`).
 
+## Modo reunião (`/meetings`)
+
+| # | A tela precisa | Hoje a API entrega | Enquanto isso |
+| --- | --- | --- | --- |
+| MT01 | **Pontos de cada participante na reunião**, para o selo "+N" do card | `assignments` da reunião, sem total por pessoa | Card mostra os KPIs recebidos, sem o total (comentado em `attendee-card.tsx`) |
+| MT02 | **Resumo da reunião encerrada**: total de pontos e pódio dos três que mais pontuaram | `assignments` e `attendees` crus | Resumo mostra duração, presentes e atribuições; pódio comentado em `meeting-summary.tsx` |
+| MT03 | **KPI de presença usado pela reunião**, para quem chega atrasado ganhar o mesmo | A reunião não guarda qual KPI de presença foi usado | O admin escolhe de novo no "Adicionar participantes" (pré-selecionado quando só existe um) |
+
 ## Membros (`GET /members`)
 
 | # | A tela precisa | Hoje a API entrega | Enquanto isso |

@@ -79,9 +79,11 @@ da constraint `@@unique([meetingId, userId])`: membro já escalado é ignorado, 
 
 ## Consequências registradas
 
-- `apps/web/src/lib/meeting.ts` modela a reunião inteira em memória (`phase`,
-  `present: string[]`) e fica em conflito com `status`/`presentAt`/`kpi_assignment` — a
-  migração do front é story de web e o Modo Reunião continua no mock até ela acontecer.
+- O front consome as sete rotas em `apps/web/src/pages/admin/meeting/`: preparação
+  (`create` + `registerAttendance`), ao vivo (`getById`, `assignKpi`, `registerAttendance`
+  para quem chega depois, `revoke` da 2B para desfazer) e `end`. Totais por participante,
+  pódio e o KPI de presença da reunião ainda faltam na API — `docs/pendencias-api.md`
+  (MT01 a MT03).
 - Não há rota de reunião para MEMBER: o membro não vê nem a reunião de que participou. Se
   virar requisito, é `GET /me/meetings` com o mesmo repository, sem migration.
 - Não existe reabrir reunião; não há trava de duas reuniões abertas simultâneas (daily e
