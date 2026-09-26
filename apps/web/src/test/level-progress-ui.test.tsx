@@ -35,13 +35,9 @@ describe("LevelProgress", () => {
 		expect(screen.getByText("Faltam 60 pontos.")).toBeInTheDocument();
 	});
 
-	it("troca a barra pela faixa de nivel maximo, sem repetir o nivel", () => {
-		render(<LevelProgress level={MAX_LEVEL} />);
+	it("no nível máximo não mostra barra nem faixa: o círculo do cabeçalho já diz tudo", () => {
+		const { container } = render(<LevelProgress level={MAX_LEVEL} />);
 
-		expect(
-			screen.getByRole("heading", { name: "Nível máximo atingido" }),
-		).toBeInTheDocument();
-		expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-		expect(screen.queryByText(/20/)).not.toBeInTheDocument();
+		expect(container).toBeEmptyDOMElement();
 	});
 });
