@@ -102,8 +102,46 @@ function assignmentFor(
 	};
 }
 
+function withScores(meeting: MeetingDetail) {
+	const scores = new Map<string, { points: number; count: number }>();
+	for (const item of meeting.assignments) {
+		if (item.revokedAt) continue;
+		const score = scores.get(item.userId) ?? { points: 0, count: 0 };
+		scores.set(item.userId, {
+			points: score.points + item.points,
+			count: score.count + 1,
+		});
+	}
+
+	for (const attendee of meeting.attendees) {
+		attendee.points = scores.get(attendee.userId)?.points ?? 0;
+	}
+
+	meeting.summary = {
+		totalPoints: [...scores.values()].reduce((sum, s) => sum + s.points, 0),
+		podium: meeting.attendees
+			.map((attendee) => ({
+				userId: attendee.userId,
+				name: attendee.name,
+				points: attendee.points,
+				count: scores.get(attendee.userId)?.count ?? 0,
+			}))
+			.filter((entry) => entry.points > 0)
+			.sort(
+				(a, b) =>
+					b.points - a.points ||
+					b.count - a.count ||
+					a.name.localeCompare(b.name),
+			)
+			.slice(0, 3)
+			.map(({ userId, name, points }) => ({ userId, name, points })),
+	};
+
+	return meeting;
+}
+
 function save(meeting: MeetingDetail) {
-	db.meetings.set(meeting.id, meeting);
+	db.meetings.set(meeting.id, withScores(meeting));
 	return structuredClone(meeting);
 }
 
@@ -122,15 +160,18 @@ function seedMeeting(overrides: Partial<MeetingDetail> = {}) {
 				name: "Ana Souza",
 				position: "Dev",
 				presentAt: new Date(),
+				points: 0,
 			},
 			{
 				userId: "bruno",
 				name: "Bruno Lima",
 				position: "Design",
 				presentAt: null,
+				points: 0,
 			},
 		],
 		assignments: [],
+		summary: { totalPoints: 0, podium: [] },
 		...overrides,
 	});
 }
@@ -150,6 +191,8 @@ beforeEach(() => {
 			points: 0,
 			kpiCount: 0,
 			lastAssignmentAt: null,
+			daysWithoutKpi: 0,
+			stagnant: false,
 			level: {},
 		})),
 		page: 1,
@@ -196,6 +239,7 @@ beforeEach(() => {
 				createdBy: { id: "admin", name: "Administrador" },
 				attendees: [],
 				assignments: [],
+				summary: { totalPoints: 0, podium: [] },
 			}),
 	);
 
@@ -230,6 +274,7 @@ beforeEach(() => {
 						name: member.name,
 						position: member.position,
 						presentAt: new Date(),
+						points: 0,
 					});
 				}
 				meeting.assignments.push(assignmentFor(meeting, source, userId));
@@ -514,7 +559,9 @@ describe("Modo reunião — ao vivo", () => {
 
 		fireEvent.click(within(confirm).getByRole("button", { name: "Encerrar" }));
 
-		expect(await screen.findByText("Reunião encerrada.")).toBeInTheDocument();
+		expect(
+			await screen.findByText("Reconhecimento registrado."),
+		).toBeInTheDocument();
 		expect(clientMock.meetings.end.mock.lastCall?.[0]).toStrictEqual({
 			id: "reuniao-1",
 		});
@@ -541,12 +588,112 @@ describe("Modo reunião — ao vivo", () => {
 	});
 });
 
+describe("Modo reunião — pontos no card", () => {
+	it("mostra o total de pontos de cada participante depois de reconhecer", async () => {
+		seedMeeting();
+		renderPage("reuniao-1");
+		const card = await screen.findByRole("button", { name: /Ana Souza/ });
+		expect(within(card).queryByText(/^\+\d+$/)).not.toBeInTheDocument();
+
+		fireEvent.click(
+			await screen.findByRole("button", { name: /^Boa ideia em reunião/ }),
+		);
+		pick("Dar Boa ideia em reunião para Ana Souza");
+
+		await waitFor(() =>
+			expect(
+				within(screen.getByRole("button", { name: /Ana Souza/ })).getByText(
+					"+15",
+				),
+			).toBeInTheDocument(),
+		);
+	});
+});
+
 describe("Modo reunião — encerrada", () => {
+	function closedMeeting() {
+		const attendee = (userId: string, name: string) => ({
+			userId,
+			name,
+			position: null,
+			presentAt: new Date(),
+			points: 0,
+		});
+		const meeting = seedMeeting({
+			status: "CLOSED",
+			closedAt: new Date(),
+			attendees: [
+				attendee("ana", "Ana Souza"),
+				attendee("bruno", "Bruno Lima"),
+				attendee("carla", "Carla Dias"),
+			],
+		});
+		const stored = db.meetings.get("reuniao-1");
+		if (!stored) throw new Error("reuniao nao semeada");
+		stored.assignments.push(
+			assignmentFor(stored, IDEA, "bruno"),
+			assignmentFor(stored, IDEA, "bruno"),
+			assignmentFor(stored, IDEA, "ana"),
+			assignmentFor(stored, PRESENCE, "carla"),
+		);
+		save(stored);
+		return meeting;
+	}
+
+	it("resume a reunião: título, duração, atribuições e pontos no total", async () => {
+		closedMeeting();
+		renderPage("reuniao-1");
+
+		expect(
+			await screen.findByText(/4 atribuições, 50 pontos no total\./),
+		).toBeInTheDocument();
+		expect(screen.getByText(/Daily de terça · /)).toBeInTheDocument();
+	});
+
+	it("mostra o pódio com os três que mais pontuaram, com medalha e pontos", async () => {
+		closedMeeting();
+		renderPage("reuniao-1");
+
+		const podium = await screen.findByRole("list", {
+			name: "Pódio da reunião",
+		});
+		const entries = within(podium).getAllByRole("listitem");
+
+		expect(entries).toHaveLength(3);
+		expect(
+			within(entries[0] as HTMLElement).getByText("Bruno L."),
+		).toBeVisible();
+		expect(within(entries[0] as HTMLElement).getByText("+30")).toBeVisible();
+		expect(within(entries[0] as HTMLElement).getByText("🥇")).toBeVisible();
+		expect(within(entries[1] as HTMLElement).getByText("Ana S.")).toBeVisible();
+		expect(within(entries[1] as HTMLElement).getByText("+15")).toBeVisible();
+		expect(
+			within(entries[2] as HTMLElement).getByText("Carla D."),
+		).toBeVisible();
+		expect(within(entries[2] as HTMLElement).getByText("+5")).toBeVisible();
+	});
+
+	it("reunião sem pontos não mostra pódio", async () => {
+		seedMeeting({ status: "CLOSED", closedAt: new Date() });
+		renderPage("reuniao-1");
+
+		await screen.findByText("Reconhecimento registrado.");
+
+		expect(
+			screen.queryByRole("list", { name: "Pódio da reunião" }),
+		).not.toBeInTheDocument();
+		expect(
+			screen.getByText(/0 atribuições, 0 pontos no total\./),
+		).toBeVisible();
+	});
+
 	it("abrir uma reunião encerrada mostra o resumo, não o ao vivo", async () => {
 		seedMeeting({ status: "CLOSED", closedAt: new Date() });
 		renderPage("reuniao-1");
 
-		expect(await screen.findByText("Reunião encerrada.")).toBeInTheDocument();
+		expect(
+			await screen.findByText("Reconhecimento registrado."),
+		).toBeInTheDocument();
 		expect(screen.queryByText("Ao vivo")).not.toBeInTheDocument();
 	});
 

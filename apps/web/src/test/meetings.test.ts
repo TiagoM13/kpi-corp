@@ -8,6 +8,7 @@ import {
 	type MeetingAssignment,
 	type MeetingDetail,
 	presentAttendees,
+	shortNameOf,
 } from "@/lib/meetings";
 
 function assignment(
@@ -38,14 +39,21 @@ const MEETING: MeetingDetail = {
 	createdAt: new Date(),
 	createdBy: { id: "admin", name: "Admin" },
 	attendees: [
-		{ userId: "a", name: "Ana", position: "Dev", presentAt: new Date() },
-		{ userId: "b", name: "Bruno", position: null, presentAt: null },
+		{
+			userId: "a",
+			name: "Ana",
+			position: "Dev",
+			presentAt: new Date(),
+			points: 20,
+		},
+		{ userId: "b", name: "Bruno", position: null, presentAt: null, points: 0 },
 	],
 	assignments: [
 		assignment("1", "2026-09-25T10:00:00.000Z"),
 		assignment("2", "2026-09-25T10:05:00.000Z"),
 		assignment("3", "2026-09-25T10:10:00.000Z", true),
 	],
+	summary: { totalPoints: 10, podium: [] },
 };
 
 describe("calendarDateOf", () => {
@@ -59,6 +67,23 @@ describe("presentAttendees", () => {
 		expect(presentAttendees(MEETING).map((person) => person.id)).toStrictEqual([
 			"a",
 		]);
+	});
+
+	it("leva os pontos que a API já somou para cada presente", () => {
+		expect(presentAttendees(MEETING)).toStrictEqual([
+			{ id: "a", name: "Ana", position: "Dev", points: 20 },
+		]);
+	});
+});
+
+describe("shortNameOf", () => {
+	it.each([
+		["João Pedro Lima", "João L."],
+		["Karen Oliveira", "Karen O."],
+		["Ana", "Ana"],
+		["  Lucas   Prado  ", "Lucas P."],
+	])("%s vira %s", (name, expected) => {
+		expect(shortNameOf(name)).toBe(expected);
 	});
 });
 
