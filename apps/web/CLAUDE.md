@@ -111,7 +111,7 @@ para `/login` na mão depois de `signOut()`.
 Credenciais do seed: `admin@kpicorp.com` / `admin123`, e três membros com `member123`
 (`npm run db:seed`).
 
-Esqueci a senha: **não existe** — nem tela nem endpoint. O link "esqueci" no login ainda
+Esqueci a senha: **não existe** — nem tela nem endpoint (AU01 em `docs/pendencias-api.md`). O link "esqueci" no login ainda
 aponta para `/login`.
 
 ## Convite
@@ -171,7 +171,7 @@ Vitest + Testing Library + jsdom. Config **standalone** em `vitest.config.ts` �
 - Arquivos: `src/**/*.{test,spec}.{ts,tsx}`.
 - Setup: `src/test/setup.ts` (jest-dom + `cleanup()` após cada teste).
 - `globals: true` — `describe`/`it`/`expect` sem import é permitido, mas o código atual importa explicitamente. Seguir o que já existe.
-- Prioridade de cobertura: lógica de `lib/` e guards. Placeholder de tela não precisa de teste.
+- Prioridade de cobertura: lógica de `lib/` e guards, e cada tela contra a API simulada (`vi.mock("@/utils/orpc")` com `createTanstackQueryUtils` sobre um client fake).
 
 ## Imports
 
@@ -189,15 +189,19 @@ Variável nova **precisa** ser declarada em `packages/env/src/web.ts` (prefixo `
 
 ## Estado atual do app
 
-A maior parte das telas ainda é `PagePlaceholder` (`src/components/page-placeholder.tsx`). Navegação, layout e guards funcionam; o conteúdo entra story a story.
+Todas as telas falam com a API real. **Nenhuma lê mais do mock** — o que a API ainda
+não entrega está em `docs/pendencias-api.md`.
 
-Implementado de verdade: login (`src/pages/login/`), cadastro por convite
-(`src/pages/invite/`), `AppShell`, sessão real com refresh e a tela de membros do admin
-(`src/pages/admin/members/`: lista, busca, paginação, convite e perfil) e a tela de
-KPIs (`src/pages/admin/kpis/`: lista, cadastro, edição, ativar e inativar) e o
-ranking do admin e do membro (`components/ranking/`) e o painel do Admin
-(`src/pages/admin/dashboard/`) e o modo reunião (`src/pages/admin/meeting/`).
-Ainda em mock: dashboard do membro.
+| Tela | Onde | Procedures |
+| --- | --- | --- |
+| Login, logout, sessão | `pages/login/`, `lib/auth.ts` | `auth.login`, `logout`, `refresh`, `me` |
+| Cadastro por convite | `pages/invite/` | `auth.validateInvite`, `register` |
+| Painel do Admin | `pages/admin/dashboard/` | `dashboard.getAdmin` |
+| Membros | `pages/admin/members/` | `members.list`, `invite`, `setStatus`, `profile.getPublicProfile` |
+| Banco de KPIs | `pages/admin/kpis/` | `kpis.list`, `create`, `update`, `setStatus` |
+| Ranking (admin e membro) | `components/ranking/` | `ranking.get`, `profile.getPublicProfile` |
+| Modo reunião | `pages/admin/meeting/` | `meetings.*`, `assignments.revoke`, `members.list`, `kpis.list` |
+| Meu painel (membro) | `pages/member/dashboard.tsx` | `dashboard.getMember`, `profile.getMyProfile` |
 
 Modo reunião: o id vai na URL (`/admin/meeting?reuniao=<id>`); sem id é a preparação.
 Dados em `pages/admin/meeting/use-meeting.ts`, tipos e helpers em `lib/meetings.ts`.
@@ -210,8 +214,8 @@ vai para `docs/pendencias-api.md`. O front só formata
 
 Perfil real de membro mora em `components/member-profile/`: `ProfileSheet` (casca),
 `PublicMemberProfile` (só com o id — usado no ranking) e as peças que a tela de membros
-compõe com o item da lista. `components/member-detail/` continua em mock e só serve o
-dashboard do membro.
+compõe com o item da lista. `components/member-detail/` é o perfil mock antigo:
+nenhuma tela usa, fica pelos testes e como referência visual.
 
 Ativar/desativar membro fica na lista (switch **Acesso**) e sempre passa pelo
 `MemberStatusDialog`. A rota passa `currentUserId` da sessão para travar a própria conta.

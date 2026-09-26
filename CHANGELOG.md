@@ -8,6 +8,20 @@ de entrega.
 
 ## [Não lançado]
 
+### 2026-09-25 — Painel do membro integrado à API
+
+#### Adicionado
+- "Meu painel" lê `dashboard.getMember` e `profile.getMyProfile`: posição no ranking
+  entre N ativos, nível e progresso, pontos, KPIs recebidos, conquistas, distribuição por
+  categoria e histórico completo. Atribuição revogada aparece riscada, com "revogado".
+- Membro sem nenhum KPI vê o convite para olhar o ranking, em vez de um painel zerado.
+
+#### Alterado
+- Nenhuma tela lê mais dado de `apps/web/src/mocks/` para mostrar informação do time. Os
+  mocks e os componentes antigos continuam no código (testes e blocos comentados).
+- "Pontos nesta semana" e a variação de posição do membro ficam de fora até a API
+  entregar (MB01, MB02).
+
 ### 2026-09-25 — Modo reunião integrado à API
 
 #### Adicionado
