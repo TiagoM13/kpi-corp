@@ -767,3 +767,27 @@ describe("buildBadgeResponse", () => {
 		).toBe(false);
 	});
 });
+
+describe("BADGE_CATALOG wording", () => {
+	it("nenhum texto que o usuário lê menciona ISO", () => {
+		const shown = BADGE_CATALOG.flatMap((entry) => [
+			entry.name,
+			entry.description,
+		]);
+
+		expect(shown.filter((text) => /\bISO\b/.test(text))).toEqual([]);
+	});
+
+	it("as badges de constância dizem semanas consecutivas", () => {
+		const descriptions = Object.fromEntries(
+			BADGE_CATALOG.map((entry) => [entry.code, entry.description]),
+		);
+
+		expect(descriptions.FOUR_WEEK_STREAK).toBe(
+			"Pontuou em 4 semanas consecutivas.",
+		);
+		expect(descriptions.TWELVE_WEEK_STREAK).toBe(
+			"Pontuou em 12 semanas consecutivas.",
+		);
+	});
+});
