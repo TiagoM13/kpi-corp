@@ -14,5 +14,5 @@ export const Route = createFileRoute("/_authed/dashboard")({
 function MemberDashboardRoute() {
 	const { session } = Route.useRouteContext();
 
-	return <MemberDashboardPage memberId={session.userId} name={session.name} />;
+	return <MemberDashboardPage name={session.name} />;
 }

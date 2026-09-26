@@ -5,6 +5,7 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@kpi-corp/ui/components/empty";
+import { cn } from "@kpi-corp/ui/lib/utils";
 import { SparklesIcon, TargetIcon } from "lucide-react";
 import { CategoryChip } from "@/components/category-chip";
 import { categoryOfApi } from "@/lib/categories";
@@ -20,6 +21,7 @@ const assignedFormat = new Intl.DateTimeFormat("pt-BR", {
 
 function KpiHistoryItem({ kpi }: { kpi: ProfileKpi }) {
 	const category = categoryOfApi(kpi.category);
+	const revoked = kpi.revokedAt !== null;
 
 	return (
 		<li className="flex items-center gap-3 border-b py-3 last:border-b-0 last:pb-0">
@@ -35,20 +37,32 @@ function KpiHistoryItem({ kpi }: { kpi: ProfileKpi }) {
 			</div>
 
 			<div className="flex min-w-0 flex-1 flex-col leading-tight">
-				<span className="truncate font-medium text-sm">{kpi.name}</span>
+				<span
+					className={cn(
+						"truncate font-medium text-sm",
+						revoked && "text-fg-3 line-through",
+					)}
+				>
+					{kpi.name}
+				</span>
 				<span className="truncate text-2xs text-fg-3">
 					{assignedFormat.format(kpi.assignedAt)}
 					{kpi.note ? ` · ${kpi.note}` : ""}
+					{revoked ? " · revogado" : ""}
 				</span>
 			</div>
 
 			<CategoryChip category={category} className="hidden sm:inline-flex" />
 
 			<span
-				className="w-12 shrink-0 text-right font-bold text-sm tabular-nums"
-				style={{ color: category.color }}
+				className={cn(
+					"w-12 shrink-0 text-right font-bold text-sm tabular-nums",
+					revoked && "text-fg-3 line-through",
+				)}
+				style={revoked ? undefined : { color: category.color }}
 			>
-				+{kpi.points}
+				{kpi.points > 0 ? "+" : ""}
+				{kpi.points}
 			</span>
 		</li>
 	);
