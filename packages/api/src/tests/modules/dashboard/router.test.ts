@@ -36,14 +36,16 @@ const memberDashboard = {
 	rankingPosition: 4,
 	teamSize: 12,
 	level: levelFor(850),
+	weekPoints: 45,
 	recentKpis: [],
 };
 
 const adminDashboard = {
 	members: { active: 3, total: 4 },
-	kpis: { week: 2, month: 7 },
+	kpis: { week: 2, month: 7, weekDelta: 100 },
 	meetings: { week: 1, month: 4, open: 1 },
-	points: { week: 30, month: 120 },
+	points: { week: 30, month: 120, total: 900, monthDelta: 50 },
+	withoutKpisDays: 30,
 	ranking: [],
 	recentAssignments: [],
 	membersWithoutKpis: [],

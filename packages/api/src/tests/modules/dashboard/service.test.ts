@@ -12,6 +12,7 @@ const { repositoryMock } = vi.hoisted(() => ({
 		findUserById: vi.fn(),
 		aggregateTeam: vi.fn(),
 		listRecentValidAssignments: vi.fn(),
+		sumPointsInWindow: vi.fn(),
 		countMembers: vi.fn(),
 		assignmentTotals: vi.fn(),
 		countMeetingsInWindow: vi.fn(),
@@ -78,9 +79,18 @@ function recentAssignmentRow(overrides: Record<string, unknown> = {}) {
 			category: "PERFORMANCE" as const,
 		},
 		user: { id: ANA_ID, name: "Ana Souza", position: "Dev" },
+		assigner: { id: ADMIN_ID, name: "Administrador" },
+		meeting: null,
 		...overrides,
 	};
 }
+
+const TOTALS_BY_START: Record<string, { count: number; points: number }> = {
+	"2026-09-14T03:00:00.000Z": { count: 2, points: 30 },
+	"2026-09-01T03:00:00.000Z": { count: 7, points: 120 },
+	"2026-09-07T03:00:00.000Z": { count: 1, points: 20 },
+	"2026-08-01T03:00:00.000Z": { count: 5, points: 80 },
+};
 
 function activeMember(
 	id: string,
@@ -117,6 +127,29 @@ describe("dashboard service", () => {
 				teamMember(ADMIN_ID, "Administrador", [], { role: "ADMIN" }),
 			]);
 			repositoryMock.listRecentValidAssignments.mockResolvedValue([]);
+			repositoryMock.sumPointsInWindow.mockResolvedValue(0);
+		});
+
+		it("weekPoints soma só a semana ISO corrente do membro, no fuso de São Paulo", async () => {
+			repositoryMock.sumPointsInWindow.mockResolvedValueOnce(45);
+
+			const result = await dashboardService.getMemberDashboard(ANA_ID, NOW);
+
+			expect(result.weekPoints).toBe(45);
+			expect(repositoryMock.sumPointsInWindow).toHaveBeenCalledWith(
+				ANA_ID,
+				expect.objectContaining({
+					startDay: "2026-09-14",
+					endDay: "2026-09-20",
+					start: new Date("2026-09-14T03:00:00.000Z"),
+				}),
+			);
+		});
+
+		it("membro sem pontos na semana tem weekPoints 0", async () => {
+			const result = await dashboardService.getMemberDashboard(ANA_ID, NOW);
+
+			expect(result.weekPoints).toBe(0);
 		});
 
 		it("traz pontos, contagem, posição geral e tamanho da equipe", async () => {
@@ -245,10 +278,18 @@ describe("dashboard service", () => {
 		beforeEach(() => {
 			repositoryMock.countMembers.mockResolvedValue({ active: 3, total: 4 });
 			repositoryMock.assignmentTotals.mockImplementation(
-				async (window: { startDay: string }) =>
-					window.startDay === "2026-09-14"
-						? { count: 2, points: 30 }
-						: { count: 7, points: 120 },
+				async (window: { start: Date } | null) => {
+					if (window === null) {
+						return { count: 40, points: 900 };
+					}
+
+					return (
+						TOTALS_BY_START[window.start.toISOString()] ?? {
+							count: 0,
+							points: 0,
+						}
+					);
+				},
 			);
 			repositoryMock.countMeetingsInWindow.mockImplementation(
 				async (window: { startDay: string }) =>
@@ -271,9 +312,9 @@ describe("dashboard service", () => {
 		it("kpis e points usam a semana ISO e o mês de calendário correntes, não os últimos N dias", async () => {
 			const result = await dashboardService.getAdminDashboard(NOW);
 
-			const windows = repositoryMock.assignmentTotals.mock.calls.map(
-				([window]) => window as { startDay: string; endDay: string },
-			);
+			const windows = repositoryMock.assignmentTotals.mock.calls
+				.slice(0, 2)
+				.map(([window]) => window as { startDay: string; endDay: string });
 			expect(windows).toEqual([
 				expect.objectContaining({
 					startDay: "2026-09-14",
@@ -285,8 +326,78 @@ describe("dashboard service", () => {
 					endDay: "2026-09-30",
 				}),
 			]);
-			expect(result.kpis).toEqual({ week: 2, month: 7 });
-			expect(result.points).toEqual({ week: 30, month: 120 });
+			expect(result.kpis).toMatchObject({ week: 2, month: 7 });
+			expect(result.points).toMatchObject({ week: 30, month: 120 });
+		});
+
+		it("points.total soma todo o histórico, sem janela", async () => {
+			const result = await dashboardService.getAdminDashboard(NOW);
+
+			expect(repositoryMock.assignmentTotals).toHaveBeenCalledWith(null);
+			expect(result.points.total).toBe(900);
+		});
+
+		it("compara com o mesmo trecho do período anterior, não com o período inteiro", async () => {
+			await dashboardService.getAdminDashboard(NOW);
+
+			expect(repositoryMock.assignmentTotals).toHaveBeenCalledWith({
+				start: new Date("2026-09-07T03:00:00.000Z"),
+				end: new Date("2026-09-09T12:00:00.000Z"),
+			});
+			expect(repositoryMock.assignmentTotals).toHaveBeenCalledWith({
+				start: new Date("2026-08-01T03:00:00.000Z"),
+				end: new Date("2026-08-16T12:00:00.000Z"),
+			});
+		});
+
+		it("weekDelta e monthDelta são a variação em % contra o período anterior", async () => {
+			const result = await dashboardService.getAdminDashboard(NOW);
+
+			expect(result.kpis.weekDelta).toBe(100);
+			expect(result.points.monthDelta).toBe(50);
+		});
+
+		it("queda vira delta negativo", async () => {
+			repositoryMock.assignmentTotals.mockImplementation(
+				async (window: { start: Date } | null) => {
+					if (window === null) {
+						return { count: 40, points: 900 };
+					}
+
+					const previous = ["2026-09-07", "2026-08-01"].includes(
+						window.start.toISOString().slice(0, 10),
+					);
+
+					return previous
+						? { count: 4, points: 200 }
+						: { count: 3, points: 150 };
+				},
+			);
+
+			const result = await dashboardService.getAdminDashboard(NOW);
+
+			expect(result.kpis.weekDelta).toBe(-25);
+			expect(result.points.monthDelta).toBe(-25);
+		});
+
+		it("sem nada no período anterior o delta é null, não infinito", async () => {
+			repositoryMock.assignmentTotals.mockImplementation(
+				async (window: { start: Date } | null) =>
+					window === null || window.start.toISOString().startsWith("2026-09-1")
+						? { count: 3, points: 90 }
+						: { count: 0, points: 0 },
+			);
+
+			const result = await dashboardService.getAdminDashboard(NOW);
+
+			expect(result.kpis.weekDelta).toBeNull();
+			expect(result.points.monthDelta).toBeNull();
+		});
+
+		it("withoutKpisDays expõe o limite que define esquecido", async () => {
+			const result = await dashboardService.getAdminDashboard(NOW);
+
+			expect(result.withoutKpisDays).toBe(30);
 		});
 
 		it("na segunda de manhã a semana recomeça — atribuição de domingo fica fora", async () => {
@@ -357,6 +468,33 @@ describe("dashboard service", () => {
 				revokedAt: daysAgo(0),
 				user: { id: ANA_ID, name: "Ana Souza", position: "Dev" },
 				kpi: { name: "Resolveu bug crítico" },
+			});
+		});
+
+		it("recentAssignments diz quem atribuiu e em qual reunião", async () => {
+			repositoryMock.listRecentAssignments.mockResolvedValueOnce([
+				recentAssignmentRow({
+					meetingId: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+					meeting: {
+						id: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+						title: "Daily de terça",
+					},
+				}),
+				recentAssignmentRow({ id: "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e" }),
+			]);
+
+			const result = await dashboardService.getAdminDashboard(NOW);
+
+			expect(result.recentAssignments[0]).toMatchObject({
+				assigner: { id: ADMIN_ID, name: "Administrador" },
+				meeting: {
+					id: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+					title: "Daily de terça",
+				},
+			});
+			expect(result.recentAssignments[1]).toMatchObject({
+				assigner: { id: ADMIN_ID, name: "Administrador" },
+				meeting: null,
 			});
 		});
 
@@ -439,9 +577,10 @@ describe("dashboard service", () => {
 
 			await expect(dashboardService.getAdminDashboard(NOW)).resolves.toEqual({
 				members: { active: 0, total: 0 },
-				kpis: { week: 0, month: 0 },
+				kpis: { week: 0, month: 0, weekDelta: null },
 				meetings: { week: 0, month: 0, open: 0 },
-				points: { week: 0, month: 0 },
+				points: { week: 0, month: 0, total: 0, monthDelta: null },
+				withoutKpisDays: 30,
 				ranking: [],
 				recentAssignments: [],
 				membersWithoutKpis: [],

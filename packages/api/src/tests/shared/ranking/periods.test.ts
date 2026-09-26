@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { previousWindow, windowOf } from "../../../shared/ranking/periods";
+import {
+	previousElapsedWindow,
+	previousWindow,
+	windowOf,
+} from "../../../shared/ranking/periods";
 
 // 2026-09-16 era uma quarta-feira.
 const WEDNESDAY_MIDNIGHT_SP = new Date("2026-09-16T03:00:00.000Z");
@@ -101,5 +105,53 @@ describe("previousWindow", () => {
 			startDay: "2025-10-01",
 			endDay: "2025-12-31",
 		});
+	});
+});
+
+describe("previousElapsedWindow", () => {
+	it("semana: a anterior corta no mesmo ponto da semana em que estamos", () => {
+		const window = previousElapsedWindow(
+			"week",
+			new Date("2026-09-16T12:00:00.000Z"),
+		);
+
+		expect(window).toEqual({
+			start: new Date("2026-09-07T03:00:00.000Z"),
+			end: new Date("2026-09-09T12:00:00.000Z"),
+		});
+	});
+
+	it("mês: o anterior corta no mesmo ponto do mês em que estamos", () => {
+		const window = previousElapsedWindow(
+			"month",
+			new Date("2026-09-16T12:00:00.000Z"),
+		);
+
+		expect(window).toEqual({
+			start: new Date("2026-08-01T03:00:00.000Z"),
+			end: new Date("2026-08-16T12:00:00.000Z"),
+		});
+	});
+
+	it("mês anterior mais curto: o corte nunca passa do fim dele", () => {
+		const window = previousElapsedWindow(
+			"month",
+			new Date("2026-03-31T12:00:00.000Z"),
+		);
+
+		expect(window).toEqual({
+			start: new Date("2026-02-01T03:00:00.000Z"),
+			end: new Date("2026-03-01T03:00:00.000Z"),
+		});
+	});
+
+	it("no primeiro instante do período o corte é vazio", () => {
+		const window = previousElapsedWindow(
+			"week",
+			new Date("2026-09-14T03:00:00.000Z"),
+		);
+
+		expect(window.start).toEqual(new Date("2026-09-07T03:00:00.000Z"));
+		expect(window.end).toEqual(window.start);
 	});
 });
