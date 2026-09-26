@@ -8,11 +8,28 @@ export const Route = createFileRoute("/_focus/admin/meeting")({
 			throw redirect({ to: "/dashboard" });
 		}
 	},
+	validateSearch: (search: Record<string, unknown>): { reuniao?: string } =>
+		typeof search.reuniao === "string" && search.reuniao !== ""
+			? { reuniao: search.reuniao }
+			: {},
 	component: MeetingRoute,
 });
 
 function MeetingRoute() {
 	const navigate = useNavigate();
+	const { reuniao } = Route.useSearch();
 
-	return <AdminMeetingPage onExit={() => navigate({ to: "/admin" })} />;
+	return (
+		<AdminMeetingPage
+			meetingId={reuniao}
+			onMeetingChange={(meetingId) =>
+				navigate({
+					to: "/admin/meeting",
+					search: meetingId ? { reuniao: meetingId } : {},
+					replace: true,
+				})
+			}
+			onExit={() => navigate({ to: "/admin" })}
+		/>
+	);
 }

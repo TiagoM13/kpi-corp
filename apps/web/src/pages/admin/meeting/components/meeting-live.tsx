@@ -1,20 +1,21 @@
 import { Badge } from "@kpi-corp/ui/components/badge";
 import { Button } from "@kpi-corp/ui/components/button";
-import { TargetIcon } from "lucide-react";
+import { TargetIcon, UserPlusIcon } from "lucide-react";
 import { useMemo } from "react";
-import type { Attribution } from "@/lib/meeting";
+import type { MeetingAssignment, MeetingPerson } from "@/lib/meetings";
 import type { Kpi } from "@/mocks/kpis";
-import type { Member } from "@/mocks/members";
 import { AttendeeCard } from "./attendee-card";
 import { KpiPicker } from "./kpi-picker";
 
 type MeetingLiveProps = {
-	attendees: Member[];
+	attendees: MeetingPerson[];
 	kpis: Kpi[];
-	given: Attribution[];
+	given: MeetingAssignment[];
 	selectedKpi: Kpi | null;
+	givingTo: string | null;
 	onSelectKpi: (kpiId: string | null) => void;
 	onGive: (memberId: string) => void;
+	onAddAttendees: () => void;
 };
 
 export function MeetingLive({
@@ -22,17 +23,19 @@ export function MeetingLive({
 	kpis,
 	given,
 	selectedKpi,
+	givingTo,
 	onSelectKpi,
 	onGive,
+	onAddAttendees,
 }: MeetingLiveProps) {
 	const givenByMember = useMemo(() => {
-		const map = new Map<string, Attribution[]>();
-		for (const attribution of given) {
-			const owned = map.get(attribution.memberId);
+		const map = new Map<string, MeetingAssignment[]>();
+		for (const assignment of given) {
+			const owned = map.get(assignment.userId);
 			if (owned) {
-				owned.push(attribution);
+				owned.push(assignment);
 			} else {
-				map.set(attribution.memberId, [attribution]);
+				map.set(assignment.userId, [assignment]);
 			}
 		}
 		return map;
@@ -49,6 +52,15 @@ export function MeetingLive({
 						<Badge variant="outline" className="bg-bg-2 text-fg-1 tabular-nums">
 							{attendees.length}
 						</Badge>
+						<Button
+							type="button"
+							variant="outline"
+							size="xs"
+							onClick={onAddAttendees}
+						>
+							<UserPlusIcon data-icon="inline-start" />
+							Adicionar participantes
+						</Button>
 					</div>
 
 					{selectedKpi ? (
@@ -81,6 +93,7 @@ export function MeetingLive({
 								member={member}
 								given={givenByMember.get(member.id) ?? []}
 								selectedKpiName={selectedKpi?.name ?? null}
+								busy={givingTo === member.id}
 								onGive={onGive}
 							/>
 						</li>

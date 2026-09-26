@@ -1,11 +1,18 @@
 import { Button } from "@kpi-corp/ui/components/button";
 import { Input } from "@kpi-corp/ui/components/input";
+import { Spinner } from "@kpi-corp/ui/components/spinner";
 import { cn } from "@kpi-corp/ui/lib/utils";
-import { CheckIcon, ClockIcon, PlayIcon, UsersIcon } from "lucide-react";
+import {
+	CheckIcon,
+	ClockIcon,
+	PlayIcon,
+	RotateCwIcon,
+	UsersIcon,
+} from "lucide-react";
 import { useId } from "react";
 import { UserAvatar } from "@/components/user-avatar";
+import type { MeetingPerson, OpenMeeting } from "@/lib/meetings";
 import type { Kpi } from "@/mocks/kpis";
-import type { Member } from "@/mocks/members";
 
 const dateFormat = new Intl.DateTimeFormat("pt-BR", {
 	dateStyle: "long",
@@ -14,35 +21,48 @@ const dateFormat = new Intl.DateTimeFormat("pt-BR", {
 
 type MeetingSetupProps = {
 	title: string;
-	members: Member[];
+	members: MeetingPerson[];
 	present: string[];
-	presenceKpi?: Kpi;
+	presenceKpis: Kpi[];
+	presenceKpiId: string | null;
+	openMeetings: OpenMeeting[];
 	startedAt: Date;
+	starting: boolean;
 	onTitleChange: (title: string) => void;
+	onPresenceKpiChange: (kpiId: string) => void;
 	onToggle: (memberId: string) => void;
 	onMarkAll: () => void;
 	onClear: () => void;
 	onStart: () => void;
+	onContinue: (meetingId: string) => void;
 };
 
 export function MeetingSetup({
 	title,
 	members,
 	present,
-	presenceKpi,
+	presenceKpis,
+	presenceKpiId,
+	openMeetings,
 	startedAt,
+	starting,
 	onTitleChange,
+	onPresenceKpiChange,
 	onToggle,
 	onMarkAll,
 	onClear,
 	onStart,
+	onContinue,
 }: MeetingSetupProps) {
 	const titleId = useId();
 	const selected = new Set(present);
-	const ready = present.length > 0;
+	const presenceKpi = presenceKpis.find((kpi) => kpi.id === presenceKpiId);
+	const ready = present.length > 0 && presenceKpi !== undefined;
 
 	return (
 		<div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+			<OpenMeetings meetings={openMeetings} onContinue={onContinue} />
+
 			<div className="flex flex-col gap-3">
 				<span className="font-medium text-2xs text-fg-3 uppercase tracking-widest">
 					Passo 1 de 2 · Marque os presentes
@@ -82,6 +102,12 @@ export function MeetingSetup({
 				</div>
 			</div>
 
+			<PresenceKpiField
+				kpis={presenceKpis}
+				selectedId={presenceKpiId}
+				onSelect={onPresenceKpiChange}
+			/>
+
 			<div className="flex gap-2">
 				<Button type="button" variant="outline" size="sm" onClick={onMarkAll}>
 					Marcar todos
@@ -108,14 +134,14 @@ export function MeetingSetup({
 										: "border-border bg-card hover:bg-muted/50",
 								)}
 							>
-								<UserAvatar name={member.name} hue={member.hue} />
+								<UserAvatar name={member.name} />
 
 								<div className="flex min-w-0 flex-1 flex-col leading-tight">
 									<span className="truncate font-medium text-sm">
 										{member.name}
 									</span>
 									<span className="truncate text-2xs text-fg-3">
-										{member.position}
+										{member.position ?? "—"}
 									</span>
 								</div>
 
@@ -138,16 +164,140 @@ export function MeetingSetup({
 
 			<div className="sticky bottom-0 flex flex-col gap-3 border-t bg-background py-4 sm:flex-row sm:items-center sm:justify-between">
 				<span className="text-fg-2 text-sm">
-					{ready
-						? `Pronto pra começar com ${present.length} ${present.length === 1 ? "pessoa" : "pessoas"}`
-						: "Selecione ao menos uma pessoa"}
+					<StartHint
+						count={present.length}
+						hasPresenceKpi={presenceKpi !== undefined}
+					/>
 				</span>
 
-				<Button type="button" size="lg" disabled={!ready} onClick={onStart}>
-					<PlayIcon data-icon="inline-start" />
+				<Button
+					type="button"
+					size="lg"
+					disabled={!ready || starting}
+					onClick={onStart}
+				>
+					{starting ? (
+						<Spinner data-icon="inline-start" />
+					) : (
+						<PlayIcon data-icon="inline-start" />
+					)}
 					Iniciar reunião
 				</Button>
 			</div>
 		</div>
+	);
+}
+
+function StartHint({
+	count,
+	hasPresenceKpi,
+}: {
+	count: number;
+	hasPresenceKpi: boolean;
+}) {
+	if (count === 0) return <>Selecione ao menos uma pessoa</>;
+	if (!hasPresenceKpi) return <>Escolha o KPI de presença</>;
+
+	return (
+		<>
+			Pronto pra começar com {count} {count === 1 ? "pessoa" : "pessoas"}
+		</>
+	);
+}
+
+function PresenceKpiField({
+	kpis,
+	selectedId,
+	onSelect,
+}: {
+	kpis: Kpi[];
+	selectedId: string | null;
+	onSelect: (kpiId: string) => void;
+}) {
+	if (kpis.length === 0) {
+		return (
+			<p className="rounded-md border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn">
+				Nenhum KPI de presença ativo. Crie ou reative um na tela de KPIs para
+				registrar presença.
+			</p>
+		);
+	}
+
+	return (
+		<fieldset className="flex flex-col gap-2">
+			<legend className="mb-2 font-medium text-2xs text-fg-3 uppercase tracking-widest">
+				KPI de presença
+			</legend>
+			<div className="flex flex-wrap gap-2">
+				{kpis.map((kpi) => (
+					<Button
+						key={kpi.id}
+						type="button"
+						variant="outline"
+						size="sm"
+						aria-pressed={kpi.id === selectedId}
+						onClick={() => onSelect(kpi.id)}
+						className="rounded-full text-fg-1 aria-pressed:border-primary aria-pressed:bg-primary-soft aria-pressed:text-primary"
+					>
+						{kpi.name} · +{kpi.points}
+					</Button>
+				))}
+			</div>
+		</fieldset>
+	);
+}
+
+const openedFormat = new Intl.DateTimeFormat("pt-BR", {
+	day: "numeric",
+	month: "short",
+	timeZone: "UTC",
+});
+
+function OpenMeetings({
+	meetings,
+	onContinue,
+}: {
+	meetings: OpenMeeting[];
+	onContinue: (meetingId: string) => void;
+}) {
+	if (meetings.length === 0) return null;
+
+	return (
+		<section
+			aria-label="Reuniões abertas"
+			className="flex flex-col gap-2 rounded-lg border border-primary/30 bg-primary-soft p-4"
+		>
+			<h2 className="font-medium text-2xs text-primary uppercase tracking-widest">
+				{meetings.length === 1
+					? "Tem uma reunião aberta"
+					: `${meetings.length} reuniões abertas`}
+			</h2>
+			<ul className="flex flex-col gap-2">
+				{meetings.map((meeting) => (
+					<li
+						key={meeting.id}
+						className="flex flex-wrap items-center justify-between gap-3"
+					>
+						<span className="min-w-0 text-sm">
+							<b className="font-semibold">{meeting.title}</b>
+							<span className="text-fg-2">
+								{" "}
+								· {openedFormat.format(meeting.date)} · {meeting.presentCount}{" "}
+								{meeting.presentCount === 1 ? "presente" : "presentes"}
+							</span>
+						</span>
+						<Button
+							type="button"
+							size="sm"
+							variant="outline"
+							onClick={() => onContinue(meeting.id)}
+						>
+							<RotateCwIcon data-icon="inline-start" />
+							Continuar
+						</Button>
+					</li>
+				))}
+			</ul>
+		</section>
 	);
 }

@@ -1,22 +1,24 @@
 import { Button } from "@kpi-corp/ui/components/button";
 import { PlayIcon } from "lucide-react";
-import { UserAvatar } from "@/components/user-avatar";
-import { formatElapsed, type MeetingSummary } from "@/lib/meeting";
 
-const MEDALS = ["🥇", "🥈", "🥉"];
+// Pódio e total de pontos voltam quando a API entregar o resumo (MT02 em docs/pendencias-api.md).
+// import { UserAvatar } from "@/components/user-avatar";
+// const MEDALS = ["🥇", "🥈", "🥉"];
 
 type MeetingSummaryViewProps = {
 	title: string;
-	elapsed: number;
-	summary: MeetingSummary;
+	duration: string;
+	present: number;
+	attributions: number;
 	onExit: () => void;
 	onRestart: () => void;
 };
 
 export function MeetingSummaryView({
 	title,
-	elapsed,
-	summary,
+	duration,
+	present,
+	attributions,
 	onExit,
 	onRestart,
 }: MeetingSummaryViewProps) {
@@ -31,11 +33,12 @@ export function MeetingSummaryView({
 			</h2>
 
 			<p className="text-balance text-fg-2 text-sm">
-				{title} · {formatElapsed(elapsed)} · {summary.attributions}{" "}
-				{summary.attributions === 1 ? "atribuição" : "atribuições"},{" "}
-				{summary.totalPoints} pontos no total.
+				{title} · {duration} · {present}{" "}
+				{present === 1 ? "presente" : "presentes"} · {attributions}{" "}
+				{attributions === 1 ? "atribuição" : "atribuições"}.
 			</p>
 
+			{/*
 			{summary.podium.length > 0 && (
 				<ol className="flex flex-wrap justify-center gap-3">
 					{summary.podium.map((entry, index) => (
@@ -62,10 +65,11 @@ export function MeetingSummaryView({
 					))}
 				</ol>
 			)}
+			*/}
 
 			<p className="max-w-md text-balance text-2xs text-fg-3">
-				O resultado desta reunião ainda não é gravado — pontos, usos de KPI e
-				feed de atividade seguem como estavam.
+				Tudo o que foi atribuído já está gravado: pontos, ranking e painel
+				refletem esta reunião.
 			</p>
 
 			<div className="flex flex-col gap-2 sm:flex-row">
