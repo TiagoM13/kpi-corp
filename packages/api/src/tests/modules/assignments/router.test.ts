@@ -44,6 +44,8 @@ const historyItem = {
 	assignedAt: new Date("2026-08-30T14:12:00.000Z"),
 	kpi: { id: KPI_ID, name: "Resolveu bug crítico", category: "PERFORMANCE" },
 	user: { id: MEMBER_ID, name: "Ana Souza", position: "Dev" },
+	assigner: { id: ADMIN_ID, name: "Administrador" },
+	meeting: null,
 };
 
 const historyPage = {
@@ -95,7 +97,13 @@ describe("assignments router — GET /kpi-assignments", () => {
 		it("lets an admin through", async () => {
 			await expect(caller(asAdmin).list({})).resolves.toMatchObject({
 				total: 1,
-				items: [{ user: { name: "Ana Souza" } }],
+				items: [
+					{
+						user: { name: "Ana Souza" },
+						assigner: { name: "Administrador" },
+						meeting: null,
+					},
+				],
 			});
 		});
 	});

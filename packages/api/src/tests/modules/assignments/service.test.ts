@@ -231,6 +231,11 @@ describe("assignments service", () => {
 					category: "PERFORMANCE" as const,
 				},
 				user: { id: USER_ID, name: "João", position: "Dev" },
+				assigner: {
+					id: "b29f5637-0ab1-4de0-b2d2-d364e3903124",
+					name: "Administrador",
+				},
+				meeting: null,
 				...overrides,
 			};
 		}
@@ -261,6 +266,36 @@ describe("assignments service", () => {
 					category: "PERFORMANCE",
 				},
 				user: { id: USER_ID, name: "João", position: "Dev" },
+				assigner: {
+					id: "b29f5637-0ab1-4de0-b2d2-d364e3903124",
+					name: "Administrador",
+				},
+				meeting: null,
+			});
+		});
+
+		it("traz quem atribuiu e o título da reunião de origem", async () => {
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [
+					historyRow({
+						meetingId: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+						meeting: {
+							id: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+							title: "Daily de terça",
+						},
+					}),
+				],
+				total: 1,
+			});
+
+			const result = await assignmentsService.list(base);
+
+			expect(result.items[0]).toMatchObject({
+				assigner: { name: "Administrador" },
+				meeting: {
+					id: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+					title: "Daily de terça",
+				},
 			});
 		});
 

@@ -126,6 +126,8 @@ describe("members router", () => {
 						points: 120,
 						kpiCount: 3,
 						lastAssignmentAt: null,
+						daysWithoutKpi: 12,
+						stagnant: false,
 						level: {
 							level: 1,
 							tier: "INICIANTE",
@@ -146,7 +148,12 @@ describe("members router", () => {
 
 			const result = await caller(asAdmin).list({});
 
-			expect(result.items[0]).toMatchObject({ points: 120, kpiCount: 3 });
+			expect(result.items[0]).toMatchObject({
+				points: 120,
+				kpiCount: 3,
+				daysWithoutKpi: 12,
+				stagnant: false,
+			});
 		});
 
 		it("should treat cleared query filters as absent", async () => {

@@ -179,6 +179,88 @@ describe("members service", () => {
 		});
 	});
 
+	describe("list — stagnation", () => {
+		const NOW = new Date("2026-09-30T12:00:00.000Z");
+		const DAY_MS = 24 * 60 * 60 * 1000;
+		const daysAgo = (days: number) => new Date(NOW.getTime() - days * DAY_MS);
+		const listAt = (now: Date) =>
+			membersService.list({ page: 1, limit: 20, status: "ALL" }, now);
+
+		it("should count the days since the last valid assignment", async () => {
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [{ ...member, createdAt: daysAgo(200) }],
+				total: 1,
+				scores: [
+					{
+						userId: MEMBER_ID,
+						points: 10,
+						kpiCount: 1,
+						lastAssignmentAt: daysAgo(12),
+					},
+				],
+			});
+
+			const result = await listAt(NOW);
+
+			expect(result.items[0]).toMatchObject({
+				daysWithoutKpi: 12,
+				stagnant: false,
+			});
+		});
+
+		it("should flag an active member stagnant from the 30th day on", async () => {
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [{ ...member, createdAt: daysAgo(200) }],
+				total: 1,
+				scores: [
+					{
+						userId: MEMBER_ID,
+						points: 10,
+						kpiCount: 1,
+						lastAssignmentAt: daysAgo(30),
+					},
+				],
+			});
+
+			const result = await listAt(NOW);
+
+			expect(result.items[0]).toMatchObject({
+				daysWithoutKpi: 30,
+				stagnant: true,
+			});
+		});
+
+		it("should count from the signup date when the member never scored", async () => {
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [{ ...member, createdAt: daysAgo(45) }],
+				total: 1,
+				scores: [],
+			});
+
+			const result = await listAt(NOW);
+
+			expect(result.items[0]).toMatchObject({
+				daysWithoutKpi: 45,
+				stagnant: true,
+			});
+		});
+
+		it("should never flag an inactive member as stagnant", async () => {
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [{ ...member, active: false, createdAt: daysAgo(90) }],
+				total: 1,
+				scores: [],
+			});
+
+			const result = await listAt(NOW);
+
+			expect(result.items[0]).toMatchObject({
+				daysWithoutKpi: 90,
+				stagnant: false,
+			});
+		});
+	});
+
 	describe("getById", () => {
 		it("should return the member", async () => {
 			repositoryMock.findById.mockResolvedValueOnce(member);
