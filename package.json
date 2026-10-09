@@ -20,6 +20,7 @@
 		"db:studio": "turbo run db:studio -F @kpi-corp/db --",
 		"db:generate": "turbo run db:generate -F @kpi-corp/db --",
 		"db:migrate": "turbo run db:migrate -F @kpi-corp/db --",
+		"db:seed": "turbo run db:seed -F @kpi-corp/db --",
 		"db:start": "turbo run db:start -F @kpi-corp/db --",
 		"db:watch": "turbo run db:watch -F @kpi-corp/db --",
 		"db:stop": "turbo run db:stop -F @kpi-corp/db --",

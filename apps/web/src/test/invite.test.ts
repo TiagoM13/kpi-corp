@@ -1,96 +1,121 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { ORPCError } from "@orpc/client";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getSession } from "@/lib/auth";
 import { acceptInvite, InvalidInviteError, validateInvite } from "@/lib/invite";
-import {
-	EXPIRED_TOKEN,
-	INVITED_EMAIL,
-	USED_TOKEN,
-	VALID_TOKEN,
-} from "@/mocks/invites";
+
+const { clientMock } = vi.hoisted(() => ({
+	clientMock: {
+		auth: {
+			validateInvite: vi.fn(),
+			register: vi.fn(),
+		},
+	},
+}));
+
+vi.mock("@/utils/orpc", () => ({ client: clientMock }));
+
+const TOKEN = "invite-token";
+const INVITED_EMAIL = "novo.membro@kpicorp.com";
+
+const REGISTER_RESPONSE = {
+	accessToken: "access-1",
+	refreshToken: "refresh-1",
+	user: {
+		id: "26a1f9b0-0dc1-4ee3-9696-d0e4434e9caf",
+		name: "Novo Membro",
+		email: INVITED_EMAIL,
+		role: "MEMBER" as const,
+		position: "Front-end Jr.",
+	},
+};
+
+const dados = {
+	token: TOKEN,
+	name: "  Novo Membro ",
+	position: " Front-end Jr. ",
+	password: "kpicorp123",
+};
+
+function domainError(status: "UNAUTHORIZED" | "CONFLICT", code: string) {
+	return new ORPCError(status, { data: { code } });
+}
 
 beforeEach(() => {
 	localStorage.clear();
+	vi.clearAllMocks();
 });
 
 describe("validateInvite", () => {
-	it("devolve o e-mail do convite quando o token vale", () => {
-		expect(validateInvite(VALID_TOKEN)).toEqual({
+	it("consulta a API sem consumir o convite", async () => {
+		clientMock.auth.validateInvite.mockResolvedValueOnce({
 			status: "VALID",
 			email: INVITED_EMAIL,
 		});
-	});
 
-	it("marca como expirado o token fora do prazo", () => {
-		expect(validateInvite(EXPIRED_TOKEN)).toEqual({ status: "EXPIRED" });
-	});
-
-	it("marca como usado o token de convite ja aceito", () => {
-		expect(validateInvite(USED_TOKEN)).toEqual({ status: "USED" });
-	});
-
-	it("marca como invalido um token desconhecido", () => {
-		expect(validateInvite("nao-existe")).toEqual({ status: "INVALID" });
-	});
-
-	it("nao revela e-mail em nenhum estado de recusa", () => {
-		for (const token of [EXPIRED_TOKEN, USED_TOKEN, "nao-existe"]) {
-			expect(validateInvite(token)).not.toHaveProperty("email");
-		}
+		expect(await validateInvite(TOKEN)).toEqual({
+			status: "VALID",
+			email: INVITED_EMAIL,
+		});
+		expect(clientMock.auth.validateInvite).toHaveBeenCalledWith({
+			token: TOKEN,
+		});
+		expect(clientMock.auth.register).not.toHaveBeenCalled();
 	});
 });
 
 describe("acceptInvite", () => {
-	const dados = {
-		name: "Novo Membro",
-		position: "Front-end Jr.",
-		password: "kpicorp123",
-	};
+	it("cadastra pela API e abre a sessao devolvida", async () => {
+		clientMock.auth.register.mockResolvedValueOnce(REGISTER_RESPONSE);
 
-	it("cria sessao de MEMBER com o e-mail do convite", () => {
-		const session = acceptInvite({ token: VALID_TOKEN, ...dados });
+		const session = await acceptInvite(dados);
 
 		expect(session.role).toBe("MEMBER");
 		expect(session.email).toBe(INVITED_EMAIL);
-		expect(session.name).toBe(dados.name);
-		expect(session.position).toBe(dados.position);
+		expect(getSession()?.userId).toBe(REGISTER_RESPONSE.user.id);
 	});
 
-	it("deixa a sessao recuperavel por getSession", () => {
-		acceptInvite({ token: VALID_TOKEN, ...dados });
+	it("manda nome e cargo aparados e nunca manda perfil nem e-mail", async () => {
+		clientMock.auth.register.mockResolvedValueOnce(REGISTER_RESPONSE);
 
-		expect(getSession()?.email).toBe(INVITED_EMAIL);
+		await acceptInvite(dados);
+
+		expect(clientMock.auth.register).toHaveBeenCalledWith({
+			token: TOKEN,
+			name: "Novo Membro",
+			position: "Front-end Jr.",
+			password: "kpicorp123",
+		});
 	});
 
-	it("queima o convite: o mesmo token nao vale duas vezes", () => {
-		acceptInvite({ token: VALID_TOKEN, ...dados });
+	it.each([
+		["INVALID_INVITATION", "UNAUTHORIZED", "INVALID"],
+		["INVITATION_EXPIRED", "UNAUTHORIZED", "EXPIRED"],
+		["INVITATION_ALREADY_USED", "CONFLICT", "USED"],
+		["EMAIL_ALREADY_REGISTERED", "CONFLICT", "USED"],
+	] as const)("traduz %s para o motivo %s", async (code, status, motivo) => {
+		clientMock.auth.register.mockRejectedValueOnce(domainError(status, code));
 
-		expect(validateInvite(VALID_TOKEN)).toEqual({ status: "USED" });
-		expect(() => acceptInvite({ token: VALID_TOKEN, ...dados })).toThrow(
-			InvalidInviteError,
+		const error = await acceptInvite(dados).catch((err: unknown) => err);
+
+		expect(error).toBeInstanceOf(InvalidInviteError);
+		expect((error as InvalidInviteError).status).toBe(motivo);
+	});
+
+	it("repassa erro que nao e do convite", async () => {
+		const offline = new TypeError("offline");
+		clientMock.auth.register.mockRejectedValueOnce(offline);
+
+		await expect(acceptInvite(dados)).rejects.toBe(offline);
+	});
+
+	it("nao deixa sessao para tras quando recusa", async () => {
+		clientMock.auth.register.mockRejectedValueOnce(
+			domainError("UNAUTHORIZED", "INVITATION_EXPIRED"),
 		);
-	});
 
-	it("recusa token expirado, usado e inexistente", () => {
-		for (const token of [EXPIRED_TOKEN, USED_TOKEN, "nao-existe"]) {
-			expect(() => acceptInvite({ token, ...dados })).toThrow(
-				InvalidInviteError,
-			);
-		}
-	});
-
-	it("nao deixa sessao para tras quando recusa", () => {
-		expect(() => acceptInvite({ token: EXPIRED_TOKEN, ...dados })).toThrow();
+		await acceptInvite(dados).catch(() => null);
 
 		expect(getSession()).toBeNull();
-	});
-
-	it("informa o motivo da recusa para a tela escolher a mensagem", () => {
-		try {
-			acceptInvite({ token: EXPIRED_TOKEN, ...dados });
-			expect.unreachable("deveria ter recusado");
-		} catch (error) {
-			expect((error as InvalidInviteError).status).toBe("EXPIRED");
-		}
 	});
 });

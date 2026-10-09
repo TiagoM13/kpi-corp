@@ -1,0 +1,417 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { AssignmentAlreadyRevokedError } from "../../../modules/assignments/assignments.errors";
+import { assignmentsService } from "../../../modules/assignments/assignments.service";
+import {
+	KpiInactiveError,
+	MemberInactiveError,
+	MemberNotFoundError,
+} from "../../../shared/errors/common.errors";
+
+const { repositoryMock } = vi.hoisted(() => ({
+	repositoryMock: {
+		transaction: vi.fn(),
+		findUsersByIds: vi.fn(),
+		create: vi.fn(),
+		createMany: vi.fn(),
+		listByUser: vi.fn(),
+		list: vi.fn(),
+		findById: vi.fn(),
+		revoke: vi.fn(),
+		findKpiById: vi.fn(),
+		findUserById: vi.fn(),
+	},
+}));
+
+vi.mock("../../../modules/assignments/assignments.repository", () => ({
+	assignmentsRepository: repositoryMock,
+}));
+
+const ASSIGNMENT_ID = "9e2f7a1c-4b8d-4c1e-9a3f-2d5b6c7e8f90";
+const MEETING_ID = "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
+const ADMIN_ID = "b29f5637-0ab1-4de0-b2d2-d364e3903124";
+const ANA_ID = "26a1f9b0-0dc1-4ee3-9696-d0e4434e9caf";
+const BIA_ID = "7c1d9e2f-3a4b-4c5d-8e6f-1a2b3c4d5e6f";
+const KPI_ID = "3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8";
+const TX = { tx: true };
+
+const activeKpi = {
+	id: KPI_ID,
+	name: "Resolveu bug crítico",
+	description: null,
+	points: 25,
+	category: "PERFORMANCE" as const,
+	active: true,
+	createdAt: new Date(),
+};
+
+function createdRow(userId: string) {
+	return {
+		id: `assignment-${userId}`,
+		kpiId: KPI_ID,
+		userId,
+		assignedBy: ADMIN_ID,
+		meetingId: null,
+		note: null,
+		points: 25,
+		revokedAt: null,
+		assignedAt: new Date("2026-09-24T12:00:00.000Z"),
+		kpi: { id: KPI_ID, name: activeKpi.name, category: activeKpi.category },
+	};
+}
+
+describe("assignments service", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		repositoryMock.transaction.mockImplementation(
+			(run: (tx: unknown) => unknown) => run(TX),
+		);
+	});
+
+	describe("bulkAssign", () => {
+		function mockValid() {
+			repositoryMock.findKpiById.mockResolvedValue(activeKpi);
+			repositoryMock.findUsersByIds.mockResolvedValue([
+				{ id: ANA_ID, active: true },
+				{ id: BIA_ID, active: true },
+			]);
+			repositoryMock.createMany.mockResolvedValue([
+				createdRow(ANA_ID),
+				createdRow(BIA_ID),
+			]);
+		}
+
+		it("valida KPI e membros dentro da mesma transação da escrita", async () => {
+			mockValid();
+
+			await assignmentsService.bulkAssign(
+				{ kpiId: KPI_ID, userIds: [ANA_ID, BIA_ID] },
+				ADMIN_ID,
+			);
+
+			expect(repositoryMock.findKpiById).toHaveBeenCalledWith(KPI_ID, TX);
+			expect(repositoryMock.findUsersByIds).toHaveBeenCalledWith(
+				[ANA_ID, BIA_ID],
+				TX,
+			);
+			expect(repositoryMock.createMany).toHaveBeenCalledWith(
+				[
+					expect.objectContaining({ userId: ANA_ID, points: 25 }),
+					expect.objectContaining({ userId: BIA_ID, points: 25 }),
+				],
+				TX,
+			);
+		});
+
+		it("carrega os membros numa consulta só", async () => {
+			mockValid();
+
+			await assignmentsService.bulkAssign(
+				{ kpiId: KPI_ID, userIds: [ANA_ID, BIA_ID] },
+				ADMIN_ID,
+			);
+
+			expect(repositoryMock.findUsersByIds).toHaveBeenCalledTimes(1);
+			expect(repositoryMock.findUserById).not.toHaveBeenCalled();
+		});
+
+		it("membro inativo derruba o lote sem criar nada", async () => {
+			mockValid();
+			repositoryMock.findUsersByIds.mockResolvedValue([
+				{ id: ANA_ID, active: true },
+				{ id: BIA_ID, active: false },
+			]);
+
+			await expect(
+				assignmentsService.bulkAssign(
+					{ kpiId: KPI_ID, userIds: [ANA_ID, BIA_ID] },
+					ADMIN_ID,
+				),
+			).rejects.toThrow(MemberInactiveError);
+			expect(repositoryMock.createMany).not.toHaveBeenCalled();
+		});
+
+		it("membro inexistente derruba o lote sem criar nada", async () => {
+			mockValid();
+			repositoryMock.findUsersByIds.mockResolvedValue([
+				{ id: ANA_ID, active: true },
+			]);
+
+			await expect(
+				assignmentsService.bulkAssign(
+					{ kpiId: KPI_ID, userIds: [ANA_ID, BIA_ID] },
+					ADMIN_ID,
+				),
+			).rejects.toThrow(MemberNotFoundError);
+			expect(repositoryMock.createMany).not.toHaveBeenCalled();
+		});
+
+		it("KPI inativo derruba o lote sem criar nada", async () => {
+			mockValid();
+			repositoryMock.findKpiById.mockResolvedValue({
+				...activeKpi,
+				active: false,
+			});
+
+			await expect(
+				assignmentsService.bulkAssign(
+					{ kpiId: KPI_ID, userIds: [ANA_ID] },
+					ADMIN_ID,
+				),
+			).rejects.toThrow(KpiInactiveError);
+			expect(repositoryMock.createMany).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("revoke", () => {
+		it("revogação concorrente que perde a corrida recebe AssignmentAlreadyRevokedError", async () => {
+			repositoryMock.findById.mockResolvedValueOnce(createdRow(ANA_ID));
+			repositoryMock.revoke.mockResolvedValueOnce(null);
+
+			await expect(assignmentsService.revoke(ASSIGNMENT_ID)).rejects.toThrow(
+				AssignmentAlreadyRevokedError,
+			);
+		});
+
+		it("revoke nao consulta a reuniao: assignment de reuniao encerrada continua revogavel", async () => {
+			const closedMeetingAssignment = {
+				id: ASSIGNMENT_ID,
+				kpiId: "3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8",
+				userId: "26a1f9b0-0dc1-4ee3-9696-d0e4434e9caf",
+				assignedBy: "b29f5637-0ab1-4de0-b2d2-d364e3903124",
+				meetingId: MEETING_ID,
+				note: null,
+				points: 5,
+				revokedAt: null,
+				assignedAt: new Date("2026-08-30T14:05:00.000Z"),
+				kpi: {
+					id: "3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8",
+					name: "Presença na reunião",
+					category: "PRESENCE" as const,
+				},
+			};
+
+			repositoryMock.findById.mockResolvedValueOnce(closedMeetingAssignment);
+			repositoryMock.revoke.mockResolvedValueOnce({
+				...closedMeetingAssignment,
+				revokedAt: new Date("2026-08-30T16:00:00.000Z"),
+			});
+
+			const result = await assignmentsService.revoke(ASSIGNMENT_ID);
+
+			expect(repositoryMock.revoke).toHaveBeenCalledWith(
+				ASSIGNMENT_ID,
+				expect.any(Date),
+			);
+			expect(result).toMatchObject({
+				id: ASSIGNMENT_ID,
+				meetingId: MEETING_ID,
+				revokedAt: expect.any(Date),
+			});
+		});
+	});
+
+	describe("list", () => {
+		const USER_ID = "26a1f9b0-0dc1-4ee3-9696-d0e4434e9caf";
+
+		function historyRow(overrides: Record<string, unknown> = {}) {
+			return {
+				id: ASSIGNMENT_ID,
+				kpiId: "3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8",
+				userId: USER_ID,
+				assignedBy: "b29f5637-0ab1-4de0-b2d2-d364e3903124",
+				meetingId: null,
+				note: "Excelente apresentação",
+				points: 25,
+				revokedAt: null,
+				assignedAt: new Date("2026-08-30T14:12:00.000Z"),
+				kpi: {
+					id: "3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8",
+					name: "Resolveu bug crítico",
+					category: "PERFORMANCE" as const,
+				},
+				user: { id: USER_ID, name: "João", position: "Dev" },
+				assigner: {
+					id: "b29f5637-0ab1-4de0-b2d2-d364e3903124",
+					name: "Administrador",
+				},
+				meeting: null,
+				...overrides,
+			};
+		}
+
+		const base = { page: 1, limit: 20 };
+
+		it("traz o user com nome e cargo, e o KPI embutido", async () => {
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [historyRow()],
+				total: 1,
+			});
+
+			const result = await assignmentsService.list(base);
+
+			expect(result.items[0]).toEqual({
+				id: ASSIGNMENT_ID,
+				kpiId: "3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8",
+				userId: USER_ID,
+				assignedBy: "b29f5637-0ab1-4de0-b2d2-d364e3903124",
+				meetingId: null,
+				note: "Excelente apresentação",
+				points: 25,
+				revokedAt: null,
+				assignedAt: new Date("2026-08-30T14:12:00.000Z"),
+				kpi: {
+					id: "3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8",
+					name: "Resolveu bug crítico",
+					category: "PERFORMANCE",
+				},
+				user: { id: USER_ID, name: "João", position: "Dev" },
+				assigner: {
+					id: "b29f5637-0ab1-4de0-b2d2-d364e3903124",
+					name: "Administrador",
+				},
+				meeting: null,
+			});
+		});
+
+		it("traz quem atribuiu e o título da reunião de origem", async () => {
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [
+					historyRow({
+						meetingId: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+						meeting: {
+							id: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+							title: "Daily de terça",
+						},
+					}),
+				],
+				total: 1,
+			});
+
+			const result = await assignmentsService.list(base);
+
+			expect(result.items[0]).toMatchObject({
+				assigner: { name: "Administrador" },
+				meeting: {
+					id: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+					title: "Daily de terça",
+				},
+			});
+		});
+
+		it("traz revogadas e não revogadas por padrão — nenhum filtro de revokedAt", async () => {
+			repositoryMock.list.mockResolvedValueOnce({ items: [], total: 0 });
+
+			await assignmentsService.list(base);
+
+			expect(repositoryMock.list).toHaveBeenCalledWith(
+				expect.objectContaining({ revoked: undefined }),
+			);
+		});
+
+		it("repassa todos os filtros combinados, não só o último", async () => {
+			repositoryMock.list.mockResolvedValueOnce({ items: [], total: 0 });
+
+			await assignmentsService.list({
+				...base,
+				userId: USER_ID,
+				kpiId: "3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8",
+				category: "PERFORMANCE",
+				revoked: true,
+			});
+
+			expect(repositoryMock.list).toHaveBeenCalledWith({
+				userId: USER_ID,
+				kpiId: "3f2a1b4c-5d6e-4f70-8192-a3b4c5d6e7f8",
+				category: "PERFORMANCE",
+				revoked: true,
+				from: undefined,
+				to: undefined,
+				page: 1,
+				limit: 20,
+			});
+		});
+
+		it("from começa às 00:00 de São Paulo, inclusivo", async () => {
+			repositoryMock.list.mockResolvedValueOnce({ items: [], total: 0 });
+
+			await assignmentsService.list({ ...base, from: "2026-08-01" });
+
+			expect(repositoryMock.list).toHaveBeenCalledWith(
+				expect.objectContaining({
+					from: new Date("2026-08-01T03:00:00.000Z"),
+					to: undefined,
+				}),
+			);
+		});
+
+		it("to inclui o dia inteiro: o fim exclusivo é 00:00 do dia seguinte em São Paulo", async () => {
+			repositoryMock.list.mockResolvedValueOnce({ items: [], total: 0 });
+
+			await assignmentsService.list({ ...base, to: "2026-08-31" });
+
+			const call = repositoryMock.list.mock.calls[0]?.[0] as { to: Date };
+			expect(call.to).toEqual(new Date("2026-09-01T03:00:00.000Z"));
+
+			const lateOnTheLastDay = new Date("2026-09-01T02:00:00.000Z");
+			expect(lateOnTheLastDay.getTime()).toBeLessThan(call.to.getTime());
+		});
+
+		it("from sem to e to sem from funcionam", async () => {
+			repositoryMock.list.mockResolvedValue({ items: [], total: 0 });
+
+			await assignmentsService.list({ ...base, from: "2026-08-01" });
+			await assignmentsService.list({ ...base, to: "2026-08-31" });
+
+			expect(repositoryMock.list).toHaveBeenNthCalledWith(
+				1,
+				expect.objectContaining({ to: undefined }),
+			);
+			expect(repositoryMock.list).toHaveBeenNthCalledWith(
+				2,
+				expect.objectContaining({ from: undefined }),
+			);
+		});
+
+		it("calcula total e totalPages", async () => {
+			repositoryMock.list.mockResolvedValueOnce({
+				items: [historyRow()],
+				total: 142,
+			});
+
+			const result = await assignmentsService.list(base);
+
+			expect(result).toMatchObject({
+				page: 1,
+				limit: 20,
+				total: 142,
+				totalPages: 8,
+			});
+		});
+
+		it("lista vazia devolve items vazio e total 0, no mesmo shape de GET /members", async () => {
+			repositoryMock.list.mockResolvedValueOnce({ items: [], total: 0 });
+
+			const result = await assignmentsService.list({
+				...base,
+				userId: "00000000-0000-4000-8000-000000000000",
+			});
+
+			expect(result).toEqual({
+				items: [],
+				page: 1,
+				limit: 20,
+				total: 0,
+				totalPages: 1,
+			});
+		});
+
+		it("página além do fim devolve lista vazia, não erro", async () => {
+			repositoryMock.list.mockResolvedValueOnce({ items: [], total: 3 });
+
+			await expect(
+				assignmentsService.list({ page: 9, limit: 20 }),
+			).resolves.toMatchObject({ items: [], page: 9, total: 3 });
+		});
+	});
+});

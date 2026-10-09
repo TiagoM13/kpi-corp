@@ -13,15 +13,10 @@ export function KpiGrid({ kpis, onEdit, className }: KpiGridProps) {
 	return (
 		<ul className={cn("grid gap-3 sm:grid-cols-2 xl:grid-cols-3", className)}>
 			{kpis.map((kpi) => (
-				<li key={kpi.id} className="relative">
-					<button
-						type="button"
-						onClick={() => onEdit(kpi)}
-						aria-label={`Editar ${kpi.name}`}
-						className="absolute inset-0 z-10 rounded-lg transition-colors hover:bg-foreground/3 focus-visible:ring-1 focus-visible:ring-ring/50"
-					/>
+				<li key={kpi.id}>
 					<KpiTile
 						kpi={kpi}
+						onOpen={() => onEdit(kpi)}
 						actions={<KpiToggleButton kpi={kpi} className="relative z-20" />}
 					/>
 				</li>

@@ -1,22 +1,20 @@
 import { RankingBoard } from "@/components/ranking";
-import type { RankingPeriod } from "@/lib/ranking";
+import { MEMBER_RANKING_PERIODS, type RankingPeriod } from "@/lib/ranking";
 
 type MemberRankingPageProps = {
-	memberId: string;
 	period: RankingPeriod;
 	onPeriodChange: (period: RankingPeriod) => void;
 };
 
 export function MemberRankingPage({
-	memberId,
 	period,
 	onPeriodChange,
 }: MemberRankingPageProps) {
 	return (
 		<RankingBoard
 			period={period}
+			periods={MEMBER_RANKING_PERIODS}
 			onPeriodChange={onPeriodChange}
-			highlightMemberId={memberId}
 		/>
 	);
 }

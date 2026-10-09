@@ -21,13 +21,18 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { OverlayHeader } from "@/components/overlay-header";
-import { INVITE_TTL_HOURS } from "@/mocks/invites";
+import { INVITE_TTL_HOURS } from "@/lib/invite";
+import {
+	type InviteOutcome,
+	inviteMembers,
+	MAX_INVITES_PER_REQUEST,
+} from "@/lib/members";
 
 const EMAIL_SEPARATOR = /[\s,;]+/;
 const emailSchema = z.email();
 
 export function splitEmails(value: string) {
-	return value.split(EMAIL_SEPARATOR).filter(Boolean);
+	return [...new Set(value.split(EMAIL_SEPARATOR).filter(Boolean))];
 }
 
 export const inviteFormSchema = z.object({
@@ -41,14 +46,46 @@ export const inviteFormSchema = z.object({
 					(email) => emailSchema.safeParse(email).success,
 				),
 			"Algum e-mail da lista não é válido.",
+		)
+		.refine(
+			(value) => splitEmails(value).length <= MAX_INVITES_PER_REQUEST,
+			`Envie no máximo ${MAX_INVITES_PER_REQUEST} convites por vez.`,
 		),
-	message: z.string().max(500, "Mensagem muito longa.").optional(),
 });
 
 type InviteFormValues = z.infer<typeof inviteFormSchema>;
 
-const DEFAULT_MESSAGE =
-	"Oi! Você foi convidado(a) pro KPICorp do nosso time. Bora reconhecer o que tá rolando de bom por aqui.";
+function plural(total: number, one: string, many: string) {
+	return total === 1 ? one : `${total} ${many}`;
+}
+
+export function announceInvites({
+	created,
+	alreadyRegistered,
+	failed,
+}: InviteOutcome) {
+	if (created.length > 0) {
+		toast.success(plural(created.length, "Convite criado", "convites criados"));
+	}
+
+	if (alreadyRegistered.length > 0) {
+		toast.warning(
+			plural(
+				alreadyRegistered.length,
+				"Um e-mail já tem conta",
+				"e-mails já têm conta",
+			),
+			{ description: alreadyRegistered.join(", ") },
+		);
+	}
+
+	if (failed.length > 0) {
+		toast.error(
+			plural(failed.length, "Um convite falhou", "convites falharam"),
+			{ description: failed.join(", ") },
+		);
+	}
+}
 
 type InviteDialogProps = {
 	open: boolean;
@@ -57,7 +94,6 @@ type InviteDialogProps = {
 
 export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
 	const emailsId = useId();
-	const messageId = useId();
 
 	const {
 		register,
@@ -66,16 +102,17 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
 		formState: { errors, isSubmitting },
 	} = useForm<InviteFormValues>({
 		resolver: zodResolver(inviteFormSchema),
-		defaultValues: { emails: "", message: DEFAULT_MESSAGE },
+		defaultValues: { emails: "" },
 	});
 
-	const onSubmit = handleSubmit((values) => {
-		const total = splitEmails(values.emails).length;
-		toast.success(
-			total === 1 ? "Convite enviado" : `${total} convites enviados`,
-		);
-		reset();
-		onOpenChange(false);
+	const onSubmit = handleSubmit(async (values) => {
+		try {
+			announceInvites(await inviteMembers(splitEmails(values.emails)));
+			reset();
+			onOpenChange(false);
+		} catch {
+			toast.error("Não deu para criar os convites. Tente de novo.");
+		}
 	});
 
 	return (
@@ -131,19 +168,6 @@ export function InviteDialog({ open, onOpenChange }: InviteDialogProps) {
 								/>
 								{errors.emails && (
 									<FieldError>{errors.emails.message}</FieldError>
-								)}
-							</Field>
-
-							<Field data-invalid={errors.message ? true : undefined}>
-								<FieldLabel htmlFor={messageId}>Mensagem (opcional)</FieldLabel>
-								<Textarea
-									id={messageId}
-									rows={3}
-									aria-invalid={errors.message ? true : undefined}
-									{...register("message")}
-								/>
-								{errors.message && (
-									<FieldError>{errors.message.message}</FieldError>
 								)}
 							</Field>
 						</FieldGroup>

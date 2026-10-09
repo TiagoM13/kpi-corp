@@ -8,21 +8,37 @@ type KpiTileProps = {
 	kpi: Kpi;
 	compact?: boolean;
 	actions?: ReactNode;
+	onOpen?: () => void;
 	className?: string;
 };
 
-export function KpiTile({ kpi, compact, actions, className }: KpiTileProps) {
+export function KpiTile({
+	kpi,
+	compact,
+	actions,
+	onOpen,
+	className,
+}: KpiTileProps) {
 	const category = CATEGORY_BY_ID.get(kpi.category);
 	if (!category) return null;
 
 	return (
 		<article
 			className={cn(
-				"flex h-full flex-col gap-3 rounded-lg border bg-card p-4",
+				"relative flex h-full flex-col gap-3 rounded-lg border bg-card p-4",
 				!kpi.active && "opacity-60",
 				className,
 			)}
 		>
+			{onOpen ? (
+				<button
+					type="button"
+					onClick={onOpen}
+					aria-label={`Editar ${kpi.name}`}
+					className="absolute inset-0 z-10 rounded-lg transition-colors hover:bg-foreground/3 focus-visible:ring-1 focus-visible:ring-ring/50"
+				/>
+			) : null}
+
 			<div className="flex items-start justify-between gap-3">
 				<CategoryChip category={category} />
 

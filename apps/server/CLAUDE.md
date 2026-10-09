@@ -9,8 +9,8 @@ Este arquivo cobre **apenas** `apps/server`. Setup geral do monorepo e comandos 
 **Este app é só o host HTTP.** Ele não tem lógica de negócio, nem procedures, nem acesso a banco.
 
 - `apps/server/src/index.ts` é o único arquivo do app: CORS, handlers oRPC e `listen`.
-- Endpoint novo → `packages/api/src/routers/`.
-- Query nova → `packages/db` (Prisma).
+- Endpoint novo → `packages/api/src/modules/<módulo>/`.
+- Query nova → repository do módulo em `packages/api` (o client Prisma vem de `packages/db`).
 - Variável de ambiente nova → `packages/env/src/server.ts`.
 
 Se uma mudança está criando arquivo dentro de `apps/server/src/`, quase sempre ela pertence a `packages/api`.
@@ -69,15 +69,27 @@ O schema OpenAPI vem do Zod das procedures via `ZodToJsonSchemaConverter` (`@orp
 
 - **`onError` interceptor** só faz `console.error` nos dois handlers. É o lugar de plugar observabilidade se for preciso.
 
-- **CORS** (`baseCorsConfig`) tem `credentials: true` e origem única vinda de `env.CORS_ORIGIN`. Quando o auth real entrar com cookie httpOnly, essa é a config que já sustenta.
+- **CORS** (`baseCorsConfig`) tem `credentials: true` e origem única vinda de `env.CORS_ORIGIN`. O auth hoje usa `Authorization: Bearer`, não cookie — mas essa config já sustenta a troca para cookie `httpOnly` quando ela acontecer.
 
 - **Logger do Fastify ligado** (`Fastify({ logger: true })`) — usar `fastify.log`, não `console.log`, em código novo dentro do app.
 
 ## Contexto das procedures
 
-`createContext` mora em `packages/api/src/context.ts` e recebe os headers da request. Hoje devolve `{ auth: null, session: null }` — **auth ainda não existe**.
+`createContext` mora em **`packages/api/src/shared/context.ts`** (mudou de lugar quando a camada `shared/` nasceu) e recebe os headers da request.
 
-O `Context` é o ponto de extensão: quando o login real entrar, é ali que o token/cookie vira sessão, e é dali que sai o `protectedProcedure` (hoje só existe `publicProcedure`).
+Ele lê `Authorization: Bearer`, valida a assinatura do access token e devolve
+`{ headers, auth }`. Token ausente, expirado ou com assinatura inválida resultam todos em
+`auth: null` — **o contexto nunca lança**. Quem decide se isso é erro é a procedure.
+
+As três procedures vivem em `packages/api/src/index.ts`:
+
+| Procedure | Garante | Falha com |
+| --- | --- | --- |
+| `publicProcedure` | nada | — |
+| `protectedProcedure` | `context.auth` não nulo | `ORPCError("UNAUTHORIZED")` → 401 |
+| `adminProcedure` | `role === "ADMIN"` | `ORPCError("FORBIDDEN")` → 403 |
+
+Nenhuma validação de token acontece dentro deste app.
 
 ## Banco
 
@@ -88,7 +100,7 @@ import prisma from "@kpi-corp/db";
 ```
 
 - Schema dividido por modelo em `packages/db/prisma/schema/*.prisma` — arquivo novo é detectado sozinho.
-- Modelos: `User`, `Kpi`, `KpiAssignment`, `Meeting`, `MeetingAttendee`, `Todo` (`Todo` é resíduo do scaffold do Better-T-Stack, junto com `todoRouter`).
+- Modelos: `User`, `RefreshToken`, `Invitation`, `Kpi`, `KpiAssignment`, `Meeting`, `MeetingAttendee`, `RankingSnapshot`, `UserBadge`. Ids são `uuid` com `@db.Uuid`.
 - `packages/db/prisma/generated/` é gerado — fora do Biome e do git de revisão.
 - `prisma.config.ts` lê `../../apps/server/.env`: **o `.env` da API é a fonte do `DATABASE_URL` para todos os comandos Prisma**, mesmo rodando da raiz.
 
@@ -99,9 +111,14 @@ import prisma from "@kpi-corp/db";
 | Variável | Default | Uso |
 | --- | --- | --- |
 | `DATABASE_URL` | — | Postgres (obrigatória) |
-| `CORS_ORIGIN` | — | URL do web, obrigatória e validada como URL |
+| `CORS_ORIGIN` | — | origem aceita pelo CORS, obrigatória e validada como URL |
+| `WEB_APP_URL` | — | base dos links abertos no navegador (convite), obrigatória |
 | `HOST` | `localhost` | bind do Fastify |
 | `PORT` | `3000` | porta do Fastify |
+| `JWT_SECRET` | — | assinatura do access token (obrigatória) |
+| `JWT_REFRESH_SECRET` | — | assinatura do refresh token, distinta da anterior (obrigatória) |
+| `JWT_ACCESS_EXPIRES_IN` | `15m` | vida do access token |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | vida do refresh token |
 | `NODE_ENV` | `development` | `development` \| `production` \| `test` |
 
 Validação em runtime com `@t3-oss/env-core` + Zod em `packages/env/src/server.ts`. Ler `process.env` direto não é o padrão — declarar no schema e importar `env` de `@kpi-corp/env/server`. `SKIP_ENV_VALIDATION=1` pula a validação (uso em build/CI).
@@ -114,11 +131,13 @@ Note que `HOST` e `NODE_ENV` existem no schema mas **não** estão no `.env.exam
 
 `deps.alwaysBundle: [/@kpi-corp\/.*/]` — os pacotes internos são bundlados no artefato, porque são publicados como TypeScript-fonte (`exports` apontando para `./src/*.ts`), sem build próprio. Pacote interno novo entra nesse regex automaticamente.
 
-Turborepo cacheia `build` com `dependsOn: ["^build"]` e passa `DATABASE_URL`, `CORS_ORIGIN`, `PORT`, `VITE_SERVER_URL` como env declarada.
+Turborepo cacheia `build` com `dependsOn: ["^build"]` e passa `DATABASE_URL`, `CORS_ORIGIN`, `WEB_APP_URL`, `PORT`, `VITE_SERVER_URL` como env declarada.
 
 ## Testes
 
-**Não há testes aqui hoje.** O app não tem script `test` e o Turbo simplesmente pula. Teste de lógica de API pertence a `packages/api`, junto da procedure.
+**Não há testes aqui hoje**, e é assim de propósito. O app não tem script `test` e o Turbo simplesmente pula.
+
+Teste de lógica de API pertence a `packages/api`, junto da procedure — são 617 em 28 arquivos lá, nenhum precisando de banco. Este app não tem lógica para testar.
 
 ## Estilo
 

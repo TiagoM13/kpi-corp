@@ -72,7 +72,7 @@ export function InviteForm({ token, email }: { token: string; email: string }) {
 	const onSubmit = handleSubmit(async (values) => {
 		setFormError(null);
 		try {
-			acceptInvite({
+			await acceptInvite({
 				token,
 				name: values.name,
 				position: values.position,
@@ -117,7 +117,13 @@ export function InviteForm({ token, email }: { token: string; email: string }) {
 				<FieldGroup className="gap-4">
 					<Field>
 						<FieldLabel htmlFor="invite-email">E-mail</FieldLabel>
-						<Input id="invite-email" type="email" value={email} readOnly />
+						<Input
+							id="invite-email"
+							type="email"
+							autoComplete="username"
+							value={email}
+							readOnly
+						/>
 						<FieldDescription>
 							Definido pelo convite e não pode ser alterado.
 						</FieldDescription>

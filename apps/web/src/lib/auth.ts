@@ -1,12 +1,15 @@
-// Sessao mock, so no cliente. Nao ha token, nao ha API, nao ha expiracao real.
-// Existe para dar navegacao ao protótipo e sera trocada por cookie httpOnly
-// quando `auth.login` existir no backend.
+import { ORPCError } from "@orpc/client";
 
-import { findMockUser, MOCK_PASSWORD, type MockUser } from "@/mocks/users";
+import { type AuthResponse, toStoredSession } from "@/lib/refresh";
+import {
+	clearStoredSession,
+	readStoredSession,
+	type SessionUser,
+	writeStoredSession,
+} from "@/lib/session-store";
+import { client } from "@/utils/orpc";
 
-const STORAGE_KEY = "kpicorp.mock-session";
-
-export type Session = Omit<MockUser, "id"> & { userId: string };
+export type Session = SessionUser;
 
 export class InvalidCredentialsError extends Error {
 	constructor() {
@@ -15,73 +18,82 @@ export class InvalidCredentialsError extends Error {
 	}
 }
 
-function isSession(value: unknown): value is Session {
-	if (typeof value !== "object" || value === null) {
-		return false;
+export class AccountDeactivatedError extends Error {
+	constructor() {
+		super("Sua conta foi desativada. Fale com o administrador do time.");
+		this.name = "AccountDeactivatedError";
 	}
-
-	const candidate = value as Record<string, unknown>;
-
-	return (
-		typeof candidate.userId === "string" &&
-		typeof candidate.name === "string" &&
-		typeof candidate.email === "string" &&
-		typeof candidate.position === "string" &&
-		typeof candidate.hue === "number" &&
-		(candidate.role === "ADMIN" || candidate.role === "MEMBER")
-	);
 }
 
-/** Leitura sincrona: os guards de rota rodam antes de qualquer render. */
-export function getSession(): Session | null {
-	try {
-		const raw = localStorage.getItem(STORAGE_KEY);
-		if (!raw) {
-			return null;
-		}
-
-		const parsed: unknown = JSON.parse(raw);
-
-		return isSession(parsed) ? parsed : null;
-	} catch {
-		// localStorage indisponivel (modo privado, cookies bloqueados) ou JSON invalido
+export function domainCodeOf(error: unknown): string | null {
+	if (!(error instanceof ORPCError)) {
 		return null;
 	}
-}
 
-export function signIn(email: string, password: string): Session {
-	const user = findMockUser(email);
+	const data: unknown = error.data;
 
-	// Mensagem unica para e-mail inexistente e senha errada: nao revela
-	// quais e-mails estao cadastrados.
-	if (!user || password !== MOCK_PASSWORD) {
-		throw new InvalidCredentialsError();
+	if (typeof data !== "object" || data === null || !("code" in data)) {
+		return null;
 	}
 
-	const { id, ...rest } = user;
-
-	return startSession({ userId: id, ...rest });
+	return typeof data.code === "string" ? data.code : null;
 }
 
-export function startSession(session: Session): Session {
+export function getSession(): Session | null {
+	return readStoredSession()?.user ?? null;
+}
+
+export function startSession(response: AuthResponse): Session {
+	const stored = toStoredSession(response);
+	writeStoredSession(stored);
+	return stored.user;
+}
+
+export async function signIn(
+	email: string,
+	password: string,
+): Promise<Session> {
 	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-	} catch {
-		// sessao so em memoria nesta aba
-	}
+		return startSession(await client.auth.login({ email, password }));
+	} catch (error) {
+		const code = domainCodeOf(error);
 
-	return session;
+		if (code === "INVALID_CREDENTIALS") {
+			throw new InvalidCredentialsError();
+		}
+
+		if (code === "ACCOUNT_DEACTIVATED") {
+			throw new AccountDeactivatedError();
+		}
+
+		throw error;
+	}
 }
 
-export function signOut() {
+export async function signOut() {
+	const refreshToken = readStoredSession()?.refreshToken;
+
 	try {
-		localStorage.removeItem(STORAGE_KEY);
+		await client.auth.logout({ refreshToken });
 	} catch {
-		// nada a limpar
+		// a sessao local sai mesmo sem resposta do servidor
+	} finally {
+		clearStoredSession();
 	}
 }
 
-/** Rota inicial de cada perfil. Admin tem area propria; membro usa as rotas normais. */
+export function syncSessionUser(user: AuthResponse["user"]): Session | null {
+	const stored = readStoredSession();
+
+	if (!stored) {
+		return null;
+	}
+
+	const { user: next } = toStoredSession({ ...stored, user });
+	writeStoredSession({ ...stored, user: next });
+	return next;
+}
+
 export function homeRouteFor(role: Session["role"]): "/admin" | "/dashboard" {
 	return role === "ADMIN" ? "/admin" : "/dashboard";
 }

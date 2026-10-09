@@ -3,9 +3,19 @@ import { Button } from "@kpi-corp/ui/components/button";
 import { Link } from "@tanstack/react-router";
 import { TriangleAlertIcon } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
-import type { Member } from "@/mocks/members";
+import type { MemberWithoutKpis } from "@/lib/dashboard";
 
-export function StagnantCard({ members }: { members: Member[] }) {
+function daysLabel(member: MemberWithoutKpis) {
+	const days = `${member.daysWithout} ${member.daysWithout === 1 ? "dia" : "dias"}`;
+
+	if (member.lastAssignmentAt === null) {
+		return `nunca recebeu KPI · ${days} no time`;
+	}
+
+	return `sem KPI há ${days}`;
+}
+
+export function StagnantCard({ members }: { members: MemberWithoutKpis[] }) {
 	if (members.length === 0) return null;
 
 	return (
@@ -27,12 +37,12 @@ export function StagnantCard({ members }: { members: Member[] }) {
 			<ul className="flex flex-col gap-1">
 				{members.map((member) => (
 					<li key={member.id} className="flex items-center gap-3 py-1.5">
-						<UserAvatar name={member.name} hue={member.hue} />
+						<UserAvatar name={member.name} />
 
 						<div className="flex min-w-0 flex-1 flex-col leading-tight">
 							<span className="truncate text-sm">{member.name}</span>
 							<span className="truncate text-2xs text-fg-3">
-								sem KPI há {member.stagnantDays} dias
+								{daysLabel(member)}
 							</span>
 						</div>
 

@@ -99,25 +99,55 @@ apontada no próprio campo, nome e cargo obrigatórios).
 
 Suíte do web: **28 testes passando**. `tsc --noEmit` e `biome check` limpos.
 
-## ⚙️ API — `apps/server` + `packages/api`
+## ⚙️ API — `apps/server` + `packages/api` ⚠️ parcial
 
 Responsável por gerar o convite, dizer se um token vale, criar o usuário e queimar o
 convite. É a **única** fonte de verdade sobre validade, expiração e perfil.
 
-- [ ] Modelo `Invite` no Prisma — `email`, hash do token, `expiresAt`, `usedAt`, `invitedBy`
-- [ ] Migration nova (o modelo não existe no schema atual)
-- [ ] Procedure `invite.create` (só Admin) gerando token de alta entropia
-- [ ] Guardar **hash** do token, nunca o token em texto puro
-- [ ] Procedure pública `invite.validate` devolvendo o e-mail e o estado do convite
-- [ ] Procedure pública `invite.accept` — cria o `User` e queima o convite na mesma transação
-- [ ] `role: MEMBER` fixado no servidor, ignorando qualquer coisa que venha do cliente
-- [ ] Uso único garantido contra corrida (update condicional em `usedAt`, não read-then-write)
-- [ ] Hash da senha com algoritmo lento (argon2 ou bcrypt)
-- [ ] Expiração de 48h aplicada no servidor, não confiando no relógio do cliente
+- [x] Modelo `Invitation` no Prisma — `email`, `token`, `expiresAt`, `usedAt`
+- [x] Migration nova — `20260831110915_add_invitation`
+- [x] Procedure de criação (só Admin) gerando token de alta entropia — `members.invite`
+- [x] Guardar **hash** do token, nunca o token em texto puro — `invitation.tokenHash`
+- [x] Procedure pública que valide o token devolvendo o e-mail e o estado do convite — `auth.validateInvite`
+- [x] Procedure pública que cria o `User` e queima o convite na mesma transação — `auth.register`
+- [x] `role: MEMBER` fixado no servidor, ignorando qualquer coisa que venha do cliente
+- [x] Uso único garantido contra corrida — `updateMany` guardado por `usedAt IS NULL` dentro da transação
+- [x] Hash da senha com algoritmo lento (bcrypt)
+- [x] Expiração de 48h aplicada no servidor — `INVITE_TTL_HOURS = 48`
 - [ ] Envio do e-mail de convite
-- [ ] Tratamento de e-mail já cadastrado
-- [ ] Rate limit em `invite.validate` e `invite.accept`
-- [ ] Sessão emitida direto após o cadastro, para o convidado não passar pelo login
+- [x] Tratamento de e-mail já cadastrado — `EMAIL_ALREADY_REGISTERED`
+- [ ] Rate limit
+- [x] Sessão emitida direto após o cadastro, para o convidado não passar pelo login
+
+Duas diferenças de nomenclatura em relação ao critério original: o modelo é `Invitation`,
+não `Invite`, e a emissão vive em `members.invite` (`POST /members/invitations`), não num
+módulo `invite` próprio — convidar é operação de gestão de membros.
+
+### ⚠️ O token do convite está em texto puro no banco
+
+`invitation.token` guarda o valor que vai no link, sem hash:
+
+```prisma
+token String @unique
+```
+
+Refresh token é guardado como SHA-256
+([ADR 0012](http://localhost:4000/docs/adr/0012-hash-de-senha-e-de-token)); o token de
+convite não seguiu a mesma regra. Consequência: quem tiver leitura do banco — um dump, um
+backup, um log de query — consegue usar qualquer convite pendente e criar uma conta com o
+e-mail daquele convite.
+
+A correção é a mesma da tabela `refresh_token`: guardar o hash, comparar por hash na
+validação, e o token em texto puro existir só na resposta que monta o `inviteUrl`. Como
+a coluna é `@unique` e a busca é por igualdade exata, a troca não muda a query — só o
+que entra nela.
+
+### Falta o endpoint que valida o token
+
+`auth.register` **consome** o convite, mas nada responde "esse token vale?" antes do
+formulário. A tela `/invite/$token` precisa dessa resposta para decidir entre mostrar o
+cadastro ou a mensagem de erro, e é por isso que `validateInvite` continua no mock mesmo
+com o resto da API pronta. Ver `005-session-api-integration.md`.
 
 ### Ponto de partida
 
@@ -125,9 +155,9 @@ convite. É a **única** fonte de verdade sobre validade, expiração e perfil.
 | --- | --- |
 | `User.email` `@unique`, `passwordHash`, `role`, `position`, `active` | Já no schema Prisma |
 | `Role` com default `MEMBER` | Já no schema — mas o default não substitui fixar no servidor |
-| Modelo `Invite` | **Não existe** — precisa de migration |
+| Modelo `Invitation` | Implementado |
 | Serviço de e-mail | **Não instalado.** `docs/stories/setup.md` cita Resend, mas não há dependência de e-mail em nenhum `package.json` |
-| Emissão de sessão | Depende de `001-login.md` |
+| Emissão de sessão | Implementada — `auth.register` já devolve o par de tokens |
 
 > `docs/stories/setup.md` está desatualizado em relação ao repositório: descreve NestJS,
 > Redis, Prisma 6 e ESLint/Prettier. O monorepo usa Fastify + oRPC, Prisma 7 e Biome, sem
@@ -172,6 +202,6 @@ quando houver sessão real em cookie.
 - Perfil: Membro
 - Prioridade: Alta
 - Fase: MVP
-- Web: concluído com convite mock
-- API: não iniciado, bloqueado por `001-login.md`
+- Web: concluído — `auth.validateInvite` + `auth.register` reais (story 005)
+- API: implementada — `auth.register` e `members.invite`; falta validar token antes do cadastro
 - Relacionada: `001-login.md`, `004-route-protected.md`

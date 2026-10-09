@@ -1,13 +1,15 @@
 model Meeting {
-  id        String   @id @default(cuid())
+  id        String    @id @default(uuid()) @db.Uuid
   title     String
   date      DateTime
-  closed    Boolean  @default(false)
-  createdBy String
-  createdAt DateTime @default(now())
+  closedAt  DateTime?
+  createdBy String    @db.Uuid
+  createdAt DateTime  @default(now())
 
   attendees   MeetingAttendee[]
   assignments KpiAssignment[]
 
+  @@index([date])
+  @@index([closedAt])
   @@map("meeting")
 }

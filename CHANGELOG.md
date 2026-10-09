@@ -1,0 +1,451 @@
+# Changelog
+
+Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
+
+O projeto ainda **não tem release**. Não há tag de versão nem deploy — só ambiente de
+desenvolvimento. Enquanto isso, as entradas ficam sob `Não lançado`, agrupadas por data
+de entrega.
+
+## [Não lançado]
+
+### 2026-09-26 — Sem "ISO" nos textos do app
+
+#### Alterado
+- As descrições das badges de constância passam a dizer "Pontuou em 4 semanas
+  consecutivas." e "Pontuou em 12 semanas consecutivas.", sem a palavra "ISO". Os exemplos
+  do Postman acompanham. O nome continua só em código, testes e documentação técnica.
+
+### 2026-09-26 — Painéis fechados com a API
+
+#### Adicionado
+- `GET /dashboard/admin/points-series?period=7d|30d|90d|all` devolve a série de pontos e
+  KPIs do time (dia, semana ISO ou mês, com zero nos vazios). O gráfico "Pontos por semana"
+  do painel do Admin lê essa série, com seletor de período e tentativa de novo se falhar
+  (DA01).
+- `GET /dashboard/admin` devolve `trends` (8 semanas de pontos e 7 dias de KPIs) e o painel
+  desenha os sparklines dos cards de pontos e de KPIs (DA03).
+- `GET /dashboard/admin` devolve `movers`: o top 5 da semana com pontos, tendência de 7
+  dias e a variação de posição contra a semana anterior. O card "Top movers da semana"
+  voltou ao painel, ao lado do "Top 5 do mês" (DA05).
+- `GET /dashboard/member` devolve `weekSeries` (pontos por dia da semana) e `rankingChange`
+  (posições que subiu ou desceu desde o início da semana). O card "Pontos nesta semana"
+  ganha o sparkline e o selo de ranking mostra a seta (MB01, MB02).
+- O painel do membro e os modais de perfil mostram "🔥 N semanas", a sequência de semanas
+  pontuando, lida da badge de constância.
+
+#### Alterado
+- `GET /dashboard/member` deixa de devolver `recentKpis`: nenhuma tela lia o campo.
+- `mocks/team-history.ts` e a derivação de `teamTotals`/`stagnantMembers` em `lib/dashboard.ts`
+  saem do front, porque nenhuma tela dependia deles.
+- A variação de "Membros ativos" (DA02) foi descartada: o banco não guarda histórico de
+  ativação. `docs/pendencias-api.md` fica só com MT03 e AU01.
+
+### 2026-09-26 — Posição no ranking nos detalhes do membro
+
+#### Adicionado
+- `GET /members/{id}/profile` devolve `rankingPosition` e `teamSize` (ranking geral entre
+  os ativos, o mesmo número do ranking e do painel do membro).
+- O modal de detalhes do membro (lista de membros e ranking) mostra a posição como o painel
+  do membro: selo "#N no ranking" no cabeçalho e "#N de M" no card "Pontos totais". Membro
+  inativo não tem posição.
+
+#### Alterado
+- O card "Pontos totais" dos modais deixa de mostrar "nível N", que já está no cabeçalho.
+
+### 2026-09-26 — Pendências simples da API resolvidas
+
+#### Adicionado
+- `GET /dashboard/admin` devolve `points.total` (todo o histórico), `points.monthDelta` e
+  `kpis.weekDelta` (variação % contra o mesmo trecho do período anterior, `null` sem base)
+  e `withoutKpisDays` (o limite de "esquecido"). O painel mostra "Pontos totais", a
+  variação de KPIs da semana e o texto do card "Sem KPI" com o limite da API (DA02
+  parcial, DA04, DA08).
+- Os itens de `recentAssignments` e do histórico `GET /kpi-assignments` trazem `assigner`
+  (`{ id, name }`) e `meeting` (`{ id, title }` ou `null`). O feed do painel diz "por
+  Fulano" e o nome da reunião, ou "avulso" (DA06, DA07).
+- `GET /members` devolve `daysWithoutKpi` e `stagnant` por membro. O status "parado" da
+  lista sai da API, com a mesma regra do dashboard, e o front deixou de calcular (ME01).
+- `GET /meetings/{id}` (e as demais rotas que devolvem o detalhe) traz `attendees[].points`
+  e `summary` (`totalPoints` e `podium` com os três que mais pontuaram). O card do modo
+  ao vivo mostra o selo "+N" e o resumo da reunião encerrada mostra o pódio, como no
+  mockup: "Reconhecimento registrado.", atribuições, pontos no total e as três medalhas
+  (MT01, MT02).
+- `GET /dashboard/member` devolve `weekPoints`. O painel do membro voltou a mostrar o card
+  "Pontos nesta semana" (MB01 parcial: a série de 7 dias continua pendente).
+
+#### Alterado
+- O título do modo reunião encerrada é "Reunião encerrada" e o resumo deixa de mostrar o
+  número de presentes, como no mockup.
+- A regra de "esquecido" (30 dias) e a conta de dias sem KPI moraram em `shared/members/`,
+  usadas por dashboard e members. `previousElapsedWindow` entrou em `shared/ranking`.
+- `docs/pendencias-api.md` perde DA04, DA06, DA07, DA08, MT01, MT02 e ME01; DA02 e MB01
+  ficam só com o que a API ainda não entrega.
+
+### 2026-09-26 — Seed do time
+
+#### Alterado
+- `npm run db:seed` agora **apaga e recria** usuários, reuniões, presenças, atribuições,
+  badges, snapshots de ranking, refresh tokens e convites. A tabela de KPIs nunca é
+  alterada: as atribuições saem dos KPIs que já existem, com peso por cargo.
+- O time do seed passa a ter 12 usuários, com um único `ADMIN` (`admin@kpicorp.com`,
+  cargo "Chefe") e a mesma senha (`admin123`) para todos. Marina Duarte (PO) é a primeira
+  do ranking, no nível 20, com as 10 badges; o Chefe fica fora do pódio.
+- Os usuários `ana@`, `bruno@` e `carla@kpicorp.com` e a senha `member123` deixam de
+  existir; sessões abertas caem porque os refresh tokens são apagados.
+- O ambiente do Postman aponta `memberEmail` para `marina.duarte@kapicorp.com`.
+- No painel do membro e no modal de perfil, o box de conquistas tem a mesma altura do box
+  de distribuição por categoria e as 10 conquistas ocupam o box inteiro, em duas linhas
+  de cinco.
+- No nível máximo, a barra de progresso some e o círculo de nível do cabeçalho mostra
+  "max" abaixo do número. Vale para o painel do membro e para os modais de perfil (membros
+  e ranking).
+
+### 2026-09-25 — Painel do membro integrado à API
+
+#### Adicionado
+- "Meu painel" lê `dashboard.getMember` e `profile.getMyProfile`: posição no ranking
+  entre N ativos, nível e progresso, pontos, KPIs recebidos, conquistas, distribuição por
+  categoria e histórico completo. Atribuição revogada aparece riscada, com "revogado".
+- Membro sem nenhum KPI vê o convite para olhar o ranking, em vez de um painel zerado.
+
+#### Alterado
+- Nenhuma tela lê mais dado de `apps/web/src/mocks/` para mostrar informação do time. Os
+  mocks e os componentes antigos continuam no código (testes e blocos comentados).
+- "Pontos nesta semana" e a variação de posição do membro ficam de fora até a API
+  entregar (MB01, MB02).
+
+### 2026-09-25 — Modo reunião integrado à API
+
+#### Adicionado
+- Preparação lista o time ativo (`members.list`) e pede o **KPI de presença** — a API
+  não escolhe por convenção. Iniciar cria a reunião do dia (`meetings.create`) e marca
+  os presentes (`meetings.registerAttendance`), que ganham o KPI de presença.
+- Reuniões que ficaram abertas aparecem na preparação com **Continuar**. O id da reunião
+  fica na URL (`?reuniao=`): recarregar a página não perde a reunião.
+- Ao vivo: reconhecer grava na hora (`meetings.assignKpi`), **Desfazer** revoga o último
+  reconhecimento (`assignments.revoke`) e **Adicionar participantes** marca a presença de
+  quem não entrou no começo, com os escalados sinalizados.
+- **Encerrar** pede confirmação (não dá para reabrir) e mostra o resumo gravado.
+
+#### Alterado
+- Sair do modo reunião não descarta mais nada: a reunião continua aberta na API.
+- Pódio e total de pontos do resumo, e o "+N" por participante, ficam comentados até a
+  API entregar os totais (MT01, MT02).
+
+### 2026-09-25 — Painel do Admin integrado à API
+
+#### Adicionado
+- Painel do Admin lê `dashboard.getAdmin`: pontos do mês e da semana, KPIs e reuniões
+  da semana, membros ativos, top 5 do mês, membros sem KPI há 30 dias e as 10
+  atribuições mais recentes (com "em reunião", "avulso" e "revogado").
+- Botão do topo vira "Continuar reunião aberta" quando há reunião aberta.
+- `docs/pendencias-api.md`: o que a API ainda precisa entregar para o painel ficar
+  igual ao mockup.
+
+#### Fora da tela
+- Gráfico "Pontos por semana", deltas e sparklines dos indicadores, e o card "Top movers
+  da semana": a API não entrega esses dados (DA01 a DA05). Os componentes continuam no
+  código, com a chamada comentada no painel; voltam quando a API entregar.
+- O selo "ao vivo" do feed: o feed não se atualiza sozinho.
+
+### 2026-09-25 — Ranking integrado e acesso de membros
+
+#### Adicionado
+- Ranking do admin e do membro leem `ranking.get` da API real, com pódio, destaque de
+  quem está logado (`isMe`), resumo "Você está em Nº" e intervalo do período.
+- Admin ganha o período **Trimestre**; na URL de membro, `?periodo=trimestre` cai para
+  `geral`.
+- Clicar num membro no ranking do admin abre o perfil real (`profile.getPublicProfile`).
+- Lista de membros ganha o switch **Acesso** para desativar e reativar, sempre com
+  confirmação. A própria conta não pode ser desativada; o erro de último admin ativo
+  aparece traduzido.
+- Primitives `switch` e `alert-dialog` em `packages/ui`, sobre Base UI.
+
+#### Alterado
+- Tabela do ranking troca a coluna **Nível** por **KPIs** do período: a API não devolve
+  nível por período.
+- Mudança de posição `null` (sem período anterior para comparar) aparece como "—" e é
+  anunciada como "sem comparação", não como "não mudou".
+
+### 2026-09-25 — Tela de KPIs integrada à API
+
+#### Adicionado
+- `GET /kpis` devolve `uses` por KPI: quantas atribuições válidas o usam.
+- Tela de KPIs do admin lista, cria, edita, inativa e reativa KPIs na API real. Nome
+  repetido aparece como erro no próprio campo (`KPI_NAME_TAKEN`).
+
+#### Alterado
+- A tela de KPIs deixa de usar o `kpi-store` em `localStorage`. O modo reunião continua
+  nele até ser integrado.
+
+### 2026-09-25 — Tela de membros integrada à API
+
+#### Adicionado
+- `GET /members` devolve, por membro, `points`, `kpiCount`, `lastAssignmentAt` e `level`
+  — só atribuições válidas contam, a mesma soma do perfil.
+- Tela de membros do admin lista o time real, com busca por nome ou e-mail no servidor e
+  paginação de 20 em 20.
+- Perfil do membro (drawer) mostra categorias, conquistas e histórico vindos de
+  `profile.getPublicProfile`. Membro inativo mostra só o cabeçalho.
+- Convite de membros cria os convites em `members.invite`. E-mail que já tem conta é
+  avisado à parte.
+
+#### Alterado
+- Status do membro na tela vira `Ativo`, `Inativo` ou `Nd sem KPI` (30 dias, a regra do
+  dashboard). Sequência e tendência de 7 dias saem da tabela: a API não tem fonte para
+  elas.
+- O campo de mensagem do convite sai: o servidor não envia e-mail.
+
+### 2026-09-24 — Auth do front integrada à API
+
+#### Adicionado
+- `POST /auth/validateInvite`: diz se um convite vale sem consumi-lo e só devolve o
+  e-mail quando `VALID`.
+- Login, logout e cadastro por convite no front falam com a API real. A sessão renova
+  sozinha quando o access token vence, com um único refresh para requests simultâneas.
+- Conta desativada tem mensagem própria na tela de login.
+
+#### Alterado
+- Sessão do front passa a guardar tokens em `localStorage` (`kpicorp.session`); a sessão
+  mock antiga é ignorada e é preciso entrar de novo
+  ([ADR 0014](http://localhost:4000/docs/adr/0014-sessao-no-cliente)).
+- Logout limpa o cache de queries.
+- Credenciais mock (`kpicorp123`) e tokens de convite fixos (`convite-valido`, ...)
+  deixam de funcionar: use o seed (`admin@kpicorp.com` / `admin123`) e convites gerados
+  por `members.invite`.
+
+### 2026-09-24 — Revisão da API MVP, itens 5 a 13
+
+#### Corrigido
+- Usuário desativado perde a sessão na requisição seguinte: `createContext` confere
+  `active` no banco e usa o `role` atual, não o do token.
+- Revogação concorrente da mesma atribuição: a segunda recebe 409
+  `ASSIGNMENT_ALREADY_REVOKED` em vez de sobrescrever `revokedAt`.
+- Atribuição em massa valida KPI e membros dentro da mesma transação da escrita, com uma
+  consulta só para os membros.
+- Login encontra a conta mesmo com o e-mail digitado em maiúsculas.
+- `levelFor` com pontuação negativa devolve nível 0 e `progress` 0, não `NaN`.
+
+#### Alterado
+- `/dashboard/member` responde 403 `ACCOUNT_DEACTIVATED` (antes `MEMBER_INACTIVE`) para
+  conta desativada — o mesmo erro do login. `MEMBER_INACTIVE` fica só com o 409 de
+  atribuição.
+- `POST /kpi-assignments/bulk` aceita no máximo 200 `userIds` (400 acima disso).
+- Token de convite passa a ser guardado como SHA-256 (`invitation.tokenHash`). A
+  migration converte os convites existentes; links já enviados continuam válidos.
+- Perfil público mostra só atribuições de pontuação positiva, como pede o roadmap § 1.5.
+- Erros de constraint do Prisma são traduzidos no repository; nenhum service importa
+  `@kpi-corp/db`.
+
+### 2026-09-24 — Correções da revisão da API MVP
+
+#### Corrigido
+- Registro de presença simultâneo (duplo clique) não paga mais o mesmo membro duas
+  vezes: toda escrita em reunião trava a linha de `meeting` com `SELECT … FOR UPDATE`
+  antes de ler presentes e `closedAt`. Também fecha a corrida entre `end` e KPI ao vivo.
+- `POST /meetings/{id}/kpi-assignments` recusa membro desativado depois de marcar
+  presença com 409 `MEMBER_INACTIVE` (RB09).
+- Access token passa a carregar `typ: "access"` e tem o payload validado; um refresh
+  token não é mais aceito como access token mesmo com segredos iguais.
+
+#### Alterado
+- `JWT_SECRET` e `JWT_REFRESH_SECRET` exigem 32+ caracteres e precisam ser diferentes —
+  o servidor não sobe com config fraca. `.env.example` atualizado.
+- Schemas, mapper de atribuição e erros repetidos entre módulos foram para `shared/`
+  (`schemas/`, `mappers/`, `errors/common.errors.ts`). Contrato HTTP inalterado.
+
+### 2026-09-23 — API Fase 3E: Badges de Fase 3
+
+#### Adicionado
+- `TEN_MEETINGS`, `TOP_THREE`, `PERFECT_MONTH` e `PODIUM_STREAK` passam a ser avaliadas
+  de verdade e vêm com `available: true` em `/me/profile` e `/members/{id}/profile`. O
+  contrato das badges não mudou: mesmos dez códigos, mesma ordem, mesmo `badgeSchema`.
+- `TEN_MEETINGS` conta presenças confirmadas (`presentAt`); `TOP_THREE` usa o ranking
+  geral com o desempate da 3B; `PERFECT_MONTH` exige presença em todas as reuniões
+  encerradas de um mês já fechado; `PODIUM_STREAK` procura três meses consecutivos no top
+  3 dentro dos últimos 12 meses fechados. Nenhum `earnedAt` é `now()`.
+
+#### Alterado
+- O fuso das badges passa a vir de `shared/time/` — a constante duplicada em
+  `profile.badges.ts` saiu, sem mudar o streak semanal.
+- Exemplos de resposta de perfil na collection do Postman mostram as dez badges com
+  `available: true`.
+
+### 2026-09-23 — API Fase 3D: Dashboards
+
+#### Adicionado
+- Módulo `dashboard` com `GET /dashboard/member` (qualquer autenticado) e
+  `GET /dashboard/admin` (só Admin), cada um uma resposta só, sem cache.
+- Dashboard do membro: pontos, contagem, posição no ranking geral com `teamSize`, nível
+  completo (o mesmo de `/me/score`) e as cinco últimas atribuições válidas. Membro
+  desativado recebe 403 `MEMBER_INACTIVE`.
+- Dashboard do Admin: contadores de KPIs, pontos e reuniões na semana ISO e no mês
+  correntes, reuniões abertas, top 5 do mês, as 10 últimas atribuições e os membros ativos
+  há 30 dias ou mais sem KPI válido.
+- Pasta "Dashboards (3D)" na collection do Postman.
+
+#### Alterado
+- A regra de níveis saiu de `modules/profile/profile.levels.ts` para
+  `shared/gamification/levels.ts`, sem alteração de comportamento — o teste mudou de
+  pasta com os mesmos casos.
+
+### 2026-09-23 — API Fase 3C: Histórico de atribuições
+
+#### Adicionado
+- `GET /kpi-assignments` (só Admin): todas as atribuições da equipe, paginadas no shape
+  de `GET /members`, com o membro embutido em cada linha.
+- Filtros combináveis `userId`, `kpiId`, `category`, `revoked` e `from`/`to` — dias
+  inclusivos nas duas pontas em `America/Sao_Paulo`. Ordenação por `assignedAt`
+  decrescente com desempate por `id`.
+- Request "Histórico de atribuições (3C)" na pasta de atribuições do Postman.
+
+### 2026-09-23 — API Fase 3B: Ranking
+
+#### Adicionado
+- Módulo `ranking` com `GET /ranking?period=week|month|quarter|all`: todo usuário ativo
+  entra, desempate por pontos, quantidade de KPIs e nome em pt-BR, posições sequenciais.
+  `quarter` é só do Admin — MEMBER recebe 403 `PERIOD_NOT_ALLOWED`.
+- `change` contra o período anterior, `isMe` e o bloco `me` na resposta.
+- Modelo `RankingSnapshot` e migration `20260919200339_ranking_snapshot`: a janela
+  anterior é congelada na leitura, só se já fechou e teve atribuição, com teto de 12
+  janelas.
+- Regras puras em `shared/`: `time/timezone.ts`, `ranking/rank.ts` e
+  `ranking/periods.ts`.
+- Pasta "Ranking (3B)" na collection do Postman.
+- Suíte da API sobe para 509 testes em 25 arquivos (3B a 3E) e os módulos ficam
+  documentados em `docs/modules/` (`ranking`, `dashboard`, `assignments`, `profile`).
+
+### 2026-09-19 — API Fase 3A: Reuniões
+
+#### Adicionado
+- Módulo `meetings` com as sete rotas do Modo Reunião: criar, detalhes, escalar
+  participantes, registrar presença, KPI ao vivo, encerrar e histórico — todas exclusivas
+  do Admin.
+- Presença em transação única: valida reunião aberta, KPI de categoria `PRESENCE` e
+  membros, carimba `presentAt` e cria um `kpi_assignment` por presente, todos com
+  `meetingId` e `points` congelado. Falha no meio da lista não deixa nada criado, e
+  presença dupla não dobra a pontuação.
+- Reconhecimento ao vivo (`POST /meetings/{id}/kpi-assignments`) só para quem está
+  presente; ausente recebe 409 `ATTENDEE_NOT_PRESENT` e continua reconhecível pela rota
+  de atribuição avulsa, com `meetingId` nulo.
+- `closedAt` substitui o booleano `closed`: reunião encerrada é imutável para
+  participante, presença e atribuição, com 409 `MEETING_CLOSED`; segundo encerramento é
+  409 `MEETING_ALREADY_CLOSED`. Revogar atribuição feita na reunião segue permitido pela
+  rota da 2B. Histórico paginado com filtros `status`, `from`/`to` e contadores.
+- Erros de domínio redeclarados no módulo (`KPI_NOT_FOUND`, `KPI_INACTIVE`,
+  `MEMBER_NOT_FOUND`, `MEMBER_INACTIVE`), preservando o contrato `data.code` sem importar
+  o módulo `assignments`. `KPI_NOT_PRESENCE` responde 422.
+- Migration `20260919143727`: `meeting.closedAt`, `meeting_attendee.presentAt` e índices
+  em `date` e `closedAt`.
+- Seed com duas reuniões — uma aberta escalada e uma encerrada com presença mista e
+  atribuições vinculadas.
+- Pasta "Reuniões (3A)" na collection do Postman.
+- Suíte da API sobe para 378 testes em 18 arquivos (service com repository mockado,
+  router com service mockado) e módulo documentado em `docs/modules/meetings.md`.
+
+### 2026-09-08 — API Fase 2D: Badges
+
+#### Adicionado
+- Catálogo de dez badges no módulo `profile`, com progresso, raridade, disponibilidade e
+  `earnedAt` nas respostas de perfil próprio e público.
+- Modelo Prisma `UserBadge` e migration para carimbar conquistas de forma idempotente.
+- Avaliadores puros para categoria, volume e streak ISO em `America/Sao_Paulo`; quatro
+  badges de Fase 3 permanecem declaradas e bloqueadas.
+
+#### Corrigido
+- Badge bloqueada não pode ser desbloqueada por uma linha legada em `user_badge`.
+
+### 2026-08-31 — API de autenticação
+
+#### Adicionado
+- Módulo `auth` em `packages/api`: `login`, `register`, `refresh`, `logout` e `me`, com
+  camadas Router → Service → Repository.
+- Camada `shared/` na API: erros de domínio (`DomainError`, `error-mapper`, `handle`) e
+  segurança (`password`, `tokens`). Reutilizável por qualquer módulo futuro.
+- `protectedProcedure` e `adminProcedure` em `packages/api/src/index.ts`.
+- Modelos `RefreshToken` e `Invitation` no schema Prisma.
+- Script de seed (`npm run db:seed`): um admin e três membros para desenvolvimento.
+- Variáveis `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ACCESS_EXPIRES_IN` e
+  `JWT_REFRESH_EXPIRES_IN`.
+- 52 testes de API com Vitest, nenhum exigindo banco.
+- ADRs 0009 a 0013: camadas, erros de domínio, estratégia de JWT, hashing e UUID.
+- Documentação de arquitetura (`docs/architecture/`), do módulo auth
+  (`docs/modules/auth.md`), `CONTRIBUTING.md` e este changelog.
+- `CLAUDE.md` na raiz e em cada app e pacote.
+
+#### Alterado
+- Ids de todas as tabelas passaram de inteiro sequencial para `uuid` — migration
+  `20260831113234_change_ids_to_uuid`.
+- `createContext` saiu de `packages/api/src/context.ts` para
+  `packages/api/src/shared/context.ts`.
+
+#### Removido
+- Modelo `Todo`, `todoRouter` e a rota correspondente — resíduo do scaffold do
+  Better-T-Stack.
+
+#### Corrigido
+- **Refresh e logout não funcionavam.** O `tokenId` dentro do JWT não era gravado como id
+  da linha em `refresh_token`, então a busca nunca encontrava o registro. Todo refresh
+  retornava 401 e todo logout era no-op silencioso.
+- **Seed quebrado** por importar um caminho que deixou de existir após a reorganização.
+
+#### Segurança
+- **Timing attack no login.** O hash dummy usado para manter o tempo de resposta
+  constante era malformado e bcrypt o rejeitava em 0 ms, contra ~200 ms de um hash real —
+  a defesa era um oráculo maior que o problema. Substituído por um hash bcrypt válido.
+- **Colisão de refresh token.** bcrypt trunca em 72 bytes, e dois refresh tokens do mesmo
+  usuário só diferem depois desse ponto: o hash de um validava o outro. Trocado por
+  SHA-256 com comparação em tempo constante.
+- **Race condition no consumo de convite.** A checagem de `usedAt` acontecia fora da
+  transação; duas requisições simultâneas com o mesmo token criavam duas contas. O
+  consumo passou a ser um `updateMany` atômico guardado por `usedAt: null`.
+- **TOCTOU no e-mail de cadastro.** Violação da constraint única passou a ser traduzida
+  para `EMAIL_ALREADY_REGISTERED` em vez de 500.
+- Rotação de refresh token a cada uso, com detecção de replay: token revogado que
+  reaparece derruba todos os tokens do usuário.
+- Erro sem tratamento deixou de vazar para o cliente — o mapper loga o original e devolve
+  `"Unexpected error"`.
+- `protectedProcedure` e `adminProcedure` passaram a responder 401/403 em vez de 500.
+
+### 2026-08-30 — Dashboard do membro
+
+#### Adicionado
+- Tela de dashboard do membro, com tratamento de estado vazio e roteamento.
+
+### 2026-08-25 — Telas administrativas e modo reunião
+
+#### Adicionado
+- Dashboard do admin com gráfico de área, feed de atividade e delta por período.
+- Telas de KPIs (listagem, criação, edição e ativação) e de membros, com convite por
+  diálogo e perfil em drawer.
+- Ranking para admin e membro, com board compartilhado.
+- Modo reunião: máquina de estado e tela, rodando fora do app shell.
+- Primitives `table`, `sheet` e `dialog` em `packages/ui`; tokens de tipografia,
+  esquema dark e animação de pódio.
+- Ícones do app e manifest web.
+
+#### Alterado
+- App shell responsivo.
+- Valores arbitrários de Tailwind substituídos por tokens do tema.
+
+#### Corrigido
+- Conformidade com as web interface guidelines em layout e overlays.
+- Navegação passou a usar links do router em vez de âncoras.
+
+### 2026-08-24 — Cadastro por convite (mock)
+
+#### Adicionado
+- Fluxo de cadastro por convite no front, com convites mock e cobertura de teste.
+- Guias `CLAUDE.md` de `apps/web` e `apps/server`.
+
+#### Alterado
+- Painel de marca e logo extraídos para componentes compartilhados.
+
+### 2026-08-23 — Setup inicial
+
+#### Adicionado
+- Monorepo Turborepo: `apps/web`, `apps/server`, `apps/fumadocs` e os pacotes `api`,
+  `db`, `env`, `ui`, `config`.
+- Tela de login, design tokens e sessão mock no cliente.
+- App shell com navegação por perfil e guards de rota por sessão e papel.
+- ADRs 0001 a 0008.

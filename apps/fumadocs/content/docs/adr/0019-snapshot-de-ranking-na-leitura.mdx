@@ -1,0 +1,89 @@
+---
+title: 0019 — Snapshot de ranking materializado na leitura
+description: A variação de posição vem de janelas fechadas congeladas sob demanda, sem job agendado.
+---
+
+**Status:** Aceita
+**Data:** 2026-09-19
+
+## Contexto
+
+O ranking mostra `change`: quantas posições cada membro subiu ou desceu em relação ao
+período anterior. Não dá para derivar na hora — a posição de alguém na semana passada
+depende de quem estava ativo naquela semana, e recalcular o ranking de cada período
+fechado a cada leitura é trabalho repetido sobre dado que não muda mais.
+
+A forma óbvia é um job que congela o ranking no fim de cada período. O projeto **não tem
+scheduler**: sem deploy, sem CI, só ambiente local.
+
+## Decisão
+
+**Tabela `ranking_snapshot`, preenchida na leitura.** Mesma forma que a
+[0016](/docs/adr/0016-badges-carimbadas-na-leitura) usou para badges.
+
+```prisma
+model RankingSnapshot {
+  period      RankingPeriod   // WEEK | MONTH | QUARTER
+  periodStart DateTime @db.Date
+  userId      String   @db.Uuid
+  position    Int
+  points      Int
+  kpiCount    Int
+
+  @@unique([period, periodStart, userId])
+}
+```
+
+```
+GET /ranking?period=week
+  ↓
+janela atual    = semana corrente   → nunca vira snapshot
+janela anterior = semana passada    → fechou, pode congelar
+  ↓
+existe snapshot dela?  não → calcula, grava com skipDuplicates
+  ↓
+change = posiçãoNoSnapshot - posiçãoAgora
+```
+
+Regras:
+
+- **Só janela fechada é congelada.** A corrente ainda muda.
+- **Janela sem nenhuma atribuição não vira snapshot.** Todo mundo em zero ordenaria por
+  nome, e o `change` seguinte descreveria o alfabeto.
+- **A materialização anda para trás até achar snapshot, com teto de 12 janelas**
+  (`MATERIALIZATION_LIMIT` em `ranking.service.ts`). Janela que ninguém leu não some.
+- **`change` é `null` quando não há base** — membro novo, janela sem snapshot ou
+  `period=all`. Zero quer dizer "não mudou"; `null` quer dizer "não sei".
+
+Migration `20260919200339_ranking_snapshot`.
+
+## Consequências
+
+**Funciona sem infraestrutura.** Nenhum processo além da API.
+
+**A primeira leitura depois de um período fechar é mais lenta.** Paga a materialização de
+uma ou mais janelas. O teto de 12 limita o pior caso num banco antigo.
+
+**O snapshot congela quem estava ativo.** Membro desativado depois continua no snapshot
+antigo, mas sai do ranking atual — o `change` dos outros não é afetado.
+
+**`skipDuplicates` resolve corrida entre duas leituras simultâneas.** A segunda tenta
+inserir as mesmas linhas e é ignorada pela constraint única.
+
+**Badges e dashboards não usam o snapshot.** As badges de pódio da 3E e os `movers` do
+dashboard calculam ao vivo; o snapshot existe só para o `change` do ranking.
+
+**O seed apaga os snapshots** junto com as atribuições, e eles se refazem na primeira
+leitura.
+
+## Alternativas consideradas
+
+**Job agendado no fim de cada período.** O desenho certo com infraestrutura. Descartada
+por ora: não há onde rodar. Se houver deploy com scheduler, a tabela não muda — só quem a
+preenche.
+
+**Recalcular o período anterior a cada leitura.** Sem tabela. Descartada: refaz o ranking
+inteiro de um período imutável a cada requisição, e não congela quem estava ativo.
+
+**Guardar a posição na própria linha de atribuição.** Descartada: posição é do período,
+não do evento.

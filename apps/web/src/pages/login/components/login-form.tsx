@@ -28,8 +28,23 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { homeRouteFor, InvalidCredentialsError, signIn } from "@/lib/auth";
-import { MOCK_PASSWORD } from "@/mocks/users";
+import {
+	AccountDeactivatedError,
+	homeRouteFor,
+	InvalidCredentialsError,
+	signIn,
+} from "@/lib/auth";
+
+function loginErrorMessage(error: unknown) {
+	if (
+		error instanceof InvalidCredentialsError ||
+		error instanceof AccountDeactivatedError
+	) {
+		return error.message;
+	}
+
+	return "Não foi possível entrar. Tente novamente.";
+}
 
 const loginSchema = z.object({
 	email: z.email("Informe um e-mail válido."),
@@ -55,14 +70,10 @@ export function LoginForm() {
 	const onSubmit = handleSubmit(async (values) => {
 		setFormError(null);
 		try {
-			const session = signIn(values.email, values.password);
+			const session = await signIn(values.email, values.password);
 			await navigate({ to: homeRouteFor(session.role) });
 		} catch (error) {
-			setFormError(
-				error instanceof InvalidCredentialsError
-					? error.message
-					: "Não foi possível entrar. Tente novamente.",
-			);
+			setFormError(loginErrorMessage(error));
 		}
 	});
 
@@ -100,6 +111,7 @@ export function LoginForm() {
 							id="email"
 							type="email"
 							autoComplete="email"
+							spellCheck={false}
 							placeholder="você@empresa.com"
 							aria-invalid={errors.email ? true : undefined}
 							{...register("email")}
@@ -169,13 +181,6 @@ export function LoginForm() {
 					<span className="text-fg-1">
 						Use o link de convite que o chefe enviou.
 					</span>
-				</p>
-
-				{/* Atalho do protótipo — sai junto com os mocks quando a API existir. */}
-				<p className="rounded-sm border border-dashed px-3 py-2 text-center text-fg-3 text-xs">
-					Mock: <span className="text-fg-1">ana.souza@kpicorp.io</span> (admin)
-					ou <span className="text-fg-1">bruno.c@kpicorp.io</span> (membro) ·
-					senha <span className="text-fg-1">{MOCK_PASSWORD}</span>
 				</p>
 			</form>
 		</section>

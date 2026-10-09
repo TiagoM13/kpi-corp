@@ -1,5 +1,5 @@
 model User {
-  id           String   @id @default(cuid())
+  id           String   @id @default(uuid()) @db.Uuid
   name         String
   email        String   @unique
   passwordHash String
@@ -8,9 +8,12 @@ model User {
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
 
-  assignedKpis KpiAssignment[]   @relation("AssignedTo")
-  assignedByMe KpiAssignment[]   @relation("AssignedBy")
-  meetings     MeetingAttendee[]
+  assignedKpis  KpiAssignment[]   @relation("AssignedTo")
+  assignedByMe  KpiAssignment[]   @relation("AssignedBy")
+  meetings      MeetingAttendee[]
+  refreshTokens RefreshToken[]
+  badges        UserBadge[]
+  rankingSnapshots RankingSnapshot[]
 
   @@map("user")
 }

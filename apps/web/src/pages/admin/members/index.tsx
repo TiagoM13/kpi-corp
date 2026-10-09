@@ -1,6 +1,7 @@
 import { Button } from "@kpi-corp/ui/components/button";
 import {
 	Empty,
+	EmptyContent,
 	EmptyDescription,
 	EmptyHeader,
 	EmptyMedia,
@@ -11,22 +12,34 @@ import {
 	InputGroupAddon,
 	InputGroupInput,
 } from "@kpi-corp/ui/components/input-group";
-import { SearchIcon, SendIcon, UsersIcon } from "lucide-react";
+import { Skeleton } from "@kpi-corp/ui/components/skeleton";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
-	lazy,
-	Suspense,
-	useCallback,
-	useDeferredValue,
-	useMemo,
-	useState,
-} from "react";
-import { type Member, MOCK_MEMBERS } from "@/mocks/members";
+	ChevronLeftIcon,
+	ChevronRightIcon,
+	SearchIcon,
+	SendIcon,
+	TriangleAlertIcon,
+	UsersIcon,
+} from "lucide-react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { MEMBERS_PAGE_SIZE, type MemberListItem } from "@/lib/members";
+import { orpc } from "@/utils/orpc";
 import { MemberCard } from "./components/member-card";
 import { MembersTable } from "./components/members-table";
 
-const MemberDetailDrawer = lazy(() =>
-	import("@/components/member-detail").then((module) => ({
-		default: module.MemberDetailDrawer,
+const SEARCH_DEBOUNCE_MS = 300;
+const SKELETON_ROWS = ["a", "b", "c", "d", "e", "f"];
+
+const MemberProfileDrawer = lazy(() =>
+	import("./components/member-profile-drawer").then((module) => ({
+		default: module.MemberProfileDrawer,
+	})),
+);
+
+const MemberStatusDialog = lazy(() =>
+	import("./components/member-status-dialog").then((module) => ({
+		default: module.MemberStatusDialog,
 	})),
 );
 
@@ -36,33 +49,212 @@ const InviteDialog = lazy(() =>
 	})),
 );
 
-function filterMembers(members: Member[], term: string) {
-	const query = term.trim().toLowerCase();
-	if (query === "") return members;
+function useDebouncedValue<T>(value: T, delay: number) {
+	const [debounced, setDebounced] = useState(value);
 
-	return members.filter(
-		(member) =>
-			member.name.toLowerCase().includes(query) ||
-			member.position.toLowerCase().includes(query),
+	useEffect(() => {
+		const timer = setTimeout(() => setDebounced(value), delay);
+		return () => clearTimeout(timer);
+	}, [value, delay]);
+
+	return debounced;
+}
+
+function MembersSkeleton() {
+	return (
+		<div aria-busy className="flex flex-col gap-2 rounded-lg border p-4">
+			<span className="sr-only">Carregando membros…</span>
+			{SKELETON_ROWS.map((row) => (
+				<Skeleton key={row} className="h-10" />
+			))}
+		</div>
 	);
 }
 
-export function AdminMembersPage() {
-	const [search, setSearch] = useState("");
-	const deferredSearch = useDeferredValue(search);
-	const members = useMemo(
-		() => filterMembers(MOCK_MEMBERS, deferredSearch),
-		[deferredSearch],
+function MembersError({ onRetry }: { onRetry: () => void }) {
+	return (
+		<Empty className="border">
+			<EmptyHeader>
+				<EmptyMedia variant="icon">
+					<TriangleAlertIcon />
+				</EmptyMedia>
+				<EmptyTitle>Não deu para carregar os membros</EmptyTitle>
+				<EmptyDescription>Confira a conexão e tente de novo.</EmptyDescription>
+			</EmptyHeader>
+			<EmptyContent>
+				<Button type="button" variant="outline" onClick={onRetry}>
+					Tentar de novo
+				</Button>
+			</EmptyContent>
+		</Empty>
 	);
+}
 
-	const [selected, setSelected] = useState<Member | null>(null);
+function MembersEmpty({ search }: { search: string }) {
+	const term = search.trim();
+
+	return (
+		<Empty className="border">
+			<EmptyHeader>
+				<EmptyMedia variant="icon">
+					<UsersIcon />
+				</EmptyMedia>
+				<EmptyTitle>Nenhum membro encontrado</EmptyTitle>
+				<EmptyDescription>
+					{term === ""
+						? "Convide alguém para começar o time."
+						: `Nada bate com “${term}”. Tente outro nome ou e-mail.`}
+				</EmptyDescription>
+			</EmptyHeader>
+		</Empty>
+	);
+}
+
+type MembersPagerProps = {
+	page: number;
+	totalPages: number;
+	onPageChange: (page: number) => void;
+};
+
+function MembersPager({ page, totalPages, onPageChange }: MembersPagerProps) {
+	if (totalPages <= 1) return null;
+
+	return (
+		<nav
+			aria-label="Paginação de membros"
+			className="flex items-center justify-between gap-3 border-t px-4 py-3"
+		>
+			<span className="text-fg-3 text-xs tabular-nums">
+				Página {page} de {totalPages}
+			</span>
+			<div className="flex gap-2">
+				<Button
+					type="button"
+					variant="outline"
+					size="icon-sm"
+					aria-label="Página anterior"
+					disabled={page <= 1}
+					onClick={() => onPageChange(page - 1)}
+				>
+					<ChevronLeftIcon />
+				</Button>
+				<Button
+					type="button"
+					variant="outline"
+					size="icon-sm"
+					aria-label="Próxima página"
+					disabled={page >= totalPages}
+					onClick={() => onPageChange(page + 1)}
+				>
+					<ChevronRightIcon />
+				</Button>
+			</div>
+		</nav>
+	);
+}
+
+type MembersListProps = {
+	search: string;
+	currentUserId?: string;
+	onPageChange: (page: number) => void;
+	onSelect: (member: MemberListItem) => void;
+	onToggleStatus: (member: MemberListItem) => void;
+	query: ReturnType<typeof useMembersQuery>;
+};
+
+function useMembersQuery(search: string, page: number) {
+	return useQuery(
+		orpc.members.list.queryOptions({
+			input: { page, limit: MEMBERS_PAGE_SIZE, search, status: "ALL" },
+			placeholderData: keepPreviousData,
+		}),
+	);
+}
+
+function MembersList({
+	search,
+	currentUserId,
+	onPageChange,
+	onSelect,
+	onToggleStatus,
+	query,
+}: MembersListProps) {
+	const { data, isPending, isError, refetch } = query;
+
+	if (isPending) {
+		return <MembersSkeleton />;
+	}
+
+	if (isError) {
+		return <MembersError onRetry={() => void refetch()} />;
+	}
+
+	if (data.items.length === 0) {
+		return <MembersEmpty search={search} />;
+	}
+
+	return (
+		<div className="rounded-lg border bg-card">
+			<ul className="md:hidden">
+				{data.items.map((member) => (
+					<MemberCard
+						key={member.id}
+						member={member}
+						isSelf={member.id === currentUserId}
+						onSelect={onSelect}
+						onToggleStatus={onToggleStatus}
+					/>
+				))}
+			</ul>
+
+			<div className="hidden md:block">
+				<MembersTable
+					members={data.items}
+					currentUserId={currentUserId}
+					onSelect={onSelect}
+					onToggleStatus={onToggleStatus}
+				/>
+			</div>
+
+			<MembersPager
+				page={data.page}
+				totalPages={data.totalPages}
+				onPageChange={onPageChange}
+			/>
+		</div>
+	);
+}
+
+function membersHeading(total: number | null) {
+	if (total === null) return "Membros";
+	return total === 1 ? "1 membro" : `${total} membros`;
+}
+
+type AdminMembersPageProps = {
+	currentUserId?: string;
+};
+
+export function AdminMembersPage({ currentUserId }: AdminMembersPageProps) {
+	const [search, setSearch] = useState("");
+	const debouncedSearch = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
+	const [page, setPage] = useState(1);
+	const membersQuery = useMembersQuery(debouncedSearch, page);
+
+	const [selected, setSelected] = useState<MemberListItem | null>(null);
 	const [detailOpen, setDetailOpen] = useState(false);
+	const [statusTarget, setStatusTarget] = useState<MemberListItem | null>(null);
+	const [statusOpen, setStatusOpen] = useState(false);
 	const [inviteLoaded, setInviteLoaded] = useState(false);
 	const [inviteOpen, setInviteOpen] = useState(false);
 
-	const openMember = useCallback((member: Member) => {
+	const openMember = useCallback((member: MemberListItem) => {
 		setSelected(member);
 		setDetailOpen(true);
+	}, []);
+
+	const requestStatusChange = useCallback((member: MemberListItem) => {
+		setStatusTarget(member);
+		setStatusOpen(true);
 	}, []);
 
 	const openInvite = useCallback(() => {
@@ -78,7 +270,7 @@ export function AdminMembersPage() {
 						Equipe
 					</span>
 					<h1 className="font-bold text-heading tracking-tight">
-						{MOCK_MEMBERS.length} membros
+						{membersHeading(membersQuery.data?.total ?? null)}
 					</h1>
 					<p className="text-fg-2 text-sm">
 						Gerencie quem participa e seus perfis.
@@ -93,9 +285,14 @@ export function AdminMembersPage() {
 						<InputGroupInput
 							type="search"
 							value={search}
-							onChange={(event) => setSearch(event.target.value)}
+							name="search"
+							autoComplete="off"
+							onChange={(event) => {
+								setSearch(event.target.value);
+								setPage(1);
+							}}
 							placeholder="Buscar membro…"
-							aria-label="Buscar membro por nome ou cargo"
+							aria-label="Buscar membro por nome ou e-mail"
 						/>
 					</InputGroup>
 
@@ -106,43 +303,31 @@ export function AdminMembersPage() {
 				</div>
 			</header>
 
-			{members.length === 0 ? (
-				<Empty className="border">
-					<EmptyHeader>
-						<EmptyMedia variant="icon">
-							<UsersIcon />
-						</EmptyMedia>
-						<EmptyTitle>Nenhum membro encontrado</EmptyTitle>
-						<EmptyDescription>
-							Nada bate com “{deferredSearch.trim()}”. Tente outro nome ou
-							cargo.
-						</EmptyDescription>
-					</EmptyHeader>
-				</Empty>
-			) : (
-				<div className="rounded-lg border bg-card">
-					<ul className="md:hidden">
-						{members.map((member) => (
-							<MemberCard
-								key={member.id}
-								member={member}
-								onSelect={openMember}
-							/>
-						))}
-					</ul>
-
-					<div className="hidden md:block">
-						<MembersTable members={members} onSelect={openMember} />
-					</div>
-				</div>
-			)}
+			<MembersList
+				search={debouncedSearch}
+				onPageChange={setPage}
+				currentUserId={currentUserId}
+				onSelect={openMember}
+				onToggleStatus={requestStatusChange}
+				query={membersQuery}
+			/>
 
 			{selected && (
 				<Suspense fallback={null}>
-					<MemberDetailDrawer
+					<MemberProfileDrawer
 						member={selected}
 						open={detailOpen}
 						onOpenChange={setDetailOpen}
+					/>
+				</Suspense>
+			)}
+
+			{statusTarget && (
+				<Suspense fallback={null}>
+					<MemberStatusDialog
+						member={statusTarget}
+						open={statusOpen}
+						onOpenChange={setStatusOpen}
 					/>
 				</Suspense>
 			)}

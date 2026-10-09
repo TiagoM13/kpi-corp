@@ -1,7 +1,8 @@
 import { cn } from "@kpi-corp/ui/lib/utils";
 import { UserAvatar } from "@/components/user-avatar";
-import type { RankingEntry } from "@/lib/ranking";
-import type { Member } from "@/mocks/members";
+import type { TeamRankingEntry } from "@/lib/ranking";
+
+type RankedMember = TeamRankingEntry["member"];
 
 const pointsFormat = new Intl.NumberFormat("pt-BR");
 
@@ -35,8 +36,8 @@ const GLOW = {
 } as const;
 
 type RankingPodiumProps = {
-	entries: RankingEntry[];
-	onOpenMember?: (member: Member) => void;
+	entries: TeamRankingEntry[];
+	onOpenMember?: (member: RankedMember) => void;
 };
 
 export function RankingPodium({ entries, onOpenMember }: RankingPodiumProps) {
@@ -77,16 +78,17 @@ export function RankingPodium({ entries, onOpenMember }: RankingPodiumProps) {
 							>
 								<UserAvatar
 									name={entry.member.name}
-									hue={entry.member.hue}
 									className="size-12 text-base sm:size-20 sm:text-2xl"
 								/>
 							</span>
 
 							<div className="flex min-w-0 flex-1 flex-col sm:items-center sm:text-center">
 								<PodiumName entry={entry} onOpenMember={onOpenMember} />
-								<span className="truncate text-2xs text-fg-3">
-									{entry.member.position}
-								</span>
+								{entry.member.position && (
+									<span className="truncate text-2xs text-fg-3">
+										{entry.member.position}
+									</span>
+								)}
 								<span
 									className="font-bold text-lg tabular-nums sm:mt-1 sm:text-heading"
 									style={{ color: place.color }}
@@ -106,7 +108,7 @@ export function RankingPodium({ entries, onOpenMember }: RankingPodiumProps) {
 									place.bar,
 								)}
 							>
-								{entry.place}
+								{entry.position}
 							</span>
 						</li>
 					);
@@ -120,15 +122,15 @@ function PodiumName({
 	entry,
 	onOpenMember,
 }: {
-	entry: RankingEntry;
-	onOpenMember?: (member: Member) => void;
+	entry: TeamRankingEntry;
+	onOpenMember?: (member: RankedMember) => void;
 }) {
-	const label = `${entry.place}º lugar: ${entry.member.name}`;
+	const label = `${entry.position}º lugar: ${entry.member.name}`;
 
 	if (!onOpenMember) {
 		return (
 			<span className="truncate font-semibold text-sm sm:text-base">
-				<span className="sr-only">{entry.place}º lugar: </span>
+				<span className="sr-only">{entry.position}º lugar: </span>
 				{entry.member.name}
 			</span>
 		);
@@ -142,7 +144,7 @@ function PodiumName({
 			title={label}
 			className="truncate rounded-xs text-left font-semibold text-sm hover:underline focus-visible:ring-1 focus-visible:ring-ring/50 sm:text-center sm:text-base"
 		>
-			<span className="sr-only">{entry.place}º lugar: </span>
+			<span className="sr-only">{entry.position}º lugar: </span>
 			{entry.member.name}
 		</button>
 	);

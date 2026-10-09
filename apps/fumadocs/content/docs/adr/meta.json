@@ -9,6 +9,19 @@
 		"0005-tema-dark-only",
 		"0006-pages-e-routes",
 		"0007-primitives-divergentes",
-		"0008-prisma-7"
+		"0008-prisma-7",
+		"0009-camadas-router-service-repository",
+		"0010-erros-de-dominio",
+		"0011-jwt-refresh-token-rotativo",
+		"0012-hash-de-senha-e-de-token",
+		"0013-ids-em-uuid",
+		"0014-sessao-no-cliente",
+		"0015-atribuicao-imutavel-e-revogacao-logica",
+		"0016-badges-carimbadas-na-leitura",
+		"0017-janelas-de-calendario-em-sao-paulo",
+		"0018-regras-puras-em-shared",
+		"0019-snapshot-de-ranking-na-leitura",
+		"0020-token-de-convite-em-sha-256",
+		"0021-backend-entrega-o-numero-pronto"
 	]
 }

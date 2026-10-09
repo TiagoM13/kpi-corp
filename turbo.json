@@ -7,7 +7,13 @@
 		"build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"env": ["DATABASE_URL", "CORS_ORIGIN", "PORT", "VITE_SERVER_URL"],
+			"env": [
+				"DATABASE_URL",
+				"CORS_ORIGIN",
+				"WEB_APP_URL",
+				"PORT",
+				"VITE_SERVER_URL"
+			],
 			"outputs": ["dist/**", ".next/**", "!.next/cache/**"]
 		},
 		"check-types": {
@@ -32,6 +38,9 @@
 		"db:migrate": {
 			"cache": false,
 			"interactive": true
+		},
+		"db:seed": {
+			"cache": false
 		},
 		"db:studio": {
 			"cache": false,

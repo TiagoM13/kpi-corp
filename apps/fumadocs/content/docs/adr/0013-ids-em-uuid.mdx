@@ -1,0 +1,66 @@
+---
+title: 0013 — Identificadores em UUID
+description: Troca de inteiro sequencial por uuid, e o que isso resolve num sistema com convite.
+---
+
+**Status:** Aceita
+**Data:** 2026-08-31
+
+## Contexto
+
+O schema inicial usava `Int @id @default(autoincrement())`. Ao modelar convite e refresh
+token, o problema ficou concreto: id sequencial é **enumerável**.
+
+Um convite endereçado por `/invite/7` diz que existem os convites 1 a 6, e provavelmente
+o 8. O mesmo vale para usuário — `GET /users/3` responde quantas contas o sistema tem.
+
+## Decisão
+
+Todo id primário é `uuid`, gerado pela aplicação, armazenado como `uuid` nativo do
+Postgres:
+
+```prisma
+model User {
+  id String @id @default(uuid()) @db.Uuid
+}
+```
+
+O `@db.Uuid` é a parte que importa: sem ele o Prisma guardaria em `text`, perdendo
+validação e os 16 bytes de armazenamento contra 36.
+
+Migração em `20260831113234_change_ids_to_uuid`.
+
+O token de convite é coisa **separada** do id — `Invitation.token` é uma coluna própria,
+única. O id identifica a linha; o token é o segredo que circula no link.
+
+## Consequências
+
+**Id não vaza volume nem ordem.** Nem de usuário, nem de convite, nem de KPI.
+
+**A aplicação gera o id antes do insert.** Foi o que permitiu o refresh token gravar a
+linha com a mesma chave que vai dentro do JWT — ver
+[0011](/docs/adr/0011-jwt-refresh-token-rotativo). Com autoincrement o id só existiria
+depois do insert.
+
+**Índice maior e ordem de inserção aleatória.** uuid v4 não é sequencial, então B-tree
+sofre mais fragmentação que um inteiro. Irrelevante no volume deste projeto; se algum
+dia importar, o caminho é uuid v7, que é ordenável por tempo.
+
+**Id em log e URL fica ilegível.** `b29f5637-0ab1-4de0-b2d2-d364e3903124` contra `3`.
+Custo aceito.
+
+**FK também é `@db.Uuid`.** Tipo divergente entre coluna e referência faz o Postgres
+descartar o índice no join. Todas as FKs foram convertidas junto na mesma migration.
+
+## Alternativas consideradas
+
+**Manter `autoincrement()` e expor um `publicId` uuid separado.** Mantém o índice
+compacto e esconde o volume. Descartada: duas chaves por tabela, e toda query precisa
+saber qual usar.
+
+**uuid v7.** Ordenável por tempo, resolve a fragmentação. Descartada por ora:
+`@default(uuid())` do Prisma gera v4, e adotar v7 exigiria gerar na aplicação em todo
+model. Sem ganho mensurável no volume atual.
+
+**`cuid()`.** Menor e ordenável. Descartada: não é tipo nativo do Postgres, ficaria em
+`text` — perde a validação no banco e o armazenamento compacto.

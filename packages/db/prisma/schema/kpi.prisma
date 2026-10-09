@@ -1,5 +1,5 @@
 model Kpi {
-  id          String      @id @default(cuid())
+  id          String      @id @default(uuid()) @db.Uuid
   name        String      @unique
   description String?
   points      Int
@@ -13,9 +13,10 @@ model Kpi {
 }
 
 enum KpiCategory {
-  ATTENDANCE
+  PRESENCE
   PERFORMANCE
   BEHAVIOR
+  INITIATIVE
 
   @@map("kpi_category")
 }

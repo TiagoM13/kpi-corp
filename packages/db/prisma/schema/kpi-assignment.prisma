@@ -1,12 +1,13 @@
 model KpiAssignment {
-  id         String   @id @default(cuid())
-  kpiId      String
-  userId     String
-  assignedBy String
-  meetingId  String?
+  id         String   @id @default(uuid()) @db.Uuid
+  kpiId      String   @db.Uuid
+  userId     String   @db.Uuid
+  assignedBy String   @db.Uuid
+  meetingId  String?   @db.Uuid
   note       String?
-  active     Boolean  @default(true)
-  assignedAt DateTime @default(now())
+  points     Int
+  revokedAt  DateTime?
+  assignedAt DateTime  @default(now())
 
   kpi      Kpi      @relation(fields: [kpiId], references: [id])
   user     User     @relation("AssignedTo", fields: [userId], references: [id])

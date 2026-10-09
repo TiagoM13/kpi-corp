@@ -1,0 +1,68 @@
+---
+title: 0021 — A API entrega o número pronto; o front só formata
+description: Nenhuma regra de domínio é calculada no cliente, e o que falta vira pendência da API.
+---
+
+**Status:** Aceita
+**Data:** 2026-09-26
+
+## Contexto
+
+As telas nasceram sobre mock (`apps/web/src/mocks/`), e o mock calculava tudo no
+cliente: nível, status do membro, totais do time, membros estagnados, variação de
+ranking. Ao integrar com a API, cada bloco tinha dois caminhos possíveis:
+
+- **derivar no front** a partir do que a API já devolvia — rápido, sem mexer no backend;
+- **pedir o número à API** — mais lento, exige endpoint ou campo novo.
+
+Derivar no front cria uma segunda implementação da regra. Status "estagnado" calculado
+na tela de membros e no dashboard do Admin por código diferente vai divergir, e nenhum
+teste de API pega.
+
+## Decisão
+
+**Regra de domínio mora na API.** O front recebe o número pronto e só formata: data,
+plural, "há 2 horas", cor de faixa.
+
+**O que a API ainda não entrega sai da tela.** O bloco não é calculado no cliente, nem
+substituído por mock. A chamada fica **comentada** — o componente não é apagado — e a
+falta entra em `docs/pendencias-api.md` com id do módulo:
+
+```md
+| # | A tela precisa | Hoje a API entrega | Enquanto isso |
+| DA01 | Série de pontos por semana | nada | gráfico fora da tela |
+```
+
+**Resolver uma pendência é um PR só:** a API entrega o campo, o front lê, a linha sai do
+arquivo.
+
+## Consequências
+
+**Uma implementação por regra.** Status do membro, nível, `rankingChange`, `trends`,
+`movers` e `weekSeries` vêm prontos de `members`, `profile`, `ranking` e `dashboard`.
+
+**O fechamento de 2026-09-26 foi esta regra em prática.** DA01, DA03, DA05, MB01 e MB02
+foram resolvidos na API, e `mocks/team-history.ts` e as derivações de
+`lib/dashboard.ts` saíram do front. DA02 foi descartada: o banco não guarda histórico de
+ativação, e inventar o número no cliente seria pior que não mostrar.
+
+**Telas ficam temporariamente mais pobres.** Um bloco sem dado sai da tela em vez de
+mostrar aproximação. Custo aceito.
+
+**`docs/pendencias-api.md` é o backlog da API.** Hoje restam MT03 (KPI de presença da
+reunião) e AU01 (recuperar senha).
+
+**O tipo do router protege o contrato.** O front importa `AppRouterClient` de
+`@kpi-corp/api`; campo removido ou renomeado quebra no `check-types`.
+
+## Alternativas consideradas
+
+**Derivar no front e migrar depois.** Descartada: "depois" não tem gatilho, e a regra
+duplicada sobrevive.
+
+**Manter o mock nos blocos sem API.** Descartada: dado falso numa tela integrada é
+indistinguível de dado real para quem usa.
+
+**Endpoint agregador por tela (BFF).** Descartada por ora: os dashboards já respondem
+numa requisição (`dashboard.getAdmin`, `dashboard.getMember`), sem precisar de camada
+nova.

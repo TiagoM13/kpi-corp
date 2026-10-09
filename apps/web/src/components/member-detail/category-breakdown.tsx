@@ -1,8 +1,10 @@
 import type { CategoryShare } from "@/lib/member-stats";
 
+const pointsFormat = new Intl.NumberFormat("pt-BR");
+
 export function CategoryBreakdown({ shares }: { shares: CategoryShare[] }) {
 	return (
-		<section className="flex flex-col gap-4 rounded-lg border bg-card p-5">
+		<section className="flex min-w-0 flex-col gap-4 rounded-lg border bg-card p-5">
 			<h3 className="font-medium text-2xs text-fg-3 uppercase tracking-widest">
 				Distribuição por categoria
 			</h3>
@@ -20,7 +22,7 @@ export function CategoryBreakdown({ shares }: { shares: CategoryShare[] }) {
 								{category.label}
 							</span>
 							<span className="text-fg-2 tabular-nums">
-								{points} pts · {Math.round(percent)}%
+								{pointsFormat.format(points)} pts · {Math.round(percent)}%
 							</span>
 						</div>
 

@@ -1,0 +1,11 @@
+model Invitation {
+  id        String    @id @default(uuid()) @db.Uuid
+  email     String
+  tokenHash String    @unique
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+  @@map("invitation")
+}

@@ -5,42 +5,63 @@ import {
 	UsersIcon,
 } from "lucide-react";
 import { StatCard } from "@/components/stat-card";
-import type { TeamTotals } from "@/lib/dashboard";
-import { TEAM_HISTORY, TEAM_STATS } from "@/mocks/team-history";
+import type { AdminDashboard } from "@/lib/dashboard";
 
 const pointsFormat = new Intl.NumberFormat("pt-BR");
 
-export function DashboardStats({ totals }: { totals: TeamTotals }) {
+function plural(total: number, one: string, many: string) {
+	return `${total} ${total === 1 ? one : many}`;
+}
+
+function monthSub(month: number, delta: number | null) {
+	const base = `${pointsFormat.format(month)} no mês`;
+
+	if (delta === null) {
+		return base;
+	}
+
+	return `${base} · ${delta > 0 ? "+" : ""}${delta}% vs. mês anterior`;
+}
+
+export function DashboardStats({ dashboard }: { dashboard: AdminDashboard }) {
+	const {
+		points,
+		kpis,
+		meetings,
+		members,
+		membersWithoutKpis,
+		withoutKpisDays,
+		trends,
+	} = dashboard;
+
 	return (
 		<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
 			<StatCard
 				label="Pontos totais"
-				value={pointsFormat.format(totals.points)}
-				delta={TEAM_STATS.pointsDelta}
-				sub="vs. mês anterior"
+				value={pointsFormat.format(points.total)}
+				sub={monthSub(points.month, points.monthDelta)}
+				trend={trends.points}
 				icon={TargetIcon}
-				trend={TEAM_HISTORY["90d"].points.slice(-8)}
 			/>
 			<StatCard
 				label="KPIs nesta semana"
-				value={totals.weekKpis}
-				delta={TEAM_STATS.kpisDelta}
-				sub={`${totals.weekMeetings} reuniões registradas`}
+				value={kpis.week}
+				delta={kpis.weekDelta ?? undefined}
+				trend={trends.kpis}
+				sub={`${plural(meetings.week, "reunião", "reuniões")} nesta semana`}
 				icon={TrendingUpIcon}
 				accentClassName="text-good"
-				trend={TEAM_HISTORY["7d"].points}
 			/>
 			<StatCard
 				label="Membros ativos"
-				value={`${totals.activeMembers} / ${totals.totalMembers}`}
-				delta={TEAM_STATS.membersDelta}
-				sub="todos no time"
+				value={`${members.active} / ${members.total}`}
+				sub="ativos / cadastrados"
 				icon={UsersIcon}
 			/>
 			<StatCard
-				label="Estagnados"
-				value={totals.stagnantCount}
-				sub="sem KPI há 7 dias ou mais"
+				label="Sem KPI"
+				value={membersWithoutKpis.length}
+				sub={`há ${withoutKpisDays} dias ou mais`}
 				icon={TriangleAlertIcon}
 				accentClassName="text-warn"
 			/>

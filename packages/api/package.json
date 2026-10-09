@@ -10,7 +10,9 @@
 		}
 	},
 	"scripts": {
-		"check-types": "tsc --noEmit"
+		"check-types": "tsc --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"dependencies": {
 		"@kpi-corp/db": "*",
@@ -20,11 +22,14 @@
 		"@orpc/server": "^1.14.12",
 		"@orpc/zod": "^1.14.12",
 		"@prisma/client": "^7.9.1",
+		"bcryptjs": "^3.0.2",
 		"dotenv": "^17.4.2",
+		"jose": "^6.0.10",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
 		"@kpi-corp/config": "*",
-		"typescript": "^6.0.3"
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.11"
 	}
 }

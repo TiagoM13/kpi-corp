@@ -5,10 +5,21 @@ import { createTanstackQueryUtils } from "@orpc/tanstack-query";
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import {
+	createRefresher,
+	createSessionInterceptor,
+	isExpiredAccessError,
+	readAccessToken,
+} from "@/lib/refresh";
+
 export function createQueryClient() {
 	return new QueryClient({
 		queryCache: new QueryCache({
 			onError: (error, query) => {
+				if (isExpiredAccessError(error)) {
+					return;
+				}
+
 				toast.error(`Error: ${error.message}`, {
 					action: {
 						label: "retry",
@@ -75,8 +86,19 @@ export const link = new RPCLink({
 		rpcUrl ??= resolveRpcUrl();
 		return rpcUrl;
 	},
+	headers: (): Record<string, string> => {
+		const accessToken = readAccessToken();
+		return accessToken ? { authorization: `Bearer ${accessToken}` } : {};
+	},
+	interceptors: [(options) => sessionInterceptor(options)],
 });
 
 export const client: AppRouterClient = createORPCClient(link);
+
+export const refreshOnce = createRefresher((refreshToken) =>
+	client.auth.refresh({ refreshToken }),
+);
+
+const sessionInterceptor = createSessionInterceptor(refreshOnce);
 
 export const orpc = createTanstackQueryUtils(client);

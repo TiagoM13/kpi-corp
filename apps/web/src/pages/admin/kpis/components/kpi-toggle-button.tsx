@@ -1,8 +1,8 @@
 import { Button } from "@kpi-corp/ui/components/button";
 import { cn } from "@kpi-corp/ui/lib/utils";
 import { toast } from "sonner";
-import { selectToggleKpi, useKpiStore } from "@/lib/kpi-store";
 import type { Kpi } from "@/mocks/kpis";
+import { useToggleKpi } from "../use-kpis";
 
 export function KpiToggleButton({
 	kpi,
@@ -11,7 +11,7 @@ export function KpiToggleButton({
 	kpi: Kpi;
 	className?: string;
 }) {
-	const toggleKpi = useKpiStore(selectToggleKpi);
+	const toggleKpi = useToggleKpi();
 
 	return (
 		<Button
@@ -19,10 +19,19 @@ export function KpiToggleButton({
 			variant="ghost"
 			size="sm"
 			className={cn("text-fg-2", className)}
+			disabled={toggleKpi.isPending}
+			aria-label={`${kpi.active ? "Inativar" : "Ativar"} ${kpi.name}`}
 			onClick={(event) => {
 				event.stopPropagation();
-				toggleKpi(kpi.id);
-				toast.success(kpi.active ? "KPI inativado" : "KPI reativado");
+				toggleKpi.mutate(
+					{ id: kpi.id, active: !kpi.active },
+					{
+						onSuccess: () =>
+							toast.success(kpi.active ? "KPI inativado" : "KPI reativado"),
+						onError: () =>
+							toast.error("Não deu para mudar o status do KPI. Tente de novo."),
+					},
+				);
 			}}
 		>
 			{kpi.active ? "Inativar" : "Ativar"}

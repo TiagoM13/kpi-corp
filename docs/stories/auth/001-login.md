@@ -69,22 +69,37 @@ espaço e caixa diferente, senha errada, mensagem idêntica para e-mail inexiste
 senha errada, sessão não criada quando falha, persistência, storage corrompido, e a
 rota inicial de cada perfil.
 
-## ⚙️ API — `apps/server` + `packages/api`
+## ⚙️ API — `apps/server` + `packages/api` ⚠️ parcial
 
 Responsável por validar credencial, decidir o perfil, emitir e revogar sessão.
 É a **única** fonte de verdade sobre quem o usuário é.
 
-- [ ] Procedure `auth.login` recebendo `{ email, password }` validados por Zod
-- [ ] Verificação da senha contra `User.passwordHash` com algoritmo de hash lento (argon2 ou bcrypt)
-- [ ] Rejeita usuário com `active: false`
-- [ ] Erro genérico e tempo de resposta constante para e-mail inexistente e senha errada
-- [ ] Emite JWT contendo `sub` e `role`, lido de `User.role` no banco
+- [x] Procedure `auth.login` recebendo `{ email, password }` validados por Zod
+- [x] Verificação da senha contra `User.passwordHash` com algoritmo de hash lento (bcrypt)
+- [x] Rejeita usuário com `active: false` — 403 `ACCOUNT_DEACTIVATED`
+- [x] Erro genérico e tempo de resposta constante para e-mail inexistente e senha errada
+- [x] Emite JWT contendo `sub` e `role`, lido de `User.role` no banco
 - [ ] Entrega o token em cookie `httpOnly` + `Secure` + `SameSite`
 - [ ] Expiração por inatividade definida, com renovação a cada requisição válida
-- [ ] Procedure `auth.me` devolvendo o usuário da sessão corrente
+- [x] Procedure `auth.me` devolvendo o usuário da sessão corrente
 - [ ] `createContext` passa a resolver a sessão a partir do cookie
-- [ ] Procedure protegida (`protectedProcedure`) que recusa requisição sem sessão válida
+- [x] Procedure protegida (`protectedProcedure`) que recusa requisição sem sessão válida
 - [ ] Limite de tentativas por e-mail e por IP
+
+Entregue em `packages/api/src/modules/auth/`. O que sobra dos critérios acima está
+descrito em ⚠️ Ainda em aberto.
+
+### O que foi entregue diferente do critério
+
+**Token no corpo, não em cookie.** `auth.login` devolve `accessToken` e `refreshToken` no
+corpo da resposta, e `createContext` lê `Authorization: Bearer`. A
+[ADR 0011](http://localhost:4000/docs/adr/0011-jwt-refresh-token-rotativo) registra isso
+como escolha do estado atual, não recomendação final — o CORS já está com
+`credentials: true` para a troca.
+
+**Expiração fixa, não por inatividade.** Access token vale 15 minutos e o refresh
+rotaciona a cada uso, revogando o anterior; um refresh já usado que reaparece revoga
+todos os tokens do usuário. Não é o mesmo que "renovação a cada requisição válida".
 
 ### Ponto de partida
 
@@ -92,7 +107,7 @@ Responsável por validar credencial, decidir o perfil, emitir e revogar sessão.
 | --- | --- |
 | `User.email` `@unique`, `passwordHash`, `role`, `active` | Já no schema Prisma |
 | `enum Role { ADMIN, MEMBER }` | Já no schema |
-| `createContext` devolvendo `{ auth: null, session: null }` | Gancho pronto, sem implementação |
+| `createContext` resolvendo `context.auth` a partir do `Bearer` | Implementado |
 | CORS com `credentials: true` | Já configurado — necessário para cookie |
 
 ### O que o front espera da API
@@ -121,6 +136,13 @@ JavaScript não lê, então um XSS não sequestra a sessão. O critério origina
 "httpOnly cookie ou localStorage"; as duas opções não são equivalentes e a story
 fixa cookie.
 
+> **Conflito aberto.** A API entrega os tokens no corpo, e a story
+> `005-session-api-integration.md` propõe guardá-los em `localStorage` para manter o
+> guard de rota síncrono. Isso contradiz o parágrafo acima. Os dois documentos estão
+> certos sobre o que querem e errados juntos: ou a migração para cookie `httpOnly` entra
+> antes da integração, ou o ADR que autorizar `localStorage` precisa assumir a
+> contradição e dar prazo. **Decidir antes de implementar a 005.**
+
 **Senha única em texto puro** (`kpicorp123`) em `mocks/users.ts`, e um aviso na tela
 de login mostrando as credenciais. Ambos saem junto com o mock.
 
@@ -143,6 +165,6 @@ uma tem story própria.
 - Perfil: Admin / Membro
 - Prioridade: Alta
 - Fase: MVP
-- Web: concluído com sessão mock
-- API: não iniciado
+- Web: concluído — `auth.login` real, sessão em `localStorage` ([ADR 0014](http://localhost:4000/docs/adr/0014-sessao-no-cliente))
+- API: implementada — falta cookie `httpOnly` e rate limiting, ambos critérios desta story
 - Relacionada: `004-route-protected.md`

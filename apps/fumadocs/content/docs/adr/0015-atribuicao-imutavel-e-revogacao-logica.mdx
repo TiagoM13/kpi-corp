@@ -1,0 +1,75 @@
+---
+title: 0015 — Atribuição congela a pontuação e revogar não apaga
+description: Por que kpi_assignment copia os pontos do KPI e troca o booleano por data.
+---
+
+**Status:** Aceita
+**Data:** 2026-09-07
+
+## Contexto
+
+`KpiAssignment` nasceu apontando só para `kpiId`, com `active Boolean`. Dois problemas
+apareceram ao modelar as Fases 2B e 3:
+
+1. **Reprecificar um KPI reescrevia o passado.** Editar um KPI de 5 para 50 pontos
+   mudaria a pontuação de todo mundo que já o recebeu, sem que nenhum evento tivesse
+   acontecido.
+2. **`active: false` não diz quando.** Ranking por período, histórico e badges de
+   constância precisam responder "quanto o membro tinha em março". Um booleano não
+   carrega essa informação.
+
+O PRD ainda exige que revogação tire os pontos retroativamente, mas que o histórico
+permaneça.
+
+## Decisão
+
+**`points` é copiado do KPI no instante da atribuição.** Mesma razão pela qual nota fiscal
+guarda o preço em vez de um link para a tabela de preços. `category` **não** é copiada:
+categoria é classificação e acompanha a correção; pontuação é valor negociado no momento.
+
+**Revogar é preencher `revokedAt`, nunca apagar a linha.**
+
+| | `active: false` | `revokedAt: <data>` |
+| --- | --- | --- |
+| Diz que não conta | sim | sim |
+| Diz **quando** deixou de contar | não | sim |
+| Derivável do outro | sim | não |
+
+```
+pontuação válida = SUM(points) WHERE revokedAt IS NULL
+```
+
+A mesma troca foi aplicada a `Meeting.closed` → `closedAt` na Fase 3A, pelo mesmo
+argumento. Migrations `20260907120000_assignment_points_and_revoked_at` e
+`20260919143727_meeting_closed_at_and_attendee_present_at`.
+
+## Consequências
+
+**`PUT /kpis/:id` é seguro para `points`.** Reprecificar vale só para o futuro.
+
+**A rota `DELETE /kpi-assignments/:id` não apaga.** O verbo é o que o cliente espera
+para "tirar isso daqui"; o efeito é revogação. Revogar duas vezes é erro
+(`ASSIGNMENT_ALREADY_REVOKED`), não no-op, para não esconder clique duplo.
+
+**Toda leitura de pontuação filtra `revokedAt IS NULL`.** Ranking, perfil, dashboard e
+badges. Esquecer o filtro é o defeito mais provável deste modelo, e os testes de cada
+módulo o cobram.
+
+**A regra de cópia existe em dois repositories.** `assignments` e `meetings` escrevem em
+`kpi_assignment`, e módulo não importa módulo
+([0009](/docs/adr/0009-camadas-router-service-repository)). É uma linha
+(`points: kpi.points`), coberta por teste nos dois caminhos.
+
+**Não existe `revokedBy`.** Só Admin revoga. Se auditoria virar requisito, é coluna nova
+sem migração de dados.
+
+## Alternativas consideradas
+
+**Referenciar `kpi.points` na leitura.** Zero colunas a mais. Descartada: reprecificação
+reescreveria o ranking de meses fechados.
+
+**Apagar a linha ao revogar.** Mais simples de consultar. Descartada: perde o histórico
+que o PRD exige e o "quando" que o ranking por período precisa.
+
+**Manter `active` e adicionar `revokedAt`.** Descartada: dois campos que podem divergir,
+e o booleano é derivável da data.

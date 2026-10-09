@@ -2,18 +2,23 @@ import { describe, expect, it } from "vitest";
 
 import { rankOf } from "@/lib/member-stats";
 import {
+	formatPeriodWindow,
+	MEMBER_RANKING_PERIODS,
 	overallPositionOf,
 	PERIOD_SLUGS,
 	periodFromSlug,
+	RANKING_PERIODS,
 	type RankingPeriod,
 	rankingFor,
 	TEAM_SIZE,
 } from "@/lib/ranking";
 import { MOCK_MEMBERS } from "@/mocks/members";
 
-const PERIODS: RankingPeriod[] = ["week", "month", "all"];
+type MockPeriod = Exclude<RankingPeriod, "quarter">;
 
-function names(period: RankingPeriod, count: number) {
+const PERIODS: MockPeriod[] = ["week", "month", "all"];
+
+function names(period: MockPeriod, count: number) {
 	return rankingFor(period)
 		.slice(0, count)
 		.map((entry) => entry.member.name);
@@ -73,7 +78,7 @@ describe("rankingFor", () => {
 });
 
 describe("periodFromSlug", () => {
-	it.each(PERIODS)("aceita o slug de %s", (period) => {
+	it.each(RANKING_PERIODS)("aceita o slug de %s", (period) => {
 		expect(periodFromSlug(PERIOD_SLUGS[period])).toBe(period);
 	});
 
@@ -83,6 +88,36 @@ describe("periodFromSlug", () => {
 			expect(periodFromSlug(slug)).toBe("all");
 		},
 	);
+
+	it("so aceita trimestre quando o periodo esta liberado", () => {
+		expect(periodFromSlug("trimestre")).toBe("quarter");
+		expect(periodFromSlug("trimestre", MEMBER_RANKING_PERIODS)).toBe("all");
+	});
+});
+
+describe("formatPeriodWindow", () => {
+	const base = { period: "month" as const, items: [], me: null };
+
+	it("mostra o intervalo do periodo em pt-BR", () => {
+		expect(
+			formatPeriodWindow({
+				...base,
+				periodStart: "2026-09-01",
+				periodEnd: "2026-09-30",
+			}),
+		).toBe("1 de set. a 30 de set.");
+	});
+
+	it("nao mostra intervalo no geral", () => {
+		expect(
+			formatPeriodWindow({
+				...base,
+				period: "all",
+				periodStart: null,
+				periodEnd: null,
+			}),
+		).toBeNull();
+	});
 });
 
 describe("overallPositionOf", () => {
