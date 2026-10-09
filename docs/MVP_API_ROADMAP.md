@@ -1,7 +1,7 @@
 # KPICorp — Roadmap da API MVP
 
 **Versão:** 1.0
-**Status:** Em desenvolvimento
+**Status:** Concluído — API do MVP fechada em 2026-09-26 (Fases 1 a 3 entregues). O que o front ainda pede está em [`pendencias-api.md`](pendencias-api.md)
 **Escopo:** Backend / API
 **Objetivo:** Implementar toda a camada de negócio necessária para conectar o frontend existente ao backend do KPICorp.
 
@@ -1140,6 +1140,12 @@ Usuário ausente do snapshot anterior recebe `change: null`; `all` sempre `null`
 
 **Entregue na Fase 3D.** Detalhes em [`specs/fase-3d-dashboards.md`](specs/fase-3d-dashboards.md).
 
+> **Atualizado em 2026-09-26**, depois da 3D: a resposta ganhou `weekPoints`,
+> `weekSeries` (pontos por dia da semana corrente) e `rankingChange` (posições ganhas ou
+> perdidas no ranking geral desde o início da semana), e **perdeu `recentKpis`** — nenhuma
+> tela lia o campo. O exemplo abaixo é o contrato original da 3D; o atual está em
+> [`modules/dashboard.md`](modules/dashboard.md) (RN18, RN19).
+
 ```http
 GET /dashboard/member
 ```
@@ -1166,7 +1172,8 @@ GET /dashboard/member
 
 * `level` é o objeto completo de § 2.7, idêntico ao de `/me/score`.
 * `rankingPosition` é a posição no ranking `all`; `teamSize` é o total de ativos.
-* `recentKpis` traz as cinco últimas atribuições **válidas**, decrescente.
+* `recentKpis` trazia as cinco últimas atribuições **válidas**, decrescente — removido em
+  2026-09-26.
 * Usuário desativado perde a sessão já na requisição seguinte: o contexto confere
   `active` no banco e responde 401. O dashboard ainda recusa com `403 ACCOUNT_DEACTIVATED`
   como segunda barreira.
@@ -1176,6 +1183,14 @@ Uma requisição, uma resposta, sem cache nem agregado gravado.
 ---
 
 # 3.9 — Dashboard do Admin
+
+> **Atualizado em 2026-09-26**, depois da 3D: a resposta ganhou `points.total`,
+> `points.monthDelta`, `kpis.weekDelta`, `withoutKpisDays`, `trends` (8 semanas de pontos
+> e 7 dias de KPIs, para os sparklines) e `movers` (top 5 da semana com série e variação
+> de posição); `recentAssignments` traz `assigner` e `meeting`. Entrou também
+> `GET /dashboard/admin/points-series?period=7d|30d|90d|all`, a série de pontos e KPIs do
+> time para o gráfico. O exemplo abaixo é o contrato original da 3D; o atual está em
+> [`modules/dashboard.md`](modules/dashboard.md) (RN16 a RN22).
 
 ```http
 GET /dashboard/admin
@@ -1772,11 +1787,13 @@ O objetivo final não é apenas disponibilizar endpoints isolados, mas garantir 
 
 ## Estado
 
-**Lado da API: completo**, em desenvolvimento local — as entregas 2A a 3E estão
+**Concluído em 2026-09-26**, em desenvolvimento local — as entregas 2A a 3E estão
 implementadas e cobertas por teste, e § 1.7, § 2.10 e § 3.12 estão atendidos. Não há
 deploy, CI nem release.
 
-O marco acima **ainda não foi atingido**: ele exige o frontend rodando sem mocks, e as
-telas de `apps/web/` continuam consumindo `apps/web/src/mocks/`. O que falta é trabalho de
-web, registrado nas **Consequências registradas** de cada spec em `docs/specs/`. Rate
-limiting em `login`, `register` e `refresh` segue inexistente.
+O marco acima **foi atingido**: todas as telas de `apps/web/` consomem a API, sem ler
+dado de `apps/web/src/mocks/`. Os ajustes de dashboard pedidos pelo front depois da 3D
+(§ 3.8 e § 3.9) entraram na mesma data. O que o front ainda pede está em
+[`pendencias-api.md`](pendencias-api.md) — hoje MT03 (KPI de presença guardado na reunião)
+e AU01 (recuperar senha). Rate limiting em `login`, `register` e `refresh` segue
+inexistente.

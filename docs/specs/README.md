@@ -142,9 +142,9 @@ Spec **não** é ADR: ela é revisada, ajustada e envelhece junto com a entrega.
 que sobrevive à entrega e vale para o repositório inteiro vira ADR.
 
 Spec **não** é story: story é do front, e a Fase 3 inteira não toca em `apps/web/`. A
-migração das telas para a API é trabalho separado, listado nas **Consequências
-registradas** de cada spec — hoje o front consome mock para nível, ranking, badges,
-reunião e dashboard.
+migração das telas para a API foi trabalho separado, listado nas **Consequências
+registradas** de cada spec, e está concluída: desde 2026-09-26 nenhuma tela lê mock. O que
+a API ainda não entrega ao front está em [`../pendencias-api.md`](../pendencias-api.md).
 
 ---
 

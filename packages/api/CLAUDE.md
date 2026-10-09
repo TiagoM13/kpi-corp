@@ -62,16 +62,24 @@ lint emudecer.
 
 ## Estrutura de um módulo
 
+Módulos hoje: `auth`, `members`, `kpis`, `assignments`, `meetings`, `profile`, `ranking`
+e `dashboard`, todos em `src/modules/` e registrados em `src/routers/index.ts`.
+
 ```
 modules/<nome>/
 ├── <nome>.router.ts       # oRPC — uma linha por rota
 ├── <nome>.service.ts      # regra, lança DomainError
 ├── <nome>.repository.ts   # Prisma
 ├── <nome>.schema.ts       # Zod de input e output
-├── <nome>.mapper.ts       # User (Prisma) → DTO
+├── <nome>.mapper.ts       # Prisma → DTO
 ├── <nome>.errors.ts       # erros do módulo
 └── index.ts               # barrel
 ```
+
+`mapper` e `errors` só existem quando o módulo precisa (`assignments` não tem mapper,
+`dashboard` e `profile` não têm errors). Regra pura específica do módulo ganha arquivo
+próprio com o nome do módulo: `auth.tokens.ts`, `dashboard.series.ts`,
+`profile.badges.ts`.
 
 Service e repository são **um objeto só por camada**, não funções soltas:
 
@@ -171,22 +179,21 @@ npm run test          # da raiz
 npx vitest            # watch, de dentro do pacote
 ```
 
-534 testes em 26 arquivos, **nenhum precisa de banco**.
+617 testes em 28 arquivos, **nenhum precisa de banco**.
 
 | Arquivo | Mocka |
 | --- | --- |
-| `tests/modules/auth/service.test.ts` | `authRepository` inteiro |
-| `tests/modules/auth/router.test.ts` | `authService` inteiro |
+| `tests/modules/<módulo>/service.test.ts` | o repository do módulo inteiro (`members` também mocka `@kpi-corp/env/server`) |
+| `tests/modules/<módulo>/router.test.ts` | o service do módulo inteiro |
 | `tests/modules/auth/tokens.test.ts` | nada |
-| `tests/modules/meetings/service.test.ts` | `meetingsRepository` inteiro |
-| `tests/modules/meetings/router.test.ts` | `meetingsService` inteiro |
-| `tests/modules/ranking/service.test.ts` | `rankingRepository` inteiro |
-| `tests/modules/ranking/router.test.ts` | `rankingService` inteiro |
-| `tests/modules/dashboard/service.test.ts` | `dashboardRepository` inteiro |
-| `tests/modules/dashboard/router.test.ts` | `dashboardService` inteiro |
-| `tests/modules/assignments/router.test.ts` | `assignmentsService` inteiro |
+| `tests/modules/dashboard/series.test.ts` | nada — regra pura de `dashboard.series.ts` |
+| `tests/modules/profile/badges.test.ts` | nada — regra pura de `profile.badges.ts` |
 | `tests/shared/context.test.ts` | `sessionRepository` inteiro |
-| `tests/shared/**` | nada — `errors`, `security`, `ranking`, `gamification` |
+| `tests/shared/**` | nada — `errors`, `security`, `ranking`, `gamification`, `members` |
+| `tests/procedures.test.ts` | nada — guards de `publicProcedure`/`protectedProcedure`/`adminProcedure` |
+| `tests/architecture.test.ts` | nada — varre os imports entre camadas e módulos |
+
+Todos os oito módulos têm o par `service.test.ts` + `router.test.ts`.
 
 ```ts
 vi.mock("../../../modules/auth/auth.repository", () => ({
@@ -213,5 +220,7 @@ quebra. Foi por isso que o seed hasheia senha com `bcryptjs` direto.
 
 - Rate limiting em `login`, `register` e `refresh` — não existe.
 - Limpeza de `refresh_token` revogado/expirado — a tabela só cresce.
-- A API do MVP está completa (3A a 3E entregues). O que falta do produto é a migração do
-  front para fora do mock — story de web, não deste pacote.
+- A API do MVP está fechada (2B a 3E entregues, mais os ajustes de dashboard de
+  2026-09-26) e o front já consome tudo. O que o front ainda pede está em
+  `docs/pendencias-api.md` — hoje MT03 (KPI de presença guardado na reunião) e AU01
+  (recuperar senha).
