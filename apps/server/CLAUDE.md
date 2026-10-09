@@ -10,7 +10,7 @@ Este arquivo cobre **apenas** `apps/server`. Setup geral do monorepo e comandos 
 
 - `apps/server/src/index.ts` é o único arquivo do app: CORS, handlers oRPC e `listen`.
 - Endpoint novo → `packages/api/src/modules/<módulo>/`.
-- Query nova → `packages/db` (Prisma).
+- Query nova → repository do módulo em `packages/api` (o client Prisma vem de `packages/db`).
 - Variável de ambiente nova → `packages/env/src/server.ts`.
 
 Se uma mudança está criando arquivo dentro de `apps/server/src/`, quase sempre ela pertence a `packages/api`.
@@ -100,7 +100,7 @@ import prisma from "@kpi-corp/db";
 ```
 
 - Schema dividido por modelo em `packages/db/prisma/schema/*.prisma` — arquivo novo é detectado sozinho.
-- Modelos: `User`, `RefreshToken`, `Invitation`, `Kpi`, `KpiAssignment`, `Meeting`, `MeetingAttendee`. Ids são `uuid` com `@db.Uuid`.
+- Modelos: `User`, `RefreshToken`, `Invitation`, `Kpi`, `KpiAssignment`, `Meeting`, `MeetingAttendee`, `RankingSnapshot`, `UserBadge`. Ids são `uuid` com `@db.Uuid`.
 - `packages/db/prisma/generated/` é gerado — fora do Biome e do git de revisão.
 - `prisma.config.ts` lê `../../apps/server/.env`: **o `.env` da API é a fonte do `DATABASE_URL` para todos os comandos Prisma**, mesmo rodando da raiz.
 
@@ -131,13 +131,13 @@ Note que `HOST` e `NODE_ENV` existem no schema mas **não** estão no `.env.exam
 
 `deps.alwaysBundle: [/@kpi-corp\/.*/]` — os pacotes internos são bundlados no artefato, porque são publicados como TypeScript-fonte (`exports` apontando para `./src/*.ts`), sem build próprio. Pacote interno novo entra nesse regex automaticamente.
 
-Turborepo cacheia `build` com `dependsOn: ["^build"]` e passa `DATABASE_URL`, `CORS_ORIGIN`, `PORT`, `VITE_SERVER_URL` como env declarada.
+Turborepo cacheia `build` com `dependsOn: ["^build"]` e passa `DATABASE_URL`, `CORS_ORIGIN`, `WEB_APP_URL`, `PORT`, `VITE_SERVER_URL` como env declarada.
 
 ## Testes
 
 **Não há testes aqui hoje**, e é assim de propósito. O app não tem script `test` e o Turbo simplesmente pula.
 
-Teste de lógica de API pertence a `packages/api`, junto da procedure — são 52 lá, nenhum precisando de banco. Este app não tem lógica para testar.
+Teste de lógica de API pertence a `packages/api`, junto da procedure — são 617 em 28 arquivos lá, nenhum precisando de banco. Este app não tem lógica para testar.
 
 ## Estilo
 
