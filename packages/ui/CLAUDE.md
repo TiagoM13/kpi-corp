@@ -37,8 +37,9 @@ import { cn } from "@kpi-corp/ui/lib/utils";
 | --- | --- |
 | `@kpi-corp/ui/components/*` | `src/components/*.tsx` |
 | `@kpi-corp/ui/lib/*` | `src/lib/*.ts` |
-| `@kpi-corp/ui/hooks/*` | `src/hooks/*.ts` |
+| `@kpi-corp/ui/hooks/*` | `src/hooks/*.ts` (vazio hoje, só `.gitkeep`) |
 | `@kpi-corp/ui/globals.css` | `src/styles/globals.css` |
+| `@kpi-corp/ui/postcss.config` | `postcss.config.mjs` |
 
 **Nunca copiar primitive para dentro de `apps/web`.** Divergiu do upstream? A decisão de
 divergir vira ADR — ver
