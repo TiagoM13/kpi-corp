@@ -14,7 +14,8 @@ sobe os três apps, resolva isso antes de escrever código.
 
 ## Commits
 
-Conventional Commits, **em inglês**, assunto de uma linha, sem corpo.
+Conventional Commits, **em inglês**, assunto de uma linha, sem corpo e sem trailer
+(`Co-Authored-By` e afins). Identidade no `git config --local` do repo.
 
 ```
 feat(api): add the auth module with login, register, refresh and logout
@@ -29,7 +30,9 @@ preocupação e ordene por dependência — base primeiro:
 chore(deps) → db → env → api → server → web → test → docs
 ```
 
-Escopos em uso: `api`, `db`, `env`, `server`, `web`, `ui`, `deps`, e nenhum para `docs`.
+Escopos em uso: `api`, `db`, `env`, `server`, `web`, `ui`, `deps`, `postman` (coleção em
+`postman/`) e `claude` (arquivos `CLAUDE.md`). Doc geral vai sem escopo (`docs: ...`); doc
+de um pacote só leva o escopo dele (`docs(api): ...`).
 
 ## Onde cada coisa mora
 
@@ -50,7 +53,7 @@ de `apps/server/src/`, quase sempre ela pertence a `packages/api`.
 
 ## Padrão de módulo da API
 
-Sete arquivos, camadas que só conhecem a de baixo. Use `auth` como referência —
+Até sete arquivos, camadas que só conhecem a de baixo. Use `auth` como referência —
 detalhes na [ADR 0009](http://localhost:4000/docs/adr/0009-camadas-router-service-repository).
 
 ```
@@ -64,6 +67,12 @@ modules/<nome>/
 └── index.ts               # barrel
 ```
 
+`router`, `service`, `repository`, `schema` e `index` existem sempre; `mapper` e `errors`
+só quando o módulo precisa. Regra pura do módulo ganha arquivo próprio
+(`auth.tokens.ts`, `dashboard.series.ts`, `profile.badges.ts`). Os oito módulos atuais:
+`auth`, `members`, `kpis`, `assignments`, `meetings`, `profile`, `ranking`, `dashboard`.
+Módulo novo é registrado em `packages/api/src/routers/index.ts`.
+
 Regras que o review cobra:
 
 - Router não importa Prisma nem repository.
@@ -74,8 +83,8 @@ Regras que o review cobra:
 - `shared/` não importa de `modules/`.
 
 As duas últimas não dependem de alguém lembrar: `noRestrictedImports` acusa no editor
-e `packages/api/src/tests/architecture.test.ts` falha no CI, apontando o arquivo e o
-import. Módulo novo precisa entrar no `group` do `biome.json` — há teste cobrando isso
+e `packages/api/src/tests/architecture.test.ts` falha no `npm run test` (não há CI),
+apontando o arquivo e o import. Módulo novo precisa entrar no `group` do `biome.json` — há teste cobrando isso
 também.
 
 ## Testes
@@ -103,6 +112,7 @@ Sem doc atualizada, a feature não está pronta.
 | Container, integração ou ator | `docs/architecture/OVERVIEW.md` |
 | Estrutura interna da API | `docs/architecture/COMPONENTS.md` |
 | Qualquer coisa que o consumidor perceba | `CHANGELOG.md` |
+| O front precisa de algo que a API não entrega | `docs/pendencias-api.md` |
 | Variável de ambiente | `README.md`, o `.env.example` e o schema em `packages/env` |
 | Convenção que um agente precise saber | `CLAUDE.md` do pacote em questão |
 

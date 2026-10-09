@@ -56,14 +56,16 @@ import prisma from "@kpi-corp/db";
 Um arquivo por modelo em `prisma/schema/`. Arquivo novo é detectado sozinho.
 
 ```
-schema.prisma        generator + datasource
-user.prisma          User, enum Role
-kpi.prisma           Kpi, enum KpiCategory
-kpi-assignment.prisma
-meeting.prisma
-meeting-attendee.prisma
-refresh-token.prisma
-invitation.prisma
+schema.prisma            generator + datasource
+user.prisma              User, enum Role
+kpi.prisma               Kpi, enum KpiCategory
+kpi-assignment.prisma    KpiAssignment — points congelado, revokedAt
+meeting.prisma           Meeting — closedAt
+meeting-attendee.prisma  MeetingAttendee — presentAt
+user-badge.prisma        UserBadge — carimbo de conquista, code em String
+ranking-snapshot.prisma  RankingSnapshot, enum RankingPeriod
+refresh-token.prisma     RefreshToken — tokenHash
+invitation.prisma        Invitation — tokenHash
 ```
 
 ### Convenções obrigatórias
@@ -132,6 +134,13 @@ para a origem — se mudar lá, mude aqui.
 | `20260831110915_add_invitation` | tabela `invitation` |
 | `20260831112449_remove_todo` | removeu o resíduo do scaffold |
 | `20260831113234_change_ids_to_uuid` | int sequencial → uuid em todas as tabelas |
+| `20260901120000_kpi_category_presence_initiative` | `ATTENDANCE` → `PRESENCE` e novo valor `INITIATIVE` no enum de categoria |
+| `20260907120000_assignment_points_and_revoked_at` | `points` congelado na atribuição e `revoked_at` no lugar de `active` ([ADR 0015](http://localhost:4000/docs/adr/0015-atribuicao-imutavel-e-revogacao-logica)) |
+| `20260907130000_rename_assignment_revoked_at_camel_case` | `revoked_at` → `revokedAt`, no padrão camelCase das colunas |
+| `20260908195732_add_user_badge` | tabela `user_badge` ([ADR 0016](http://localhost:4000/docs/adr/0016-badges-carimbadas-na-leitura)) |
+| `20260919143727_meeting_closed_at_and_attendee_present_at` | `closed` → `closedAt` na reunião e `presentAt` no participante |
+| `20260919200339_ranking_snapshot` | tabela `ranking_snapshot` e enum `ranking_period` ([ADR 0019](http://localhost:4000/docs/adr/0019-snapshot-de-ranking-na-leitura)) |
+| `20260924120000_hash_invitation_token` | `token` → `tokenHash` no convite, com os existentes convertidos para SHA-256 ([ADR 0020](http://localhost:4000/docs/adr/0020-token-de-convite-em-sha-256)) |
 
 Migration não se edita depois de aplicada. Mudou o schema? Gere a próxima.
 
