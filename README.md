@@ -48,15 +48,12 @@
 
 O **KPICorp** registra o engajamento de um time. O administrador cadastra **KPIs**:
 indicadores de reconhecimento com pontuação, como "Presença na reunião", "Entrega no prazo"
-ou "Encontrou bug crítico". Ele distribui esses KPIs aos membros, individualmente ou
-**ao vivo durante a reunião**. Cada membro acumula pontos, sobe de nível, ganha badges e
+ou "Encontrou bug crítico". Ele distribui esses KPIs aos membros **ao vivo durante a
+reunião**. Cada membro acumula pontos, sobe de nível, ganha badges e
 acompanha a própria posição no ranking.
 
 O fluxo principal cabe em poucos cliques: abrir a reunião, marcar presença (que já pontua)
 e reconhecer quem se destacou enquanto a reunião acontece.
-
-Monorepo TypeScript criado com
-[Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack).
 
 ## ✨ Funcionalidades
 
@@ -66,7 +63,7 @@ Monorepo TypeScript criado com
 | Banco de KPIs: criar, editar, ativar e desativar | Pontuação por categoria: presença, desempenho, comportamento e iniciativa |
 | Membros: convite por link, busca, filtro, ativar/desativar, perfil completo | Nível de 0 a 20 em cinco faixas, de **Iniciante** a **Lenda** |
 | **Modo reunião**: escalar participantes, marcar presença, atribuir KPIs ao vivo, pódio no encerramento | Dez badges: categoria, volume, constância semanal, pódio e presença |
-| Atribuição individual e em massa, com revogação que preserva o histórico | Sequência de semanas pontuando ("🔥 N semanas") |
+| Revogação de KPI que preserva o histórico | Sequência de semanas pontuando ("🔥 N semanas") |
 | Ranking por semana, mês, trimestre ou geral, com seta de variação | Ranking por semana, mês ou geral |
 
 ### Regras que valem em todo o produto
@@ -83,8 +80,6 @@ Monorepo TypeScript criado com
   ([ADR 0021](apps/fumadocs/content/docs/adr/0021-backend-entrega-o-numero-pronto.mdx)).
 
 ## 🖥️ Telas
-
-Capturas da aplicação rodando localmente com os dados do seed.
 
 <p align="center">
   <img src="docs/assets/screenshots/02-admin-dashboard.jpg" alt="Painel do Admin" width="100%" />
@@ -134,9 +129,6 @@ Capturas da aplicação rodando localmente com os dados do seed.
     </td>
   </tr>
 </table>
-
-O protótipo original que guiou o front continua em `docs/Mockup-KPICorp/`, como
-referência histórica.
 
 ## 🧱 Stack
 
@@ -264,7 +256,6 @@ flowchart LR
     server["apps/server<br/>Fastify 5, só host HTTP<br/>:3000"]
     api["packages/api<br/>routers · services · repositories"]
     db[("PostgreSQL 18<br/>Prisma 7")]
-    docs["apps/fumadocs<br/>ADRs<br/>:4000"]
 
     web -- "oRPC tipado (/rpc)" --> server
     server --> api
@@ -300,7 +291,7 @@ kpi-corp/
 │   ├── ui/           # Primitives shadcn/ui compartilhados
 │   └── config/       # tsconfig base
 ├── postman/          # Coleção e environment para teste manual
-└── docs/             # Arquitetura, módulos, specs, PRD, stories e mockup
+└── docs/             # Arquitetura, módulos, specs, PRD e pendências
 ```
 
 | Você quer | Vá para |
@@ -374,8 +365,6 @@ npm run test
 | `packages/api` | 28 | 617 | services, routers e regras puras de `shared/`, com repository simulado |
 | `apps/web` | 27 | 337 | `lib/`, guards e cada tela contra a API simulada |
 
-Os números são da execução de 2026-10-09.
-
 ## 🎨 UI compartilhada
 
 As primitives shadcn/ui ficam em `packages/ui` e são compartilhadas pelos apps React.
@@ -410,6 +399,7 @@ npx lefthook run pre-commit   # executar manualmente
 | [Decisões (ADR)](docs/architecture/decisions/README.md) | 21 decisões, publicadas no Fumadocs em `http://localhost:4000/docs/adr` |
 | [Módulos](docs/modules/) | Regras de negócio de `auth`, `members`, `kpis`, `assignments`, `profile`, `meetings`, `ranking` e `dashboard` |
 | [Specs](docs/specs/README.md) | Uma por entrega da API, de 2B a 3E |
+| [Pendências e bugs](docs/pendencias-e-bugs.md) | Melhorias, tarefas de segurança e bugs conhecidos |
 | [Pendências da API](docs/pendencias-api.md) | O que o front ainda espera da API |
 | [Roadmap da API](docs/MVP_API_ROADMAP.md) | Escopo e critérios de aceite do MVP |
 | [PRD](docs/prd/kpi-system-prd.md) | Requisitos do produto |
@@ -434,18 +424,9 @@ O projeto está em **desenvolvimento local**: sem deploy, sem CI e sem release.
 - **API do MVP completa**: auth, membros, KPIs, atribuições, perfil e badges, reuniões,
   ranking e dashboards (specs 2B a 3E entregues).
 - **Front integrado de ponta a ponta**: todas as telas consomem a API real, sem mock.
-- **Pendências abertas** ([detalhes](docs/pendencias-api.md)):
-  - **MT03**: a reunião não guarda o KPI de presença usado;
-  - **AU01**: não existe recuperação de senha.
-- **Não existe**: rate limiting, envio de e-mail (o link de convite é devolvido ao Admin)
-  nem scheduler (snapshots de ranking são gravados na leitura).
-
-## 🔗 Projetos relacionados
-
-Nenhum. O KPICorp não depende de serviço externo e nenhum outro projeto o consome: não há
-gateway de pagamento, provedor de e-mail, SSO nem API de terceiros. Ao adicionar uma
-integração, atualize esta seção e o
-[diagrama de contexto](docs/architecture/OVERVIEW.md).
+- **Pendências abertas** em [`docs/pendencias-e-bugs.md`](docs/pendencias-e-bugs.md):
+  atribuição de KPI fora da reunião, melhorias do modo reunião, limite diário de KPIs,
+  rate limiting, recuperação de senha e bugs conhecidos.
 
 ---
 
