@@ -32,8 +32,8 @@ O ganho: falta de variável quebra **no boot**, com mensagem dizendo qual, em ve
 | `DATABASE_URL` | sim | — |
 | `CORS_ORIGIN` | sim | — (validada como URL) |
 | `WEB_APP_URL` | sim | — (validada como URL) |
-| `JWT_SECRET` | sim | — |
-| `JWT_REFRESH_SECRET` | sim | — |
+| `JWT_SECRET` | sim | — (mínimo 32 caracteres) |
+| `JWT_REFRESH_SECRET` | sim | — (mínimo 32, diferente de `JWT_SECRET`) |
 | `JWT_ACCESS_EXPIRES_IN` | não | `15m` |
 | `JWT_REFRESH_EXPIRES_IN` | não | `7d` |
 | `HOST` | não | `localhost` |
@@ -41,7 +41,7 @@ O ganho: falta de variável quebra **no boot**, com mensagem dizendo qual, em ve
 | `NODE_ENV` | não | `development` |
 
 Os dois segredos de JWT são **distintos de propósito**: access token roubado não pode ser
-forjado em refresh.
+forjado em refresh. O `createFinalSchema` de `src/server.ts` recusa o boot se forem iguais.
 
 `CORS_ORIGIN` e `WEB_APP_URL` também são separadas de propósito, apesar de apontarem
 para o mesmo lugar em desenvolvimento:
