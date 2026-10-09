@@ -72,7 +72,9 @@ packages/api/src/
 ```
 
 Os demais módulos (`members`, `kpis`, `assignments`, `profile`) seguem o mesmo formato de
-sete arquivos — ver `docs/modules/<nome>.md` para as regras de cada um.
+sete arquivos — as regras de cada um estão em [members](../modules/members.md),
+[kpis](../modules/kpis.md), [assignments](../modules/assignments.md) e
+[profile](../modules/profile.md).
 
 ### Regras puras em `shared/`
 

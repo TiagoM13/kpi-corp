@@ -100,8 +100,9 @@ automaticamente — não há registro manual. Detalhes em
 ### Autenticação entre containers
 
 O front envia `Authorization: Bearer <accessToken>`. `createContext` valida a assinatura
-do JWT sem tocar no banco e monta `context.auth`; `protectedProcedure` recusa a request
-quando ele é nulo.
+do JWT e confere no banco (`sessionRepository.findUserStatus`) se o usuário segue ativo e
+qual é o perfil atual — token válido de conta desativada vira `auth: null`. Com isso monta
+`context.auth`; `protectedProcedure` recusa a request quando ele é nulo.
 
 Estratégia completa (dois tokens, rotação, detecção de replay) em
 [ADR 0011](http://localhost:4000/docs/adr/0011-jwt-refresh-token-rotativo) e em
@@ -118,7 +119,9 @@ sequenceDiagram
 
     W->>S: POST /rpc/auth/me + Bearer AT
     S->>A: createContext(headers)
-    A->>A: verifyAccessToken → context.auth
+    A->>A: verifyAccessToken
+    A->>D: sessionRepository.findUserStatus
+    D-->>A: active, role → context.auth
     S->>A: protectedProcedure → authService.getAuthenticatedUser
     A->>D: authRepository.findUserById
     D-->>A: User
@@ -132,7 +135,7 @@ sequenceDiagram
 | --- | --- |
 | Auth (login, register, refresh, logout, me) | Implementado e testado ponta a ponta |
 | Demais módulos da API | `members`, `kpis`, `assignments`, `profile`, `meetings`, `ranking` e `dashboard` implementados — roadmap do MVP fechado (Fases 1 a 3) |
-| Front | Login, logout, refresh e convite consomem a API; demais telas ainda usam mock em `apps/web/src/mocks/` |
+| Front | Todas as telas consomem a API (auth, membros, KPIs, ranking, painel e modo reunião do admin, painel do membro). O que falta está em [pendencias-api.md](../pendencias-api.md) |
 | Deploy | Não existe. Só ambiente de desenvolvimento local |
 
 ## Onde continuar
@@ -140,6 +143,7 @@ sequenceDiagram
 - [Componentes internos (C4 nível 3)](COMPONENTS.md)
 - [Decisões de arquitetura (ADR)](decisions/README.md)
 - [Módulo de autenticação](../modules/auth.md)
-- Demais módulos: [assignments](../modules/assignments.md), [profile](../modules/profile.md),
+- Demais módulos: [members](../modules/members.md), [kpis](../modules/kpis.md),
+  [assignments](../modules/assignments.md), [profile](../modules/profile.md),
   [meetings](../modules/meetings.md), [ranking](../modules/ranking.md),
   [dashboard](../modules/dashboard.md)
