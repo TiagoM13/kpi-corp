@@ -34,8 +34,8 @@ apps/web/src/
 ├── routes/          # SÓ rotas — TanStack Router file-based, gera routeTree.gen.ts
 ├── pages/           # As telas de verdade (componentes de página)
 ├── components/      # Componentes compartilhados deste app
-├── lib/             # Lógica de domínio do cliente (sessão, auth, convite)
-├── mocks/           # Dados fake enquanto a API não existe
+├── lib/             # Lógica de domínio do cliente (sessão, auth, convite, adaptadores da API)
+├── mocks/           # Protótipo antigo: hoje só tipos e categorias da tela + dados de testes legados
 ├── utils/orpc.ts    # Client oRPC tipado + QueryClient
 ├── test/            # setup do Vitest + testes
 ├── index.css        # só importa @kpi-corp/ui/globals.css
@@ -68,10 +68,12 @@ Motivo: a tela fica testável e reaproveitável sem depender do router, e o `rou
 | `/invite/$token` | qualquer um | nenhum — o `loader` decide entre formulário e erro |
 | `/_authed/*` | logado | sem sessão → `/login` |
 | `/_authed/admin/*` | `ADMIN` | membro → `/dashboard` |
+| `/_focus/admin/meeting` | `ADMIN` | sem sessão → `/login`; membro → `/dashboard` |
 | `/_authed/dashboard`, `/_authed/ranking` | `MEMBER` | admin → rota admin equivalente |
 
 - `_authed.tsx` é o layout autenticado: lê a sessão no `beforeLoad`, redireciona se não houver, e devolve `{ session }` no contexto. As rotas filhas leem via `Route.useRouteContext()` / `context.session` — **não** chamam `getSession()` de novo.
 - `_authed.tsx` também envolve tudo no `AppShell` (sidebar + nav por perfil + botão sair).
+- `_focus.tsx` é o layout de tela cheia (sem `AppShell`), usado só pelo modo reunião. Mesmo guard de sessão; o de perfil fica na rota.
 - Guard de perfil fica no `beforeLoad` da rota, nunca no componente. Perfil vem sempre da sessão, nunca de escolha do usuário na tela.
 
 ## Autenticação
@@ -108,8 +110,8 @@ para `/login` na mão depois de `signOut()`.
 `startSession(response)` é o único gravador do snapshot a partir de resposta da API.
 `signIn` e `acceptInvite` passam por ele.
 
-Credenciais do seed: `admin@kpicorp.com` / `admin123`, e três membros com `member123`
-(`npm run db:seed`).
+Credenciais do seed (`npm run db:seed`): 12 usuários, todos com a senha `admin123` — um só
+`ADMIN` (`admin@kpicorp.com`), o resto `MEMBER`. Lista em `packages/db/CLAUDE.md`.
 
 Esqueci a senha: **não existe** — nem tela nem endpoint (AU01 em `docs/pendencias-api.md`). O link "esqueci" no login ainda
 aponta para `/login`.
@@ -126,9 +128,8 @@ resposta traz `inviteUrl`.
 - erro do `register` vira `InvalidInviteError(status)` pelo `data.code`
   (`EMAIL_ALREADY_REGISTERED` cai em `USED`).
 
-`mocks/users.ts` continua vivo só como elenco de `mocks/members.ts` (telas de ranking,
-membros e dashboards). Não participa do login. Como o `userId` real é UUID, o dashboard
-do membro cai no estado vazio até consumir a API.
+`mocks/users.ts` continua vivo só como elenco de `mocks/members.ts`, que nenhuma tela lê
+(ver "Estado atual do app"). Não participa do login.
 
 ## Dados / API
 
@@ -205,7 +206,8 @@ não entrega está em `docs/pendencias-api.md`.
 
 Modo reunião: o id vai na URL (`/admin/meeting?reuniao=<id>`); sem id é a preparação.
 Dados em `pages/admin/meeting/use-meeting.ts`, tipos e helpers em `lib/meetings.ts`.
-`lib/meeting.ts` (singular) é o reducer do mock antigo e só sobrevive pelos testes.
+`lib/meeting.ts` (singular) é o reducer do mock antigo: a tela só usa dele
+`DEFAULT_MEETING_TITLE` e `formatElapsed`; o resto sobrevive pelos testes.
 
 **Não derive dado no front.** Se a tela precisa de um número que a API não entrega, o
 bloco sai da tela — com a chamada **comentada**, nunca apagando o componente — e a falta
@@ -215,19 +217,28 @@ vai para `docs/pendencias-api.md`. O front só formata
 Perfil real de membro mora em `components/member-profile/`: `ProfileSheet` (casca),
 `PublicMemberProfile` (só com o id — usado no ranking) e as peças que a tela de membros
 compõe com o item da lista. `components/member-detail/` é o perfil mock antigo:
-nenhuma tela usa, fica pelos testes e como referência visual.
+nenhuma tela usa o `MemberDetail` — fica pelos testes e como referência visual —, mas
+`AchievementGrid` e `CategoryBreakdown` dali são reaproveitados por `profile-activity.tsx`.
 
 Ativar/desativar membro fica na lista (switch **Acesso**) e sempre passa pelo
 `MemberStatusDialog`. A rota passa `currentUserId` da sessão para travar a própria conta.
 
 `lib/ranking.ts` tem as duas coisas: tipos e períodos da API (`TeamRanking`,
 `RANKING_PERIODS` com `quarter`, `MEMBER_RANKING_PERIODS` sem) e o mock antigo
-(`rankingFor`, `overallPositionOf`), que só os dashboards ainda leem. Tipos e adaptadores
-da API de membros ficam em `lib/members.ts`.
+(`rankingFor`, `overallPositionOf`, `TEAM_SIZE`), que só o `member-detail` legado e os
+testes ainda leem — os painéis consomem `dashboard.getAdmin`/`getMember`. Tipos e
+adaptadores da API de membros ficam em `lib/members.ts`.
 
 A tela de KPIs busca o banco inteiro uma vez (`kpis.list` não pagina) e filtra no
 cliente. `lib/kpis.ts` converte o KPI da API para o tipo `Kpi` que `KpiTile` e a tabela
 já usam. Categoria da API (`PRESENCE`...) ↔ id da tela (`presenca`...) passa sempre por
-`lib/categories.ts`. `lib/kpi-store.ts` continua vivo só para o modo reunião.
+`lib/categories.ts`. `lib/kpi-store.ts` (Zustand sobre `MOCK_KPIS`) não é usado por
+nenhuma tela — só pelo `test/kpi-store.test.ts`; o modo reunião lê `kpis.list`.
+
+`mocks/` não alimenta mais tela nenhuma com dado. O que as telas ainda importam de lá é
+**tipo e constante**: `Kpi`, `KpiCategoryId`, `KPI_CATEGORIES`, `CATEGORY_BY_ID` (de
+`mocks/kpis.ts`) e `AchievementRarity` (de `mocks/badges.ts`). Os `MOCK_*` só chegam aos
+módulos legados (`kpi-store`, `activity-feed`, `member-stats`, mock de `ranking`) e aos
+testes deles.
 
 Referência visual dos mockups: `docs/Mockup-KPICorp/` (screenshots + JSX de protótipo). Stories: `docs/stories/`.
