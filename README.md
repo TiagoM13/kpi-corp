@@ -34,6 +34,7 @@
 <p>
   <a href="#-quick-start">Quick start</a> ·
   <a href="#-funcionalidades">Funcionalidades</a> ·
+  <a href="#️-telas">Telas</a> ·
   <a href="#-arquitetura">Arquitetura</a> ·
   <a href="#-api">API</a> ·
   <a href="#-documentação">Documentação</a>
@@ -81,23 +82,61 @@ Monorepo TypeScript criado com
 - **A API entrega o número pronto; o front só formata**
   ([ADR 0021](apps/fumadocs/content/docs/adr/0021-backend-entrega-o-numero-pronto.mdx)).
 
-<details>
-<summary><strong>Referência visual (mockup do protótipo)</strong></summary>
+## 🖥️ Telas
 
-<br />
+Capturas da aplicação rodando localmente com os dados do seed.
 
-Telas do protótipo que guiou o front, em `docs/Mockup-KPICorp/`. São a referência
-visual congelada, não capturas da aplicação atual.
+<p align="center">
+  <img src="docs/assets/screenshots/02-admin-dashboard.jpg" alt="Painel do Admin" width="100%" />
+  <br />
+  <sub><strong>Painel do Admin</strong>: totais, pontos por semana, top movers, top 5 do mês e atribuições recentes</sub>
+</p>
 
-| Login | Painel do Admin | Banco de KPIs |
-| --- | --- | --- |
-| ![Login](docs/Mockup-KPICorp/screenshots/01-login.png) | ![Painel](docs/Mockup-KPICorp/screenshots/02-dashboard.png) | ![KPIs](docs/Mockup-KPICorp/screenshots/03-kpis.png) |
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/06-meeting-setup.jpg" alt="Modo reunião" width="100%" />
+      <p align="center"><sub><strong>Modo reunião</strong>: preparação e presença</sub></p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/03-admin-kpis.jpg" alt="Banco de KPIs" width="100%" />
+      <p align="center"><sub><strong>Banco de KPIs</strong>: filtro por categoria e status</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/04-admin-members.jpg" alt="Membros" width="100%" />
+      <p align="center"><sub><strong>Membros</strong>: pontos, nível, status e acesso</sub></p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/07-member-profile.jpg" alt="Perfil do membro" width="100%" />
+      <p align="center"><sub><strong>Perfil do membro</strong>: nível, categorias, badges e histórico</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/08-member-dashboard.jpg" alt="Painel do membro" width="100%" />
+      <p align="center"><sub><strong>Painel do membro</strong>: pontos, sequência de semanas e conquistas</sub></p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/05-admin-ranking.jpg" alt="Ranking" width="100%" />
+      <p align="center"><sub><strong>Ranking</strong>: pódio e tabela por período</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/01-login.jpg" alt="Login" width="100%" />
+      <p align="center"><sub><strong>Login</strong></sub></p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/assets/screenshots/09-member-ranking.jpg" alt="Ranking do membro" width="100%" />
+      <p align="center"><sub><strong>Ranking do membro</strong>: sem o período trimestral</sub></p>
+    </td>
+  </tr>
+</table>
 
-| Membros | Ranking | Modo reunião |
-| --- | --- | --- |
-| ![Membros](docs/Mockup-KPICorp/screenshots/05-members.png) | ![Ranking](docs/Mockup-KPICorp/screenshots/06-ranking.png) | ![Reunião](docs/Mockup-KPICorp/screenshots/08-meeting-grid-live.png) |
-
-</details>
+O protótipo original que guiou o front continua em `docs/Mockup-KPICorp/`, como
+referência histórica.
 
 ## 🧱 Stack
 
