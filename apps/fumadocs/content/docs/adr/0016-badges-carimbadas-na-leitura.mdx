@@ -1,0 +1,76 @@
+---
+title: 0016 — Badge é regra pura em código, carimbada na leitura
+description: O catálogo vive no código; a tabela user_badge só guarda a data da conquista.
+---
+
+**Status:** Aceita
+**Data:** 2026-09-08
+
+## Contexto
+
+O roadmap (§ 2.8) deixou em aberto se badge é **fato gravado** ou **consequência
+calculada**. Cada lado sozinho tem um defeito:
+
+- **Só calculada:** revogar o KPI que gerou a conquista faz a badge sumir. Para produto,
+  uma conquista que some é pior do que uma que não existe.
+- **Só gravada, por gatilho na atribuição:** exige backfill para membro antigo, nunca
+  reavalia regra alterada, e obriga `assignments` a conhecer `profile` — módulo
+  importando módulo.
+
+## Decisão
+
+As duas coisas, cada uma com um papel:
+
+```
+regra pura sobre o histórico  →  decide se ganhou        (profile.badges.ts)
+tabela user_badge             →  carimba a data, nunca apaga
+```
+
+**O carimbo acontece na leitura do perfil**, não num gatilho. Quem abre o perfil dispara
+a avaliação; o que foi ganho e ainda não estava gravado é inserido.
+
+**O catálogo é código, não dado.** Sem tabela `badge`, sem CRUD, sem seed. Cada badge é
+uma entrada em `profile.badges.ts` com a função que a avalia ao lado. Badge nova é
+commit, revisão e teste.
+
+```prisma
+model UserBadge {
+  userId   String   @db.Uuid
+  code     String              // String, não enum
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, code])
+}
+```
+
+`code` é `String` para que badge nova não peça migration e linha de badge que saiu do
+catálogo seja ignorada na leitura em vez de quebrar.
+
+## Consequências
+
+**Conquista é permanente.** Sobrevive à revogação do KPI que a gerou.
+
+**A regra continua testável sem banco.** O avaliador recebe o histórico carregado.
+
+**Sem backfill.** Membro antigo ganha as badges na primeira leitura depois do deploy.
+
+**A data de `earnedAt` é a da leitura, não a do fato.** Para `TOP_THREE`, a Fase 3E
+carimba com a data da última atribuição do membro para chegar mais perto do momento
+real. Nas demais, a imprecisão é aceita.
+
+**Nível mede volume; badge mede o que o nível não vê** — categoria, contagem,
+consistência no tempo, posição e presença. Badge de "1.000 pontos" não entra: seria o
+nível 8 com outro ícone.
+
+**Badges dependentes de recurso ainda não construído entram com `available: false`.**
+Foi como as quatro de Fase 3 existiram entre a 2D e a 3E, sem mudar o contrato.
+
+## Alternativas consideradas
+
+**Puramente calculada.** Descartada pelo motivo de produto acima.
+
+**Gatilho no fluxo de atribuição.** Descartada: backfill, regra que nunca é
+reavaliada e dependência entre módulos.
+
+**Catálogo em tabela com CRUD de Admin.** Descartada: badge é regra de negócio com
+código de avaliação. Linha de banco não carrega função.

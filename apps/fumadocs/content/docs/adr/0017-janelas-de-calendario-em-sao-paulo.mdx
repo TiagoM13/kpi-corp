@@ -1,0 +1,71 @@
+---
+title: 0017 — Janelas de calendário no fuso de São Paulo
+description: Fuso fixo em código e uma única definição de semana para ranking, badges e dashboards.
+---
+
+**Status:** Aceita
+**Data:** 2026-09-19
+
+## Contexto
+
+Ranking (`week`, `month`, `quarter`), streak de badges, histórico com `from`/`to` e os
+dashboards cortam atribuições por período. Sem regra comum, cada módulo escolheria:
+
+- **o fuso** — o servidor roda em UTC, o time trabalha em Brasília. Uma atribuição de
+  segunda às 22h em São Paulo cai na terça em UTC;
+- **o que é "semana"** — domingo ou segunda, últimos 7 dias ou semana do calendário.
+
+Duas definições de semana no mesmo produto — uma para streak, outra para ranking — é
+defeito esperando acontecer: o membro vê "3 semanas seguidas" e um ranking semanal que
+não bate.
+
+## Decisão
+
+**Fuso `America/Sao_Paulo`, constante em `shared/time/timezone.ts`.**
+
+```ts
+export const TIMEZONE = "America/Sao_Paulo";
+```
+
+Constante, não variável de ambiente: mudar de fuso reescreveria o passado — a semana em
+que algo aconteceu mudaria. Isso não é configuração.
+
+**Janelas são de calendário, não deslizantes.**
+
+| Período | Janela |
+| --- | --- |
+| `week` | semana ISO — segunda 00:00 até a segunda seguinte |
+| `month` | mês do calendário |
+| `quarter` | trimestre do calendário |
+| `all` | sem janela |
+
+**Datas de filtro (`from`, `to`) são dias inclusivos nas duas pontas**, convertidos para
+instante no fuso acima.
+
+## Consequências
+
+**Uma única semana no produto.** Streak (2D/3E), ranking (3B), séries do dashboard (3D)
+e `weekSeries` do membro usam a mesma segunda-feira.
+
+**`profile.badges.ts` importa o fuso de `shared/time/`.** Antes da 3B havia uma cópia;
+duas constantes com o mesmo valor são duas constantes que podem divergir.
+
+**Janela deslizante é exceção nomeada.** `membersWithoutKpis` do dashboard usa "30 dias
+corridos", porque a pergunta é "quem está parado", não "quem pontuou neste mês". Está
+documentado em `docs/modules/dashboard.md`.
+
+**Segunda-feira cedo, o ranking semanal começa vazio.** Consequência natural de janela de
+calendário, aceita: é o que o time entende como "esta semana".
+
+## Alternativas consideradas
+
+**UTC em tudo.** Simples no servidor. Descartada: a borda do dia fica três horas fora do
+que o time vive.
+
+**Fuso por variável de ambiente.** Descartada: mudar o valor reescreve o passado.
+
+**Fuso por usuário.** Descartada: o time é de um fuso só, e ranking com janelas
+diferentes por pessoa não é comparável.
+
+**Janelas deslizantes ("últimos 7 dias").** Descartada para ranking e streak: o número
+muda a cada hora sem que nada aconteça, e não bate com a reunião semanal.

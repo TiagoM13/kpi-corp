@@ -1,0 +1,69 @@
+---
+title: 0020 — Token de convite guardado como SHA-256
+description: O convite passa a seguir a mesma regra do refresh token — o banco nunca guarda o segredo.
+---
+
+**Status:** Aceita
+**Data:** 2026-09-24
+
+## Contexto
+
+A [0012](/docs/adr/0012-hash-de-senha-e-de-token) definiu SHA-256 para o refresh token e
+a [0013](/docs/adr/0013-ids-em-uuid) separou o token de convite do id da linha. Mas
+`Invitation.token` continuou em **texto puro**.
+
+A revisão da API MVP (`docs/reviews/2026-09-24-api-mvp-review.md`, item 11) apontou a
+inconsistência: quem lê o banco — backup, dump de desenvolvimento, acesso indevido —
+consegue abrir qualquer convite pendente e criar uma conta com o e-mail convidado.
+
+## Decisão
+
+**O banco guarda `tokenHash`, nunca o token.** O token é gerado, enviado no link e
+descartado pelo servidor.
+
+```ts
+// shared/security/tokens.ts
+generateOpaqueToken()        // 32 bytes aleatórios, base64url
+hashOpaqueToken(token)       // SHA-256, hex
+tokenHashMatches(token, h)   // timingSafeEqual
+```
+
+SHA-256 e não bcrypt, pelo mesmo motivo da 0012: o token tem 256 bits de entropia, então
+não há dicionário para atacar, e o custo do bcrypt não compra nada. A busca é por
+igualdade no índice único:
+
+```
+GET /invite/:token  →  findInvitationByTokenHash(hashOpaqueToken(token))
+```
+
+Migration `20260924120000_hash_invitation_token`, que converte os convites existentes no
+próprio Postgres:
+
+```sql
+ALTER TABLE "invitation" RENAME COLUMN "token" TO "tokenHash";
+UPDATE "invitation" SET "tokenHash" = encode(sha256(convert_to("tokenHash", 'UTF8')), 'hex');
+```
+
+## Consequências
+
+**Convite pendente não vaza com o banco.** Mesma garantia do refresh token.
+
+**O link só existe na resposta de `members.invite`.** Não há como reenviar o mesmo link
+lendo o banco. Reenviar é emitir convite novo.
+
+**Convites emitidos antes da migration continuam válidos.** O `UPDATE` aplica o mesmo hash
+que a aplicação calcula.
+
+**A menção a `Invitation.token` na 0013 ficou datada.** A 0013 continua válida no que
+decide (id em uuid); o nome da coluna é o desta ADR.
+
+## Alternativas consideradas
+
+**Manter em texto puro.** Descartada: o convite dá acesso a uma conta nova, e a regra do
+refresh token já existia.
+
+**bcrypt.** Descartada pelo mesmo motivo da 0012: lento sem ganho para token de alta
+entropia, e impede a busca por índice.
+
+**Convite assinado (JWT) sem linha no banco.** Descartada: o consumo precisa ser único e
+atômico (`usedAt`), o que exige estado no servidor de qualquer forma.

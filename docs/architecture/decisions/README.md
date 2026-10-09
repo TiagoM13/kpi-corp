@@ -34,6 +34,14 @@ encontre o caminho real.
 | 0011 | JWT com refresh token rotativo |
 | 0012 | bcrypt para senha, SHA-256 para refresh token |
 | 0013 | Identificadores em UUID |
+| 0014 | Sessão no cliente com snapshot em `localStorage` |
+| 0015 | Atribuição congela a pontuação e revogar não apaga |
+| 0016 | Badge é regra pura em código, carimbada na leitura |
+| 0017 | Janelas de calendário no fuso de São Paulo |
+| 0018 | Regras compartilhadas são funções puras em `shared/` |
+| 0019 | Snapshot de ranking materializado na leitura |
+| 0020 | Token de convite guardado como SHA-256 |
+| 0021 | A API entrega o número pronto; o front só formata |
 
 ## Como escrever um novo
 

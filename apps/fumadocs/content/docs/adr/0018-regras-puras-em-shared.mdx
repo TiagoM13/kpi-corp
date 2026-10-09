@@ -1,0 +1,71 @@
+---
+title: 0018 — Regras de domínio compartilhadas são funções puras em shared/
+description: Como dois módulos usam a mesma regra sem um importar o outro, e sem Prisma em shared/.
+---
+
+**Status:** Aceita
+**Data:** 2026-09-19
+
+## Contexto
+
+A [0009](/docs/adr/0009-camadas-router-service-repository) fixou que módulo não importa
+módulo. A Fase 3 testou a regra: várias regras passaram a ser necessárias em mais de um
+módulo.
+
+| Regra | Quem precisa |
+| --- | --- |
+| Nível a partir dos pontos | `profile`, `members`, `dashboard` |
+| Ordenação e desempate do ranking | `ranking`, `profile` (badges `TOP_THREE`, `PODIUM_STREAK`) |
+| Janelas de período | `ranking`, `profile`, `dashboard` |
+| Fuso e dia civil | `ranking`, `profile`, `assignments`, `dashboard` |
+| Membro estagnado | `members`, `dashboard` |
+
+Copiar a regra em cada módulo faz o desempate divergir na primeira mudança. Um módulo
+chamar o service do outro quebra a 0009.
+
+## Decisão
+
+**A regra vai para `packages/api/src/shared/` como função pura.** Recebe dado já
+carregado, devolve dado. Sem Prisma, sem import de `modules/`.
+
+```
+shared/gamification/levels.ts   levelFor(points)
+shared/ranking/rank.ts          rank(rows) → rows com position
+shared/ranking/periods.ts       janela de cada período
+shared/time/timezone.ts         TIMEZONE, dayOf(...)
+shared/members/stagnation.ts    quem está parado
+```
+
+**O dado continua sendo de quem pergunta.** Cada módulo carrega as próprias linhas pelo
+próprio repository e chama a função:
+
+```
+modules/ranking/ranking.repository  → carrega o período → rank()
+modules/profile/profile.repository  → carrega as linhas dele → rank()
+```
+
+## Consequências
+
+**Uma regra, um lugar, um teste.** `levels.ts` e `rank.ts` são testados sem banco.
+
+**`shared/` continua sem acesso a dados.** Abrir essa porta por conveniência faria de
+`shared/` um módulo disfarçado que todos importam.
+
+**Escrita compartilhada não entra aqui.** Quando dois módulos precisam **gravar** a mesma
+coisa — `assignments` e `meetings` em `kpi_assignment` — cada um grava pelo próprio
+repository e a regra duplicada é coberta por teste nos dois
+([0015](/docs/adr/0015-atribuicao-imutavel-e-revogacao-logica)).
+
+**`profile.levels.ts` mudou de casa na Fase 3D** para `shared/gamification/levels.ts`,
+quando `dashboard` passou a precisar dele.
+
+## Alternativas consideradas
+
+**Duplicar a regra por módulo.** Descartada: o desempate do ranking divergiria entre a
+tela de ranking e as badges de pódio.
+
+**Permitir import entre services.** Descartada: grafo de dependência entre módulos sem
+limite, e a 0009 perde o sentido.
+
+**Repositories compartilhados em `shared/`.** Descartada: `shared/` passaria a depender
+do schema inteiro e toda mudança de query viraria mudança transversal.
