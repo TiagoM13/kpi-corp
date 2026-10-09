@@ -49,6 +49,128 @@ presença no modo reunião.
 Sem rota nem tela. O link "esqueci" do login aponta para `/login`. É o **AU01** de
 [`pendencias-api.md`](pendencias-api.md).
 
+### PB05 — Achar KPI rápido no modo reunião
+
+**Hoje:** o `KpiPicker` (`pages/admin/meeting/components/kpi-picker.tsx`) lista todos os
+KPIs ativos sem busca nem filtro. No mobile é uma faixa com scroll horizontal
+(`overflow-x-auto`); no desktop (`lg:`) a coluna perde o scroll (`lg:overflow-visible`)
+e cresce com o catálogo. Com 29 KPIs ativos, achar um no meio da reunião exige rolar a
+lista inteira.
+
+**Precisa:**
+- campo de busca por nome no topo do picker, filtrando no cliente (`kpis.list` já traz o
+  catálogo inteiro, sem paginação);
+- filtro rápido por categoria (presença, desempenho, comportamento, iniciativa);
+- lista com altura máxima e scroll próprio no desktop, para não empurrar o resto da tela.
+
+### PB06 — Limite diário de KPIs por membro
+
+**Hoje:** não há limite. O mesmo membro pode receber quantos KPIs o Admin quiser no mesmo
+dia, somando presença em várias reuniões, KPIs ao vivo e atribuições individuais.
+
+**Precisa:** uma regra clara de quanto um membro pode receber por dia, no total e por
+categoria, contando reunião e atribuição individual juntas. A regra ainda precisa ser
+validada antes de implementar. A análise, com dados, perguntas em aberto e uma proposta
+inicial (10 por dia no total, com limites por categoria), está em
+[`analises/limite-diario-de-kpis.md`](analises/limite-diario-de-kpis.md).
+
+## Modo reunião
+
+### PB07 — Uma reunião aberta por vez, sem "continuar"
+
+**Hoje:** a API deixa criar várias reuniões abertas ao mesmo tempo. Nada impede um
+segundo `POST /meetings` com outra ainda aberta. A preparação do modo reunião lista as
+reuniões abertas com o botão **Continuar** (`OpenMeetings`, em
+`pages/admin/meeting/components/meeting-setup.tsx`), e o Admin pode sair e voltar
+depois.
+
+**Precisa:**
+- só **uma** reunião aberta por vez. Reunião é o time todo reunido, normalmente a daily
+  num horário fixo, e não existem duas ao mesmo tempo. A API deve recusar a criação
+  quando já houver uma aberta, com um código novo (por exemplo
+  `MEETING_ALREADY_OPEN`, `409`);
+- reunião iniciada não se continua depois: ela termina em **encerrar**. Tirar o
+  "Continuar" da preparação;
+- definir o que acontece com uma reunião que ficou aberta por acidente (aba fechada,
+  queda de rede): encerrar automaticamente ou oferecer só "encerrar" ao abrir de novo;
+- decidir junto com a API o que fazer com as reuniões abertas que já existem no banco.
+
+### PB08 — Confirmar antes de sair da reunião pelo X
+
+**Hoje:** o X do `MeetingShell` chama `onExit` direto, sem confirmação. Um clique
+acidental tira o Admin da reunião ao vivo.
+
+**Precisa:** modal de confirmação ao clicar no X durante a reunião, com as opções
+**Encerrar reunião** e **Cancelar**. Combina com PB07: sair sem encerrar deixa de ser
+opção.
+
+### PB09 — Remover KPI clicando na tag, no lugar do "Desfazer"
+
+**Hoje:** o botão **Desfazer** (`handleUndo` em `pages/admin/meeting/index.tsx`) revoga
+sempre a **última** atribuição da reunião (`lastActiveAssignment`). Funciona como pilha.
+Ver BG04.
+
+**Precisa:**
+- remover o botão **Desfazer**;
+- cada KPI recebido aparece como tag no card do participante, e clicar na tag revoga
+  **aquela** atribuição na hora (`DELETE /kpi-assignments/{id}`, que já existe);
+- feedback visual da remoção e mensagem de erro se a revogação falhar.
+
+### PB10 — Confete ao dar KPI e no encerramento
+
+**Hoje:** não há animação de celebração no modo reunião.
+
+**Precisa:**
+- confete curto e discreto a cada KPI atribuído, saindo do card do participante;
+- no encerramento, junto com o relatório da reunião, confete mais animado destacando os
+  **3 participantes com mais pontos** (o pódio que o resumo já mostra);
+- respeitar `prefers-reduced-motion`: sem animação para quem desativou movimento no
+  sistema.
+
+## Segurança e robustez da API
+
+Tarefas a fazer. Hoje o `apps/server` registra só `@fastify/cors` e os handlers oRPC.
+
+### SR01 — Rate limiting nas rotas
+
+**Hoje:** não existe limite de requisições. Login, refresh, validação de convite e
+cadastro aceitam tentativas sem limite, o que abre espaço para força bruta de senha e
+de token de convite.
+
+**Fazer:**
+- registrar `@fastify/rate-limit` no `apps/server`;
+- limite global por IP e limites mais rígidos em `auth.login`, `auth.refresh`,
+  `auth.validateInvite` e `auth.register`;
+- resposta `429` com `Retry-After`, e o front mostrando mensagem própria;
+- valores em `packages/env`, não fixos no código;
+- teste cobrindo o bloqueio e a liberação.
+
+### SR02 — Cabeçalhos e endurecimento HTTP
+
+**Fazer:**
+- `@fastify/helmet` com os cabeçalhos de segurança (HSTS, `X-Content-Type-Options`,
+  `frame-ancestors` etc.);
+- `bodyLimit` explícito no Fastify;
+- revisar o CORS (`CORS_ORIGIN`) para aceitar só a origem do web;
+- decidir se `/api-reference` fica exposto fora de `development`;
+- registrar a decisão em ADR.
+
+### SR03 — Tratamento de erros padronizado
+
+**Hoje:** erro de domínio vira `ORPCError` com `data.code`
+(`packages/api/src/shared/errors/error-mapper.ts`). Erro inesperado sai como
+`INTERNAL_SERVER_ERROR` com `console.error`, fora do logger do Fastify e sem id de
+requisição.
+
+**Fazer:**
+- logar erro inesperado pelo logger do Fastify (pino), com id da requisição e sem dado
+  sensível (senha, token, `Authorization`);
+- devolver o id da requisição na resposta de erro, para cruzar com o log;
+- conferir que toda rota passa por `handle()` e que nenhum erro do Prisma vaza
+  mensagem interna;
+- padronizar no front a mensagem para `429`, `500` e erro de rede;
+- testes para os caminhos de erro inesperado.
+
 ## Documentação errada
 
 ### DE01 — README diz que o Admin atribui KPI individualmente e em massa
@@ -85,6 +207,19 @@ Abrir a reunião e registrar a presença são duas chamadas. Se a segunda falhar
 fica criada sem presença, e o front só mostra um toast pedindo para marcar de novo em
 "Adicionar participantes" (`pages/admin/meeting/index.tsx`). Deixa de existir se PB02
 fizer a presença acontecer junto com a entrada na reunião.
+
+### BG04 — "Desfazer" do modo reunião só desfaz o último KPI
+
+O **Desfazer** revoga sempre a atribuição mais recente da reunião. Se o Admin deu um KPI
+errado ao membro 1 e depois deu KPIs certos aos membros 2 e 3, para corrigir o membro 1
+ele precisa desfazer os KPIs certos dos membros 2 e 3 antes e dar tudo de novo. A
+correção está em PB09.
+
+### BG05 — Várias reuniões abertas ao mesmo tempo
+
+A API aceita criar uma reunião nova com outra ainda aberta, e o front lista todas para
+continuar. Presença e KPIs podem acabar registrados na reunião errada. A correção está
+em PB07.
 
 ## Código morto no front
 
